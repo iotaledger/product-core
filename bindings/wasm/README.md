@@ -12,7 +12,7 @@ Here is an overview of the existing artifacts:
 
 * `iota_interaction_ts`<br>
   Imports TypeScript IOTA Client SDK types using wasm-bindgen generated wasm bindings
-  and implements identity_iota_interaction traits (among others, IotaClient and MoveCall traits) for wasm32 platforms.
+  and implements iota_interaction traits (among others, IotaClient and MoveCall traits) for wasm32 platforms.
 
 ## Building an Artifact
 

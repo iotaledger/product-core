@@ -5,9 +5,9 @@ use std::str::FromStr;
 
 use crate::error::Result;
 use crate::error::WasmResult;
-use identity_iota_interaction::types::base_types::IotaAddress;
-use identity_iota_interaction::KeytoolSigner;
-use identity_iota_interaction::KeytoolSignerBuilder;
+use iota_interaction::types::base_types::IotaAddress;
+use iota_interaction::KeytoolSigner;
+use iota_interaction::KeytoolSignerBuilder;
 use secret_storage::Signer;
 use serde_json::Value;
 use wasm_bindgen::prelude::wasm_bindgen;

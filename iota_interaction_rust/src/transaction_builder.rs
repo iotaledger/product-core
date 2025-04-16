@@ -5,9 +5,9 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 
 use crate::rebased::Error;
-use identity_iota_interaction::types::programmable_transaction_builder::ProgrammableTransactionBuilder;
-use identity_iota_interaction::ProgrammableTransactionBcs;
-use identity_iota_interaction::TransactionBuilderT;
+use iota_interaction::types::programmable_transaction_builder::ProgrammableTransactionBuilder;
+use iota_interaction::ProgrammableTransactionBcs;
+use iota_interaction::TransactionBuilderT;
 
 #[derive(Default)]
 pub(crate) struct TransactionBuilderRustSdk {
