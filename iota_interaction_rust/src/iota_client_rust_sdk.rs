@@ -9,7 +9,7 @@ use std::result::Result;
 
 use secret_storage::Signer;
 
-use crate::rebased::Error;
+use iota_interaction::interaction_error::Error;
 use iota_interaction::apis::CoinReadApi;
 use iota_interaction::apis::EventApi;
 use iota_interaction::apis::QuorumDriverApi;
@@ -347,7 +347,7 @@ impl IotaClientTrait for IotaClientRustSdk {
       )
       .await
       .map_err(|err| {
-        Error::InvalidIdentityHistory(format!("could not get previous transaction {prev_tx_digest}; {err}"))
+        Error::InvalidTransactionHistory(format!("could not get previous transaction {prev_tx_digest}; {err}"))
       })?;
 
     // check for updated/created changes
@@ -355,7 +355,7 @@ impl IotaClientTrait for IotaClientRustSdk {
       .clone()
       .object_changes
       .ok_or_else(|| {
-        Error::InvalidIdentityHistory(format!(
+        Error::InvalidTransactionHistory(format!(
           "could not find object changes for object {} in transaction {prev_tx_digest}",
           iod.object_id
         ))
@@ -388,7 +388,7 @@ impl IotaClientTrait for IotaClientRustSdk {
     let past_obj_response = self.get_past_object(iod.object_id, *earliest_previous).await?;
     match past_obj_response {
       IotaPastObjectResponse::VersionFound(value) => Ok(Some(value)),
-      _ => Err(Error::InvalidIdentityHistory(format!(
+      _ => Err(Error::InvalidTransactionHistory(format!(
         "could not find previous version, past object response: {past_obj_response:?}"
       ))),
     }
@@ -405,7 +405,7 @@ impl IotaClientTrait for IotaClientRustSdk {
       .try_get_parsed_past_object(object_id, version, IotaObjectDataOptions::full_content())
       .await
       .map_err(|err| {
-        Error::InvalidIdentityHistory(format!("could not look up object {object_id} version {version}; {err}"))
+        Error::InvalidTransactionHistory(format!("could not look up object {object_id} version {version}; {err}"))
       })
   }
 }

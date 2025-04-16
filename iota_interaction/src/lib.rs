@@ -5,6 +5,7 @@
 
 #![allow(missing_docs)]
 
+pub mod interaction_error;
 mod iota_client_trait;
 mod iota_verifiable_credential;
 #[cfg(feature = "keytool-signer")]

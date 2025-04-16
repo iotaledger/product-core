@@ -1,17 +1,12 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-pub(crate) mod asset_move_calls;
-pub(crate) mod identity_move_calls;
 pub(crate) mod iota_client_rust_sdk;
-pub(crate) mod migration_move_calls;
 pub(crate) mod transaction_builder;
 mod utils;
 
-pub(crate) use asset_move_calls::AssetMoveCallsRustSdk as AssetMoveCallsAdapter;
-pub(crate) use identity_move_calls::IdentityMoveCallsRustSdk as IdentityMoveCallsAdapter;
+#[allow(unused_imports)]
 pub(crate) use iota_client_rust_sdk::IotaClientRustSdk as IotaClientAdapter;
-pub(crate) use migration_move_calls::MigrationMoveCallsRustSdk as MigrationMoveCallsAdapter;
 #[allow(unused_imports)]
 pub(crate) use transaction_builder::TransactionBuilderRustSdk as TransactionBuilderAdapter;
 

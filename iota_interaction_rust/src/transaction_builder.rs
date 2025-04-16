@@ -4,7 +4,7 @@
 use std::ops::Deref;
 use std::ops::DerefMut;
 
-use crate::rebased::Error;
+use iota_interaction::interaction_error::Error;
 use iota_interaction::types::programmable_transaction_builder::ProgrammableTransactionBuilder;
 use iota_interaction::ProgrammableTransactionBcs;
 use iota_interaction::TransactionBuilderT;

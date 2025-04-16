@@ -1,7 +1,7 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::rebased::Error;
+use iota_interaction::interaction_error::Error;
 use iota_interaction::move_types::ident_str;
 use iota_interaction::rpc_types::OwnedObjectRef;
 use iota_interaction::types::base_types::ObjectID;
