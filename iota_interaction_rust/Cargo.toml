@@ -1,0 +1,40 @@
+[package]
+name = "iota_interaction_rust"
+version = "1.6.0-alpha"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "iota_interaction Adapters for non wasm platforms."
+keywords = ["iota", "tangle"]
+readme = "./README.md"
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+bcs.workspace = true
+cfg-if.workspace = true
+fastcrypto.workspace = true
+secret-storage.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction"}
+iota-sdk.workspace = true
+tokio = { version = "1", optional = true, default-features = false, features = ["process"] }
+
+[package.metadata.docs.rs]
+# To build locally:
+# RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --no-deps --workspace --open
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lints.clippy]
+result_large_err = "allow"
+
+[lints.rust]
+# from local sdk types
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(msim)'] }
