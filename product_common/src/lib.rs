@@ -1,4 +1,5 @@
-pub mod objects;
+pub mod object;
+pub mod network_name;
 pub mod test_common;
 pub mod transaction;
 pub mod transaction_builder;
