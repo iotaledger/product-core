@@ -4,3 +4,4 @@ pub mod transaction;
 pub mod transaction_builder;
 pub mod utils;
 pub mod well_known_networks;
+pub mod core_client;

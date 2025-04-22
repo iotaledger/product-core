@@ -16,9 +16,12 @@ anyhow.workspace = true
 async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+secret-storage = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction"}
+iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction" }
+iota-sdk = { workspace = true }
+
 
 [package.metadata.docs.rs]
 # To build locally:
@@ -32,3 +35,6 @@ result_large_err = "allow"
 [lints.rust]
 # from local sdk types
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(msim)'] }
+
+[features]
+send-sync = ["secret-storage/send-sync-storage"]
