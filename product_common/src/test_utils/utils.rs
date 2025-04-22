@@ -5,13 +5,17 @@ use std::process::Output;
 
 use anyhow::Context as _;
 use iota_interaction::types::base_types::ObjectID;
-use iota_sdk::IotaClient;
-use iota_sdk::IotaClientBuilder;
 use serde::Deserialize;
-#[cfg(not(target_arch = "wasm32"))]
-use tokio::process::Command;
 
-use crate::rebased::Error;
+cfg_if::cfg_if! {
+  if #[cfg(not(target_arch = "wasm32"))] {
+    use tokio::process::Command;
+    use iota_sdk::IotaClient;
+    use iota_sdk::IotaClientBuilder;
+  }
+}
+
+use crate::Error;
 use iota_interaction::types::base_types::IotaAddress;
 
 const FUND_WITH_ACTIVE_ADDRESS_FUNDING_TX_BUDGET: u64 = 5_000_000;

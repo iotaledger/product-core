@@ -8,10 +8,13 @@ pub mod types;
 #[path = "move_core_types/mod.rs"]
 pub mod move_types;
 
-pub mod shared_crypto;
 pub mod error;
 pub mod generated_types;
+pub mod iota_sdk_lib;
+pub mod shared_crypto;
 
 pub(crate) use types as iota_types;
 pub(crate) use move_types as move_core_types;
 pub(crate) use rpc_types as iota_json_rpc_types;
+
+pub use iota_sdk_lib::*;

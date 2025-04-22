@@ -5,40 +5,23 @@
 use anyhow::anyhow;
 use anyhow::Context;
 use async_trait::async_trait;
-use identity_iota_core::rebased::client::IdentityClient;
-use identity_iota_core::rebased::client::IdentityClientReadOnly;
-use identity_iota_core::rebased::transaction_builder::Transaction;
-use identity_iota_core::rebased::transaction_builder::TransactionBuilder;
-use identity_iota_core::rebased::utils::request_funds;
-use identity_iota_core::rebased::Error;
-use identity_iota_core::rebased::KeytoolSigner;
-use identity_iota_core::IotaDID;
+// use crate::transaction_builder::Transaction;
+// use crate::transaction_builder::TransactionBuilder;
+use crate::utils::request_funds;
+use crate::Error;
+use iota_interaction::keytool_signer::KeytoolSigner;
 use iota_interaction::rpc_types::IotaTransactionBlockEffects;
 use iota_interaction::rpc_types::IotaTransactionBlockEffectsAPI;
 use iota_interaction::types::transaction::ProgrammableTransaction;
 use iota_interaction::IotaKeySignature;
 use iota_interaction::OptionalSync;
-use identity_jose::jwk::Jwk;
-use identity_jose::jws::JwsAlgorithm;
-use identity_storage::JwkMemStore;
-use identity_storage::JwkStorage;
-use identity_storage::KeyId;
-use identity_storage::KeyIdMemstore;
-use identity_storage::KeyIdStorage;
-use identity_storage::KeyType;
-use identity_storage::MethodDigest;
-use identity_storage::Storage;
-use identity_storage::StorageSigner;
-use identity_verification::VerificationMethod;
-use iota_sdk::types::base_types::IotaAddress;
-use iota_sdk::types::base_types::ObjectID;
-use iota_sdk::types::crypto::SignatureScheme;
-use iota_sdk::types::programmable_transaction_builder::ProgrammableTransactionBuilder;
-use iota_sdk::types::TypeTag;
-use iota_sdk::types::IOTA_FRAMEWORK_PACKAGE_ID;
-use iota_sdk::IotaClient;
-use iota_sdk::IotaClientBuilder;
-use iota_sdk::IOTA_LOCAL_NETWORK_URL;
+use iota_interaction::types::base_types::IotaAddress;
+use iota_interaction::types::base_types::ObjectID;
+use iota_interaction::types::crypto::SignatureScheme;
+use iota_interaction::types::programmable_transaction_builder::ProgrammableTransactionBuilder;
+use iota_interaction::types::TypeTag;
+use iota_interaction::types::IOTA_FRAMEWORK_PACKAGE_ID;
+use iota_interaction::IOTA_LOCAL_NETWORK_URL;
 use lazy_static::lazy_static;
 use move_core_types::ident_str;
 use move_core_types::language_storage::StructTag;
@@ -51,6 +34,13 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tokio::process::Command;
 use tokio::sync::OnceCell;
+
+cfg_if::cfg_if! {
+  if #[cfg(not(feature = "wasm"))] {
+    use iota_sdk::IotaClient;
+    use iota_sdk::IotaClientBuilder;
+  }
+}
 
 pub type MemStorage = Storage<JwkMemStore, KeyIdMemstore>;
 pub type MemSigner<'s> = StorageSigner<'s, JwkMemStore, KeyIdMemstore>;
