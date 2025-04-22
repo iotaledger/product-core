@@ -10,12 +10,12 @@ use iota_interaction::ProgrammableTransactionBcs;
 use iota_interaction::TransactionBuilderT;
 
 #[derive(Default)]
-pub(crate) struct TransactionBuilderRustSdk {
-  pub(crate) builder: ProgrammableTransactionBuilder,
+pub struct TransactionBuilderRustSdk {
+  pub builder: ProgrammableTransactionBuilder,
 }
 
 impl TransactionBuilderRustSdk {
-  pub(crate) fn new(builder: ProgrammableTransactionBuilder) -> Self {
+  pub fn new(builder: ProgrammableTransactionBuilder) -> Self {
     TransactionBuilderRustSdk { builder }
   }
 }
