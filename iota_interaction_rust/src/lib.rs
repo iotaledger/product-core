@@ -3,7 +3,6 @@
 
 pub mod iota_client_rust_sdk;
 pub mod transaction_builder;
-pub mod error;
 mod utils;
 
 #[allow(unused_imports)]
@@ -12,7 +11,7 @@ pub use iota_client_rust_sdk::IotaClientRustSdk as IotaClientAdapter;
 pub use transaction_builder::TransactionBuilderRustSdk as TransactionBuilderAdapter;
 
 #[allow(unused_imports)]
-pub use error::Error as AdapterError;
+pub use iota_interaction::interaction_error::Error as AdapterError;
 #[allow(unused_imports)]
 pub use iota_client_rust_sdk::CoinReadApiAdaptedT;
 #[allow(unused_imports)]
