@@ -56,3 +56,6 @@ result_large_err = "allow"
 [lints.rust]
 # from local sdk types
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(msim)'] }
+
+[features]
+send-sync = ["secret-storage/send-sync-storage"]

@@ -1,3 +1,4 @@
+pub mod core_client;
 pub mod error;
 pub mod object;
 pub mod network_name;
