@@ -7,7 +7,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/iotaledger/identity.rs.git"
+    "url": "git+https://github.com/iotaledger/product-core.git"
   },
   "scripts": {
     "build:src": "cargo build --lib --release --target wasm32-unknown-unknown --target-dir ../target",
@@ -22,7 +22,7 @@
     "fmt": "dprint fmt"
   },
   "bugs": {
-    "url": "https://github.com/iotaledger/identity.rs/issues"
+    "url": "https://github.com/iotaledger/product-core/issues"
   },
   "publishConfig": {
     "access": "public"

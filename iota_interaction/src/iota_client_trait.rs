@@ -59,7 +59,7 @@ impl SignatureSchemeSecretStorage for IotaKeySignature {
 //  * EventTrait -> EventApiT
 //
 // Platform specific trait specializations are defined
-// in modules identity_iota_core::iota_interaction_rust and
+// in modules iota_interaction_rust and
 // iota_interaction_ts with the following names:
 //  * QuorumDriverApiAdaptedT
 //  * ReadApiAdaptedT

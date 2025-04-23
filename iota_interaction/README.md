@@ -1,10 +1,10 @@
 # Platform Agnostic Iota Interaction
 
 This crate gathers types needed to interact with IOTA nodes in a platform-agnostic way
-to allow building the Identity library for WASM32 architectures.
+to allow building product specific Rust libraries for WASM32 architectures.
 
 The folder `sdk_types`, contained in this crate, provides a selection of
-code copied from the iotaledger/iota.git repository:
+code copied from the *iotaledger/iota.git* repository:
 
 | Folder Name                        | Original Source in iotaledger/iota.git               |
 |------------------------------------|------------------------------------------------------|
@@ -23,7 +23,7 @@ This crate (file 'lib.rs' contained in this folder) provides several
 * For **NON wasm32 targets**, the original _IOTA Client Rust SDK_ sources are provided
 * For **WASM32 targets** the code contained in the `sdk_types` folder is used
 
-Please make sure always to import the SDK dependencies via `use identity_iota::iota_interaction::...`
+Please make sure always to import the SDK dependencies via `use iota_interaction::...`
 instead of `use iota_sdk::...` in your code. This way the dependencies needed for your
 code are automatically switched according to the currently used build target.
 
@@ -39,13 +39,12 @@ TODOs:
 
 * Always build your code additionally for the wasm32-unknown-unknown target
   before committing your code:<br>
-  `cargo build --package identity_iota_.... --lib --target wasm32-unknown-unknown`
+  `cargo build --package my_awesome_product_package --lib --target wasm32-unknown-unknown`
 * We need to add tests for the wasm32-unknown-unknown target in the CI toolchain
   to make sure the code is always buildable for wasm32 targets.
 
 All cross-platform usable types and traits (cross-platform-traits)
 are contained in this crate.
 Platform specific adapters (implementing the cross-platform-traits) are contained in
-the crate [bindings/wasm/iota_interaction_ts](../../bindings/wasm/iota_interaction_ts)
-and in the folder
-[identity_iota_core/src/iota_interaction_rust](../../identity_iota_core/src/iota_interaction_rust).
+the crates [bindings/wasm/iota_interaction_ts](../bindings/wasm/iota_interaction_ts)
+and [iota_interaction_rust](../iota_interaction_rust).

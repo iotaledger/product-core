@@ -372,7 +372,7 @@ impl IotaClientTrait for IotaClientTsSdk {
       .await
       .map_err(|err| {
         // TODO: check error variant here, selection has been reduced / focused
-        // Self::Error::InvalidIdentityHistory(format!("could not look up object {object_id} version {version}; {err}"))
+        // Self::Error::InvalidTransactionHistory(format!("could not look up object {object_id} version {version}; {err}"))
         Self::Error::JsSysError(format!("could not look up object {object_id} version {version}; {err}"))
       })
   }

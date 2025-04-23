@@ -30,7 +30,7 @@ pub enum Error {
   #[error("transaction returned an unexpected response; {0}")]
   TransactionUnexpectedResponse(String),
   #[error("unexpected state when looking up a previous transaction; {0}")]
-  /// Unexpected state when looking up identity history.
+  /// Unexpected state when looking up the transaction history of an IOTA object.
   InvalidTransactionHistory(String),
   /// An error caused by either a connection issue or an invalid RPC call.
   #[error("RPC error: {0}")]

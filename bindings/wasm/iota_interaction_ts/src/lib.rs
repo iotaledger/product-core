@@ -5,29 +5,20 @@
 pub mod bindings;
 
 #[cfg(target_arch = "wasm32")]
-pub mod asset_move_calls;
-#[cfg(target_arch = "wasm32")]
 pub mod common;
 #[cfg(target_arch = "wasm32")]
 pub mod error;
 #[cfg(target_arch = "wasm32")]
-pub mod identity_move_calls;
-#[cfg(target_arch = "wasm32")]
 pub mod iota_client_ts_sdk;
-#[cfg(target_arch = "wasm32")]
-mod migration_move_calls;
 #[cfg(target_arch = "wasm32")]
 pub mod transaction_builder;
 
 cfg_if::cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         #[allow(unused_imports)] pub use error::TsSdkError as AdapterError;
-        #[allow(unused_imports)] pub use asset_move_calls::AssetMoveCallsTsSdk as AssetMoveCallsAdapter;
-        #[allow(unused_imports)] pub use identity_move_calls::IdentityMoveCallsTsSdk as IdentityMoveCallsAdapter;
         #[allow(unused_imports)] pub use iota_client_ts_sdk::IotaClientTsSdk as IotaClientAdapter;
         #[allow(unused_imports)] pub use iota_client_ts_sdk::IotaTransactionBlockResponseProvider as IotaTransactionBlockResponseAdapter;
         #[allow(unused_imports)] pub use bindings::WasmIotaTransactionBlockResponseWrapper as NativeTransactionBlockResponse;
-        #[allow(unused_imports)] pub use migration_move_calls::MigrationMoveCallsTsSdk as MigrationMoveCallsAdapter;
         #[allow(unused_imports)] pub use transaction_builder::TransactionBuilderTsSdk as TransactionBuilderAdapter;
 
         #[allow(unused_imports)] pub use iota_client_ts_sdk::IotaTransactionBlockResponseAdaptedT;

@@ -67,7 +67,7 @@ pub fn owned_ref_to_shared_object_arg(
   mutable: bool,
 ) -> anyhow::Result<Argument> {
   let Owner::Shared { initial_shared_version } = owned_ref.owner else {
-    anyhow::bail!("Identity \"{}\" is not a shared object", owned_ref.object_id());
+    anyhow::bail!("Object \"{}\" is not a shared object", owned_ref.object_id());
   };
   ptb.obj(ObjectArg::SharedObject {
     id: owned_ref.object_id(),
