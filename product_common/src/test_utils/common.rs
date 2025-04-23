@@ -5,9 +5,11 @@
 use anyhow::anyhow;
 use anyhow::Context;
 use async_trait::async_trait;
-// use crate::transaction_builder::Transaction;
-// use crate::transaction_builder::TransactionBuilder;
-use crate::utils::request_funds;
+#[cfg(feature = "transaction")]
+use crate::transaction_builder::Transaction;
+#[cfg(feature = "transaction")]
+use crate::transaction_builder::TransactionBuilder;
+use super::utils::request_funds;
 use crate::Error;
 use iota_interaction::keytool_signer::KeytoolSigner;
 use iota_interaction::rpc_types::IotaTransactionBlockEffects;
@@ -263,26 +265,6 @@ impl TestClient {
     self.client.signer()
   }
 
-  pub async fn store_key_id_for_verification_method(
-    &self,
-    identity_client: IdentityClient<StorageSigner<'_, JwkMemStore, KeyIdMemstore>>,
-    did: IotaDID,
-  ) -> anyhow::Result<()> {
-    let public_key = identity_client.signer().public_key();
-    let key_id = identity_client.signer().key_id();
-    let fragment = key_id.as_str();
-    let method = VerificationMethod::new_from_jwk(did, public_key.clone(), Some(fragment))?;
-    let method_digest: MethodDigest = MethodDigest::new(&method)?;
-
-    self
-      .storage
-      .key_id_storage()
-      .insert_key_id(method_digest, key_id.clone())
-      .await?;
-
-    Ok(())
-  }
-
   pub async fn new_user_client(&self) -> anyhow::Result<IdentityClient<MemSigner>> {
     let generate = self
       .storage
@@ -300,6 +282,7 @@ impl TestClient {
   }
 }
 
+#[cfg(feature = "transaction")]
 pub async fn get_test_coin<S>(recipient: IotaAddress, client: &IdentityClient<S>) -> anyhow::Result<ObjectID>
 where
   S: Signer<IotaKeySignature> + OptionalSync,
@@ -352,6 +335,7 @@ struct GetTestCoin {
   recipient: IotaAddress,
 }
 
+#[cfg(feature = "transaction")]
 #[async_trait]
 impl Transaction for GetTestCoin {
   type Output = ObjectID;

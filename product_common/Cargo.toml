@@ -15,14 +15,24 @@ readme = "./README.md"
 anyhow.workspace = true
 async-trait.workspace = true
 cfg-if.workspace = true
+itertools = { version = "0.13.0", optional = true }
+lazy_static = { version = "1.5.0", optional = true }
 phf.workspace = true
+secret-storage = { git = "https://github.com/iotaledger/secret-storage.git", tag = "v0.3.0", optional = true }
 serde.workspace = true
 serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 
+[dependencies.identity_jose]
+git = "https://github.com/iotaledger/identity.rs.git"
+branch = "feat/identity-rebased-alpha-public-interaction-rust"
+package = "identity_jose"
+optional = true
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", features = ["keytool-signer"]}
+iota_interaction_rust = { version = "=1.6.0-alpha", path = "../iota_interaction_rust", optional = true}
 iota-sdk.workspace = true
 tokio = { version = "1", default-features = false, features = ["process"] }
 
@@ -31,7 +41,8 @@ iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", def
 
 [features]
 default = []
-test_utils = []
+test_utils = ["dep:identity_jose", "dep:lazy_static", "dep:secret-storage"]
+transaction = ["dep:iota_interaction_rust", "dep:itertools", "dep:secret-storage"]
 
 [package.metadata.docs.rs]
 # To build locally:
