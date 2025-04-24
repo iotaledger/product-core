@@ -11,7 +11,7 @@ mod effects_mut_api;
 mod iota_client_trait;
 mod iota_verifiable_credential;
 #[cfg(feature = "keytool")]
-pub mod keytool_signer;
+pub mod keytool;
 mod move_type;
 mod transaction_builder_trait;
 
