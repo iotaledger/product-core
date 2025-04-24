@@ -41,7 +41,8 @@ cfg_if::cfg_if! {
         #[allow(unused_imports)] pub use bindings::Secp256k1PublicKey as WasmSecp256k1PublicKey;
         #[allow(unused_imports)] pub use bindings::WasmIotaSignature;
         #[cfg(feature = "keytool")]
-        pub use bindings::WasmKeytoolSigner;
+        #[allow(unused_imports)]
+        pub use bindings::keytool::*;
 
         #[allow(unused_imports)] pub use transaction_builder::NativeTsTransactionBuilderBindingWrapper;
     }
