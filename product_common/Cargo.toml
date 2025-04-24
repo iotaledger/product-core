@@ -31,7 +31,7 @@ package = "identity_jose"
 optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", features = ["keytool-signer"]}
+iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", features = ["keytool"]}
 iota_interaction_rust = { version = "=1.6.0-alpha", path = "../iota_interaction_rust", optional = true}
 iota-sdk.workspace = true
 tokio = { version = "1", default-features = false, features = ["process"] }
@@ -41,6 +41,7 @@ iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", def
 
 [features]
 default = []
+send-sync = ["secret-storage/send-sync-storage"]
 test_utils = ["dep:identity_jose", "dep:lazy_static", "dep:secret-storage"]
 transaction = ["dep:iota_interaction_rust", "dep:itertools", "dep:secret-storage"]
 
@@ -56,6 +57,3 @@ result_large_err = "allow"
 [lints.rust]
 # from local sdk types
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(msim)'] }
-
-[features]
-send-sync = ["secret-storage/send-sync-storage"]
