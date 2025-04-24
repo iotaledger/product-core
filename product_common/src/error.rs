@@ -13,5 +13,14 @@ pub enum Error {
   InvalidNetworkName(String),
   /// failed to connect to network.
   #[error("failed to connect to iota network node; {0:?}")]
-  Network(String, #[source] iota_interaction::error::Error),  
+  Network(String, #[source] iota_interaction::error::Error),
+  /// Caused by issues with paying for transaction.
+  #[error("issue with gas for transaction: {0}")]
+  GasIssue(String),
+  /// Could not build transaction.
+  #[error("failed to build transaction; {0}")]
+  TransactionBuildingFailed(String),
+  /// Could not sign transaction.
+  #[error("failed to sign transaction; {0}")]
+  TransactionSigningFailed(String),  
 }
