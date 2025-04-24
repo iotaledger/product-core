@@ -6,16 +6,19 @@
 #![allow(missing_docs)]
 
 pub mod interaction_error;
+
+mod effects_mut_api;
 mod iota_client_trait;
 mod iota_verifiable_credential;
-#[cfg(feature = "keytool-signer")]
+#[cfg(feature = "keytool")]
 pub mod keytool_signer;
 mod move_type;
 mod transaction_builder_trait;
 
+pub use effects_mut_api::*;
 pub use iota_client_trait::*;
 pub use iota_verifiable_credential::*;
-#[cfg(feature = "keytool-signer")]
+#[cfg(feature = "keytool")]
 pub use keytool_signer::*;
 pub use move_type::*;
 pub use transaction_builder_trait::*;
