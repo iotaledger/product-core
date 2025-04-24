@@ -1,20 +1,28 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::ops::Deref;
+
+use std::ops::{Deref};
 
 use anyhow::Context as _;
 use async_trait::async_trait;
 
+use iota_interaction::rpc_types::{
+    IotaTransactionBlockEffects, IotaTransactionBlockResponseOptions,
+};
+use iota_interaction::types::base_types::{IotaAddress, ObjectRef};
+use iota_interaction::types::crypto::Signature;
+use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
+use iota_interaction::types::transaction::GasData;
+use iota_interaction::types::transaction::{
+    ProgrammableTransaction, TransactionData, TransactionKind,
+};
+use iota_interaction::types::transaction::TransactionDataAPI;
 use iota_interaction::{IotaKeySignature, OptionalSync};
-use iota_sdk::rpc_types::IotaTransactionBlockResponseOptions;
-use iota_sdk::types::base_types::{IotaAddress, ObjectRef};
-use iota_sdk::types::crypto::Signature;
-use iota_sdk::types::quorum_driver_types::ExecuteTransactionRequestType;
-use iota_sdk::types::transaction::{ProgrammableTransaction, TransactionData, TransactionKind};
 use secret_storage::Signer;
-
+use iota_interaction::shared_crypto::intent::{Intent, IntentMessage};
 use crate::core_client::{CoreClient, CoreClientReadOnly};
+use crate::error::{Error, Result};
 
 #[cfg(target_arch = "wasm32")]
 use super::transaction::TransactionOutputInternal as TransactionOutput;
@@ -26,6 +34,8 @@ use super::TransactionOutput;
 #[cfg_attr(feature = "send-sync", async_trait)]
 #[cfg_attr(not(feature = "send-sync"), async_trait(?Send))]
 pub trait Transaction {
+    /// Error type for this transaction.
+    type Error;
     /// Output type for this transaction.
     type Output;
 
@@ -33,7 +43,7 @@ pub trait Transaction {
     async fn build_programmable_transaction(
         &self,
         client: &impl CoreClientReadOnly,
-    ) -> Result<ProgrammableTransaction, Error>;
+    ) -> Result<ProgrammableTransaction, Self::Error>;
 
     /// Parses a transaction result in order to compute its effects.
     /// ## Notes
@@ -46,7 +56,10 @@ pub trait Transaction {
         self,
         effects: IotaTransactionBlockEffects,
         client: &impl CoreClientReadOnly,
-    ) -> (Result<Self::Output, Error>, IotaTransactionBlockEffects);
+    ) -> (
+        Result<Self::Output, Self::Error>,
+        IotaTransactionBlockEffects,
+    );
 }
 
 #[derive(Debug, Default, Clone)]
