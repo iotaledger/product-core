@@ -16,7 +16,7 @@ anyhow.workspace = true
 async-trait = { version = "0.1.81", default-features = false }
 bcs.workspace = true
 cfg-if.workspace = true
-fastcrypto.workspace = true
+fastcrypto = { git = "https://github.com/MystenLabs/fastcrypto", rev = "2f502fd8570fe4e9cff36eea5bbd6fef22002898", package = "fastcrypto", features = ["copy_key"] }
 jsonpath-rust = { version = "0.5.1", optional = true }
 secret-storage.workspace = true
 serde.workspace = true
