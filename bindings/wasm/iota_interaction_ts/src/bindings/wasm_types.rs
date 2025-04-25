@@ -13,7 +13,6 @@ use iota_interaction::types::base_types::ObjectRef;
 use iota_interaction::types::base_types::SequenceNumber;
 use iota_interaction::types::crypto::PublicKey;
 use iota_interaction::types::crypto::Signature;
-use iota_interaction::types::crypto::SignatureScheme;
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::execution_status::CommandArgumentError;
 use iota_interaction::types::object::Owner;

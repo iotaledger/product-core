@@ -3,4 +3,3 @@
 
 export * from "~iota_interaction_ts";
 export * as iota_client_helpers from "./iota_client_helpers";
-export * as move_calls from "./move_calls";
