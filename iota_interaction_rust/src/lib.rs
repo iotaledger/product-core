@@ -3,7 +3,7 @@
 
 pub mod iota_client_rust_sdk;
 pub mod transaction_builder;
-mod utils;
+pub mod utils;
 
 #[allow(unused_imports)]
 pub use iota_client_rust_sdk::IotaClientRustSdk as IotaClientAdapter;

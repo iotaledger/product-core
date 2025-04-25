@@ -19,7 +19,7 @@ pub use effects_mut_api::*;
 pub use iota_client_trait::*;
 pub use iota_verifiable_credential::*;
 #[cfg(feature = "keytool")]
-pub use keytool_signer::*;
+pub use keytool::*;
 pub use move_type::*;
 pub use transaction_builder_trait::*;
 
