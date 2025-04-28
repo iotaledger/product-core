@@ -12,19 +12,44 @@
 
 ## About
 
-TBD
+This repository gathers resources shared by IOTA products.
 
 ## Build
 
-TBD
+To build the Rust workspace you need to have `Rust` and `Cargo` installed.
+You can find installation instructions in
+the [Rust documentation](https://doc.rust-lang.org/cargo/getting-started/installation.html).
 
-### Prerequisites
+We recommend that you update the Rust compiler to the latest stable version first:
 
-TBD
+```shell
+rustup update stable
+```
+
+The [iota_interaction_ts](bindings/wasm/iota_interaction_ts) folder contains
+NodeJS and Web Javascript packages that can be build as follows:
+
+```
+> # In folder bindings/wasm/iota_interaction_ts
+> npm install
+> npm run build
+```
 
 ## Usage
 
-TBD
+This Repository only provides libraries that can be used as dependencies in other
+IOTA products:
+
+* [iota_interaction](./iota_interaction)<br>
+  Platform Agnostic Iota Interaction Interfaces
+    * [iota_interaction_rust](./iota_interaction)<br>
+      `iota_interaction` implementation for non-wasm targets using the IOTA
+      Rust SDK
+    * [iota_interaction_ts](./iota_interaction)<br>
+      `iota_interaction` implementation for wasm32 targets (only NodeJS and Web) using the IOTA
+      TypeScript SDK
+* [product_common](./product_common)<br>
+  Shared Rust code used in other IOTA product repositories  
 
 ## Issues
 
@@ -44,8 +69,6 @@ Don't forget to give the project a star! Thanks again!
 5. Open a Pull Request
 
 <p align="right">(<a href="#top">back to top</a>)</p>
-
-
 
 <!-- LICENSE -->
 ## License
