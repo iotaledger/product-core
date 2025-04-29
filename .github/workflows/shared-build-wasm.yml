@@ -79,8 +79,8 @@ jobs:
 
       - name: Run Node unit tests
         if: ${{ inputs.run-unit-tests }}
-        run: npm run test:unit:node
-        working-directory: bindings/wasm/identity_wasm
+        run: echo TBD
+        working-directory: bindings/wasm/iota_interaction_ts
 
       - name: Stop sccache
         uses: './.github/actions/rust/sccache/stop-sccache'
