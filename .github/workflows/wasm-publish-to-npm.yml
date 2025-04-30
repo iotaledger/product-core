@@ -38,6 +38,6 @@ jobs:
         with:
           dry-run: ${{ github.event.inputs.dry-run }}
           input-artifact-name: interactions-bindings-build
-          npm-token: ${{ secrets.NPM_TOKEN }}
+          npm-token: ${{ secrets.NPM_TOKEN_PRODUCT_CORE }}
           working-directory: ./bindings/wasm/iota_interaction_ts
           tag: ${{ github.event.inputs.tag }}
