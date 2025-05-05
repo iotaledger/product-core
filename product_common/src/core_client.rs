@@ -1,10 +1,10 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::iota_interaction_adapter::IotaClientAdapter;
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use iota_interaction::move_types::language_storage::StructTag;
-use iota_interaction_rust::IotaClientAdapter;
 use iota_sdk::rpc_types::{
     IotaObjectData, IotaObjectDataFilter, IotaObjectResponseQuery, IotaParsedData,
 };
