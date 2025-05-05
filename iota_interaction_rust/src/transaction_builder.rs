@@ -11,43 +11,43 @@ use iota_interaction::TransactionBuilderT;
 
 #[derive(Default)]
 pub struct TransactionBuilderRustSdk {
-  pub builder: ProgrammableTransactionBuilder,
+    pub builder: ProgrammableTransactionBuilder,
 }
 
 impl TransactionBuilderRustSdk {
-  pub fn new(builder: ProgrammableTransactionBuilder) -> Self {
-    TransactionBuilderRustSdk { builder }
-  }
+    pub fn new(builder: ProgrammableTransactionBuilder) -> Self {
+        TransactionBuilderRustSdk { builder }
+    }
 }
 
 impl TransactionBuilderT for TransactionBuilderRustSdk {
-  type Error = Error;
-  type NativeTxBuilder = ProgrammableTransactionBuilder;
+    type Error = Error;
+    type NativeTxBuilder = ProgrammableTransactionBuilder;
 
-  fn finish(self) -> Result<ProgrammableTransactionBcs, Error> {
-    let tx = self.builder.finish();
-    Ok(bcs::to_bytes(&tx)?)
-  }
+    fn finish(self) -> Result<ProgrammableTransactionBcs, Error> {
+        let tx = self.builder.finish();
+        Ok(bcs::to_bytes(&tx)?)
+    }
 
-  fn as_native_tx_builder(&mut self) -> &mut Self::NativeTxBuilder {
-    &mut self.builder
-  }
+    fn as_native_tx_builder(&mut self) -> &mut Self::NativeTxBuilder {
+        &mut self.builder
+    }
 
-  fn into_native_tx_builder(self) -> Self::NativeTxBuilder {
-    self.builder
-  }
+    fn into_native_tx_builder(self) -> Self::NativeTxBuilder {
+        self.builder
+    }
 }
 
 impl Deref for TransactionBuilderRustSdk {
-  type Target = ProgrammableTransactionBuilder;
+    type Target = ProgrammableTransactionBuilder;
 
-  fn deref(&self) -> &Self::Target {
-    &self.builder
-  }
+    fn deref(&self) -> &Self::Target {
+        &self.builder
+    }
 }
 
 impl DerefMut for TransactionBuilderRustSdk {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.builder
-  }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.builder
+    }
 }
