@@ -1,27 +1,34 @@
-// Copyright 2020-2025 IOTA Stiftung
-// SPDX-License-Identifier: Apache-2.0
-
 use std::ops::Deref;
 
+// Copyright 2020-2025 IOTA Stiftung
+// SPDX-License-Identifier: Apache-2.0
 use anyhow::Context as _;
 use async_trait::async_trait;
-
-use crate::core_client::{CoreClient, CoreClientReadOnly};
-use crate::error::{Error, Result};
-use iota_interaction::rpc_types::{
-    IotaTransactionBlockEffects, IotaTransactionBlockResponseOptions,
-};
-use iota_interaction::shared_crypto::intent::{Intent, IntentMessage};
-use iota_interaction::types::base_types::{IotaAddress, ObjectRef};
+use cfg_if::cfg_if;
+use iota_interaction::rpc_types::IotaTransactionBlockEffects;
+use iota_interaction::rpc_types::IotaTransactionBlockEffectsAPI as _;
+use iota_interaction::rpc_types::IotaTransactionBlockResponseOptions;
+use iota_interaction::shared_crypto::intent::Intent;
+use iota_interaction::shared_crypto::intent::IntentMessage;
+use iota_interaction::types::base_types::IotaAddress;
+use iota_interaction::types::base_types::ObjectRef;
+use iota_interaction::types::crypto::IotaSignature as _;
+use iota_interaction::types::crypto::PublicKey;
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
 use iota_interaction::types::transaction::GasData;
-use iota_interaction::types::transaction::TransactionDataAPI;
-use iota_interaction::types::transaction::{
-    ProgrammableTransaction, TransactionData, TransactionKind,
-};
-use iota_interaction::{IotaKeySignature, OptionalSync};
+use iota_interaction::types::transaction::ProgrammableTransaction;
+use iota_interaction::types::transaction::TransactionData;
+use iota_interaction::types::transaction::TransactionDataAPI as _;
+use iota_interaction::types::transaction::TransactionKind;
+use iota_interaction::IotaClientTrait;
+use iota_interaction::IotaKeySignature;
+use iota_interaction::OptionalSync;
+use itertools::Itertools;
 use secret_storage::Signer;
+
+use crate::core_client::{CoreClient, CoreClientReadOnly};
+use crate::Error;
 
 #[cfg(target_arch = "wasm32")]
 use super::transaction::TransactionOutputInternal as TransactionOutput;
@@ -163,7 +170,7 @@ where
         }
     }
 
-    async fn transaction_data(&mut self, client: &C) -> anyhow::Result<TransactionData>
+    async fn transaction_data<C>(&mut self, client: &C) -> anyhow::Result<TransactionData>
     where
         C: CoreClientReadOnly + OptionalSync,
     {
@@ -177,7 +184,7 @@ where
 
     /// Same as [Self::transaction_data] but will not fail with incomplete gas information.
     /// Missing gas data is filled with default values through [PartialGasData::into_gas_data_with_defaults].
-    async fn transaction_data_with_partial_gas(
+    async fn transaction_data_with_partial_gas<C>(
         &mut self,
         client: &C,
     ) -> anyhow::Result<TransactionData>
@@ -199,13 +206,13 @@ where
     /// # Notes
     /// This methods asserts that `signer`'s address matches the address of
     /// either this transaction's sender or the gas owner - failing otherwise.
-    pub async fn with_signature<S>(mut self, client: &C) -> Result<Self, Error>
+    pub async fn with_signature<C, S>(mut self, client: &C) -> Result<Self, Error>
     where
         C: CoreClient<S> + OptionalSync,
         S: Signer<IotaKeySignature> + OptionalSync,
     {
         let pk = client
-            .signer::<S>()
+            .signer()
             .public_key()
             .await
             .map_err(|e| Error::TransactionBuildingFailed(e.to_string()))?;
@@ -218,10 +225,13 @@ where
       )));
         }
 
-        let tx_data = self.transaction_data(client).await?;
+        let tx_data = self
+            .transaction_data(client)
+            .await
+            .map_err(|e| Error::TransactionBuildingFailed(e.to_string()))?;
 
         let sig = client
-            .signer::<S>()
+            .signer()
             .sign(&tx_data)
             .await
             .map_err(|e| Error::TransactionSigningFailed(e.to_string()))?;
@@ -234,12 +244,16 @@ where
     /// ## Notes
     /// The [TransactionData] passed to `sponsor_tx` can be constructed from partial gas data; the sponsor is
     /// tasked with setting the gas information appropriately before signing.
-    pub async fn with_sponsor<F>(mut self, client: &C, sponsor_tx: F) -> Result<Self, Error>
+    pub async fn with_sponsor<C, F>(mut self, client: &C, sponsor_tx: F) -> Result<Self, Error>
     where
         C: CoreClientReadOnly + OptionalSync,
         F: AsyncFnOnce(MutGasDataRef<'_>) -> anyhow::Result<Signature>,
     {
-        let mut tx_data = self.transaction_data_with_partial_gas(client).await?;
+        let mut tx_data = self
+            .transaction_data_with_partial_gas(client)
+            .await
+            .map_err(|e| Error::TransactionBuildingFailed(e.to_string()))?;
+
         let signature = sponsor_tx(MutGasDataRef(&mut tx_data))
             .await
             .map_err(|e| Error::GasIssue(format!("failed to sponsor transaction: {e}")))?;
@@ -267,7 +281,7 @@ where
         Ok(self)
     }
 
-    async fn get_or_init_programmable_tx(
+    async fn get_or_init_programmable_tx<C>(
         &mut self,
         client: &C,
     ) -> Result<&ProgrammableTransaction, Error>
@@ -290,7 +304,7 @@ where
     /// ## Notes
     /// This method *DOES NOT* remove nor checks for invalid signatures.
     /// Transaction with invalid signatures will fail after attempting to execute them.
-    pub async fn build<S>(
+    pub async fn build<C, S>(
         mut self,
         client: &C,
     ) -> Result<(TransactionData, Vec<Signature>, Tx), Error>
@@ -321,7 +335,7 @@ where
                     .contains(&client_address);
         if needs_client_signature {
             let signature = client
-                .signer::<S>()
+                .signer()
                 .sign(&tx_data)
                 .await
                 .map_err(|e| Error::TransactionSigningFailed(e.to_string()))?;
@@ -341,7 +355,7 @@ where
     /// ## Notes
     /// This method *DOES NOT* remove nor checks for invalid signatures.
     /// Transaction with invalid signatures will fail after attempting to execute them.
-    pub async fn build_and_execute<S>(
+    pub async fn build_and_execute<C, S>(
         self,
         client: &C,
     ) -> Result<TransactionOutput<Tx::Output>, Error>
@@ -362,7 +376,8 @@ where
                 Some(IotaTransactionBlockResponseOptions::full_content()),
                 Some(ExecuteTransactionRequestType::WaitForLocalExecution),
             )
-            .await?;
+            .await
+            .map_err(|e| Error::TransactionBuildingFailed(e.to_string()))?;
 
         // Get the transaction's effects, making sure they are successful.
         let tx_effects = dyn_tx_block
@@ -484,7 +499,7 @@ impl<Tx> TransactionBuilder<Tx> {
 /// - current gas price is fetched from a node;
 /// - budget is calculated by dry running the transaction;
 /// - payment is set to whatever IOTA coins the gas owner has, that satisfy the tx's budget;
-async fn complete_gas_data_for_tx<S>(
+async fn complete_gas_data_for_tx<C, S>(
     pt: &ProgrammableTransaction,
     partial_gas_data: PartialGasData,
     client: &C,
@@ -515,7 +530,6 @@ where
         partial_gas_data.payment
     } else {
         client
-            .client_adapter()
             .get_iota_coins_with_at_least_balance(owner, budget)
             .await?
     };

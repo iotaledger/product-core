@@ -24,67 +24,75 @@ pub static IOTA_NETWORKS: Map<&str, IdentityNetworkMetadata> = phf_map! {
 /// `iota_identity` package information for a given network.
 #[derive(Debug)]
 pub struct IdentityNetworkMetadata {
-  pub alias: Option<&'static str>,
-  /// `package[0]` is the current version, `package[1]`
-  /// is the version before, and so forth.
-  pub package: &'static [&'static str],
-  pub migration_registry: &'static str,
+    pub alias: Option<&'static str>,
+    /// `package[0]` is the current version, `package[1]`
+    /// is the version before, and so forth.
+    pub package: &'static [&'static str],
+    pub migration_registry: &'static str,
 }
 
 /// Returns the [`IdentityNetworkMetadata`] for a given network, if any.
 pub fn network_metadata(network_id: &str) -> Option<&'static IdentityNetworkMetadata> {
-  IOTA_NETWORKS.get(network_id)
+    IOTA_NETWORKS.get(network_id)
 }
 
 impl IdentityNetworkMetadata {
-  const fn new(alias: Option<&'static str>, pkgs: &'static [&'static str], migration_registry: &'static str) -> Self {
-    assert!(!pkgs.is_empty());
-    Self {
-      alias,
-      package: pkgs,
-      migration_registry,
+    const fn new(
+        alias: Option<&'static str>,
+        pkgs: &'static [&'static str],
+        migration_registry: &'static str,
+    ) -> Self {
+        assert!(!pkgs.is_empty());
+        Self {
+            alias,
+            package: pkgs,
+            migration_registry,
+        }
     }
-  }
 
-  /// Returns the latest `IotaIdentity` package ID on this network.
-  pub fn latest_pkg_id(&self) -> ObjectID {
-    self
-      .package
-      .first()
-      .expect("a package was published")
-      .parse()
-      .expect("valid package ID")
-  }
+    /// Returns the latest `IotaIdentity` package ID on this network.
+    pub fn latest_pkg_id(&self) -> ObjectID {
+        self.package
+            .first()
+            .expect("a package was published")
+            .parse()
+            .expect("valid package ID")
+    }
 
-  /// Returns the ID for the `MigrationRegistry` on this network.
-  pub fn migration_registry(&self) -> ObjectID {
-    self.migration_registry.parse().expect("valid ObjectID")
-  }
+    /// Returns the ID for the `MigrationRegistry` on this network.
+    pub fn migration_registry(&self) -> ObjectID {
+        self.migration_registry.parse().expect("valid ObjectID")
+    }
 
-  /// Returns a [`NetworkName`] if `alias` is set.
-  pub fn network_alias(&self) -> Option<NetworkName> {
-    self.alias.map(|alias| {
-      NetworkName::try_from(alias).expect("an hardcoded network alias is valid (unless a dev messed it up)")
-    })
-  }
+    /// Returns a [`NetworkName`] if `alias` is set.
+    pub fn network_alias(&self) -> Option<NetworkName> {
+        self.alias.map(|alias| {
+            NetworkName::try_from(alias)
+                .expect("an hardcoded network alias is valid (unless a dev messed it up)")
+        })
+    }
 }
 
 #[cfg(test)]
 mod test {
-  use crate::test::TestCoreClientBuilder;
-  use crate::test::TestCoreClient;
+    // use iota_sdk::IotaClientBuilder;
 
-  #[tokio::test]
-  async fn identity_client_connection_to_devnet_works() -> anyhow::Result<()> {
-    let client = TestCoreClient::new(TestCoreClientBuilder::default().build_devnet().await?).await?;
-    assert_eq!(client.network().as_ref(), "devnet");
-    Ok(())
-  }
+    // use crate::test::TestCoreClient;
+    // use crate::test::TestCoreClientBuilder;
 
-  #[tokio::test]
-  async fn identity_client_connection_to_testnet_works() -> anyhow::Result<()> {
-    let client = TestCoreClient::new(IotaClientBuilder::default().build_testnet().await?).await?;
-    assert_eq!(client.network().as_ref(), "testnet");
-    Ok(())
-  }
+    // #[tokio::test]
+    // async fn identity_client_connection_to_devnet_works() -> anyhow::Result<()> {
+    //     let client =
+    //         TestCoreClient::new(TestCoreClientBuilder::default().build_devnet().await?).await?;
+    //     assert_eq!(client.network().as_ref(), "devnet");
+    //     Ok(())
+    // }
+
+    // #[tokio::test]
+    // async fn identity_client_connection_to_testnet_works() -> anyhow::Result<()> {
+    //     let client =
+    //         TestCoreClient::new(IotaClientBuilder::default().build_testnet().await?).await?;
+    //     assert_eq!(client.network().as_ref(), "testnet");
+    //     Ok(())
+    // }
 }

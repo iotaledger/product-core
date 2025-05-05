@@ -6,8 +6,8 @@ use std::ops::Deref;
 
 #[cfg(not(target_arch = "wasm32"))]
 use iota_interaction::rpc_types::IotaTransactionBlockResponse;
+use transaction_builder::{Transaction, TransactionBuilder};
 
-use super::transaction_builder::TransactionBuilder;
 use crate::iota_interaction_adapter::IotaTransactionBlockResponseAdaptedTraitObj;
 
 /// The output type of a [`Transaction`].
@@ -69,7 +69,7 @@ pub trait ProtoTransaction {
 // and that has itself as its next state.
 impl<T> ProtoTransaction for TransactionBuilder<T>
 where
-    T: super::transaction_builder::Transaction,
+    T: Transaction,
 {
     type Input = ();
     type Tx = Self;
