@@ -91,7 +91,17 @@ pub trait CoreClientReadOnly {
             .context("failed to get object ref by id")
     }
 
-    /// Queries `address` owned objects, returning the first object for which `predicate` returns `true`.
+    /// Retrieves an object owned by the specified address that matches the given predicate.
+    ///
+    /// # Arguments
+    ///
+    /// * `address` - The address of the owner of the object.
+    /// * `predicate` - A closure that takes a reference to the object and returns a boolean indicating whether the object
+    ///   matches the desired criteria.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Some(T))` if the object is found, `Ok(None)` if not found,
     async fn find_object_for_address<T, P>(
         &self,
         address: IotaAddress,
