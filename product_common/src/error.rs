@@ -41,4 +41,8 @@ pub enum Error {
     /// the expected result.
     #[error("transaction returned an unexpected response; {0}")]
     TransactionUnexpectedResponse(String),
+
+    /// Transaction specific error.
+    #[error("Transaction specific error: {0}")]
+    Transaction(Box<dyn std::error::Error + Send + Sync + 'static>),
 }

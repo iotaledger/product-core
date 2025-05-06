@@ -41,7 +41,7 @@ use super::TransactionOutput;
 #[cfg_attr(not(feature = "send-sync"), async_trait(?Send))]
 pub trait Transaction {
     /// Error type for this transaction.
-    type Error;
+    type Error: std::error::Error + Sync + Send + 'static;
     /// Output type for this transaction.
     type Output;
 
@@ -49,7 +49,7 @@ pub trait Transaction {
     async fn build_programmable_transaction<C>(
         &self,
         client: &C,
-    ) -> Result<ProgrammableTransaction, Error>
+    ) -> Result<ProgrammableTransaction, Self::Error>
     where
         C: CoreClientReadOnly + OptionalSync;
 
@@ -64,7 +64,10 @@ pub trait Transaction {
         self,
         effects: IotaTransactionBlockEffects,
         client: &C,
-    ) -> (Result<Self::Output, Error>, IotaTransactionBlockEffects)
+    ) -> (
+        Result<Self::Output, Self::Error>,
+        IotaTransactionBlockEffects,
+    )
     where
         C: CoreClientReadOnly + OptionalSync;
 }
@@ -289,7 +292,12 @@ where
         C: CoreClientReadOnly + OptionalSync,
     {
         if self.programmable_tx.is_none() {
-            self.programmable_tx = Some(self.tx.build_programmable_transaction(client).await?);
+            self.programmable_tx = Some(
+                self.tx
+                    .build_programmable_transaction(client)
+                    .await
+                    .map_err(|e| Error::Transaction(Box::new(e)))?,
+            );
         }
 
         Ok(self.programmable_tx.as_ref().unwrap())
@@ -415,7 +423,7 @@ where
                 // For WASM the response is passed in the error as its JSON-encoded string representation.
                 let response = response.as_native_response().to_string();
                 return Err(Error::TransactionOffChainApplicationFailure {
-                    source: Box::new(e),
+                    source: Box::new(Error::Transaction(Box::new(e))),
                     response,
                 });
             }
