@@ -2,22 +2,24 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::iota_interaction_adapter::IotaClientAdapter;
+use crate::network_name::NetworkName;
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use iota_interaction::move_types::language_storage::StructTag;
-use iota_sdk::rpc_types::{
-    IotaObjectData, IotaObjectDataFilter, IotaObjectResponseQuery, IotaParsedData,
-};
-use iota_sdk::types::base_types::ObjectRef;
-use serde::de::DeserializeOwned;
-
-use crate::network_name::NetworkName;
 use iota_interaction::rpc_types::IotaData;
-use iota_interaction::rpc_types::{IotaObjectDataOptions, OwnedObjectRef};
+use iota_interaction::rpc_types::IotaObjectData;
+use iota_interaction::rpc_types::IotaObjectDataFilter;
+use iota_interaction::rpc_types::IotaObjectDataOptions;
+use iota_interaction::rpc_types::IotaObjectResponseQuery;
+use iota_interaction::rpc_types::IotaParsedData;
+use iota_interaction::rpc_types::OwnedObjectRef;
+
+use iota_interaction::types::base_types::ObjectRef;
 use iota_interaction::types::base_types::{IotaAddress, ObjectID};
 use iota_interaction::types::crypto::PublicKey;
 use iota_interaction::{IotaClientTrait, IotaKeySignature, MoveType};
 use secret_storage::Signer;
+use serde::de::DeserializeOwned;
 
 #[cfg_attr(not(feature = "send-sync"), async_trait(?Send))]
 #[cfg_attr(feature = "send-sync", async_trait)]

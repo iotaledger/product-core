@@ -1,7 +1,6 @@
-use std::ops::Deref;
-
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
+
 use anyhow::Context as _;
 use async_trait::async_trait;
 use cfg_if::cfg_if;
@@ -26,6 +25,7 @@ use iota_interaction::IotaKeySignature;
 use iota_interaction::OptionalSync;
 use itertools::Itertools;
 use secret_storage::Signer;
+use std::ops::Deref;
 
 use crate::core_client::{CoreClient, CoreClientReadOnly};
 use crate::Error;
