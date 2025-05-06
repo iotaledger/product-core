@@ -31,7 +31,7 @@ use crate::core_client::{CoreClient, CoreClientReadOnly};
 use crate::Error;
 
 #[cfg(target_arch = "wasm32")]
-use super::transaction::TransactionOutputInternal as TransactionOutput;
+use super::TransactionOutputInternal as TransactionOutput;
 
 #[cfg(not(target_arch = "wasm32"))]
 use super::TransactionOutput;

@@ -6,6 +6,7 @@ pub mod macros;
 
 pub mod types;
 pub mod utils;
+mod object;
 
 pub use types::*;
 pub use utils::*;

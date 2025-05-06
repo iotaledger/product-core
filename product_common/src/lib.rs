@@ -4,7 +4,6 @@
 #[cfg(feature = "core-client")]
 pub mod core_client;
 pub mod error;
-pub mod object;
 pub mod network_name;
 pub mod well_known_networks;
 

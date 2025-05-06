@@ -31,20 +31,29 @@ package = "identity_jose"
 optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", features = ["keytool"]}
-iota_interaction_rust = { version = "=1.6.0-alpha", path = "../iota_interaction_rust", optional = true}
+iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", features = [
+    "keytool",
+] }
+iota_interaction_rust = { version = "=1.6.0-alpha", path = "../iota_interaction_rust", optional = true }
 iota-sdk.workspace = true
 tokio = { version = "1", default-features = false, features = ["process"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", default-features = false}
+iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", default-features = false }
+iota_interaction_ts = { version = "=1.6.0-alpha", path = "../bindings/wasm/iota_interaction_ts", optional = true }
+
 
 [features]
 default = []
 send-sync = ["secret-storage/send-sync-storage"]
 test-utils = ["dep:identity_jose", "dep:lazy_static", "dep:secret-storage"]
 core-client = ["dep:secret-storage"]
-transaction = ["core-client", "dep:iota_interaction_rust", "dep:itertools", "dep:secret-storage"]
+transaction = [
+    "core-client",
+    "dep:iota_interaction_rust",
+    "dep:itertools",
+    "dep:secret-storage",
+]
 
 [package.metadata.docs.rs]
 # To build locally:

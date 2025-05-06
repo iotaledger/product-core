@@ -27,7 +27,6 @@ fastcrypto.workspace = true
 futures = { version = "0.3" }
 iota_interaction = { version = "=1.6.0-alpha", path = "../../../iota_interaction", default-features = false }
 js-sys = { version = "0.3.61" }
-product_common = { version = "=1.6.0-alpha", path = "../../../product_common"}
 secret-storage = { git = "https://github.com/iotaledger/secret-storage.git", default-features = false, tag = "v0.3.0" }
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
@@ -47,7 +46,9 @@ rand = "0.8.5"
 
 [target.'cfg(all(target_arch = "wasm32", not(target_os = "wasi")))'.dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
-instant = { version = "0.1", default-features = false, features = ["wasm-bindgen"] }
+instant = { version = "0.1", default-features = false, features = [
+    "wasm-bindgen",
+] }
 
 [lints.clippy]
 # can be removed as soon as fix has been added to clippy
