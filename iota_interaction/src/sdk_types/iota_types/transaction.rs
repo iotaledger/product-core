@@ -86,6 +86,14 @@ impl ObjectArg {
         initial_shared_version: IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION,
         mutable: true,
     };
+
+    pub fn id(&self) -> ObjectID {
+        match self {
+            Self::ImmOrOwnedObject((id, _, _)) => *id,
+            Self::SharedObject { id, .. } => *id,
+            Self::Receiving((id, _, _)) => *id,
+        }
+    }
 }
 
 /// A series of commands where the results of one command can be used in future

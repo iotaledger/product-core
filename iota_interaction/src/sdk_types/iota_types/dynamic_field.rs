@@ -7,7 +7,7 @@ use std::{
     fmt::{Display, Formatter},
 };
 
-use fastcrypto::{encoding::Base64};
+use fastcrypto::encoding::Base64;
 
 use crate::ident_str;
 
@@ -23,7 +23,7 @@ use serde_with::{serde_as, DisplayFromStr};
 
 use super::{
     base_types::{ObjectID, SequenceNumber},
-    digests::{ObjectDigest},
+    digests::ObjectDigest,
     error::{IotaError, IotaResult},
     id::UID,
     iota_serde::{IotaTypeTag, Readable},
