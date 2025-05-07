@@ -29,5 +29,6 @@ serde_json = { version = "1.0", default-features = false }
 strum = { version = "0.25", default-features = false, features = ["std", "derive"] }
 thiserror = { version = "1.0", default-features = false }
 
+
 [workspace.lints.clippy]
 result_large_err = "allow"

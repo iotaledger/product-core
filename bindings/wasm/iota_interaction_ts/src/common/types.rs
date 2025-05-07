@@ -4,7 +4,7 @@
 use super::object::Object;
 use iota_interaction::types::transaction::TransactionKind;
 use iota_interaction::ProgrammableTransactionBcs;
-use js_sys::{Promise};
+use js_sys::Promise;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;

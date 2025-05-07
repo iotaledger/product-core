@@ -5,6 +5,7 @@
 pub mod core_client;
 pub mod error;
 pub mod network_name;
+pub mod object;
 pub mod well_known_networks;
 
 #[cfg(feature = "transaction")]
