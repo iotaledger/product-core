@@ -24,6 +24,8 @@ serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 
+iota-keys = { git = "https://github.com/iotaledger/iota.git", package = "iota-keys", tag = "v0.12.0-rc", optional = true }
+
 [dependencies.identity_jose]
 git = "https://github.com/iotaledger/identity.rs.git"
 branch = "feat/identity-rebased-alpha-public-interaction-rust"
@@ -40,13 +42,18 @@ tokio = { version = "1", default-features = false, features = ["process"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", default-features = false }
-iota_interaction_ts = { version = "=1.6.0-alpha", path = "../bindings/wasm/iota_interaction_ts"}
+iota_interaction_ts = { version = "=1.6.0-alpha", path = "../bindings/wasm/iota_interaction_ts" }
 
 
 [features]
 default = []
 send-sync = ["secret-storage/send-sync-storage"]
-test-utils = ["dep:identity_jose", "dep:lazy_static", "dep:secret-storage"]
+test-utils = [
+    "dep:identity_jose",
+    "dep:lazy_static",
+    "dep:secret-storage",
+    "dep:iota-keys",
+]
 core-client = ["dep:secret-storage"]
 transaction = [
     "core-client",
