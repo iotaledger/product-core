@@ -2,5 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 export * from "~iota_interaction_ts";
-export * as iota_client_helpers from "./iota_client_helpers";
-export * as core_client from "./core_client"
+export *  from "./iota_client_helpers";
+export *  from "./core_client";
+export * from "./transaction_internal"
