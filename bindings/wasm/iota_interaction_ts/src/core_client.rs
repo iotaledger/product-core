@@ -10,24 +10,24 @@ extern "C" {
     pub type WasmCoreClientReadOnly;
 
     #[wasm_bindgen(method, js_name = packageId)]
-    fn package_id(this: &WasmCoreClientReadOnly) -> String;
+    pub fn package_id(this: &WasmCoreClientReadOnly) -> String;
 
     #[wasm_bindgen(method, js_name = network)]
-    fn network(this: &WasmCoreClientReadOnly) -> String;
+    pub fn network(this: &WasmCoreClientReadOnly) -> String;
 
     #[wasm_bindgen(method, js_name = iotaClient)]
-    fn iota_client(this: &WasmCoreClientReadOnly) -> WasmIotaClient;
+    pub fn iota_client(this: &WasmCoreClientReadOnly) -> WasmIotaClient;
 
     #[derive(Clone)]
     #[wasm_bindgen(typescript_type = CoreClient, extends = WasmCoreClientReadOnly)]
     pub type WasmCoreClient;
 
     #[wasm_bindgen(method)]
-    fn signer(this: &WasmCoreClient) -> WasmTransactionSigner;
+    pub fn signer(this: &WasmCoreClient) -> WasmTransactionSigner;
 
     #[wasm_bindgen(method, js_name = senderAddress)]
-    fn sender_address(this: &WasmCoreClient) -> String;
+    pub fn sender_address(this: &WasmCoreClient) -> String;
 
     #[wasm_bindgen(method, js_name = senderPublicKey)]
-    fn sender_public_key(this: &WasmCoreClient) -> WasmPublicKey;
+    pub fn sender_public_key(this: &WasmCoreClient) -> WasmPublicKey;
 }
