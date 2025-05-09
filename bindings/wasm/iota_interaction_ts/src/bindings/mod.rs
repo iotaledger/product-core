@@ -6,6 +6,8 @@ pub mod keytool;
 mod types;
 mod wasm_iota_client;
 mod wasm_types;
+mod wasm_transaction_signer;
 
 pub use types::*;
 pub use wasm_iota_client::*;
+pub use wasm_transaction_signer::*;
