@@ -45,7 +45,6 @@ use crate::error::{into_ts_sdk_result, TsSdkError};
 // to the WasmIotaClient functions below.
 // TODO: check why this isn't done by `module` macro attribute for `WasmIotaClient`
 
-
 #[wasm_bindgen(module = "@iota/iota-sdk/client")]
 extern "C" {
   #[wasm_bindgen(typescript_type = "IotaClient")]
