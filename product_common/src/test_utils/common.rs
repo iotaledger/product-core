@@ -1,11 +1,8 @@
-// Copyright 2020-2024 IOTA Stiftung
+// Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
-#![allow(dead_code)]
 
 use std::io::Write;
-use std::ops::Deref;
 use std::str::FromStr;
-use std::sync::Arc;
 
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
@@ -25,7 +22,6 @@ use secret_storage::Signer;
 use serde::Deserialize;
 use serde_json::Value;
 use tokio::process::Command;
-use tokio::sync::OnceCell;
 
 use super::utils::request_funds;
 use crate::core_client::{CoreClient, CoreClientReadOnly};

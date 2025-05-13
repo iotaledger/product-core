@@ -6,8 +6,9 @@
         "arrayExpression.preferHanging": true
     },
     "toml": {},
+    "yaml": {},
     "includes": [
-        "**/*.{toml,js,ts}"
+        "**/*.{toml,js,ts,yaml,yml}"
     ],
     "excludes": [
         "documentation",
@@ -16,6 +17,7 @@
     ],
     "plugins": [
         "https://plugins.dprint.dev/toml-0.5.1.wasm",
-        "https://plugins.dprint.dev/typescript-0.73.1.wasm"
+        "https://plugins.dprint.dev/typescript-0.73.1.wasm",
+        "https://plugins.dprint.dev/g-plane/pretty_yaml-v0.5.1.wasm"
     ]
 }

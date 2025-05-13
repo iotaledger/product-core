@@ -1,11 +1,11 @@
-name: 'publish-wasm'
-description: 'Publishes Wasm bindings to npm'
+name: "publish-wasm"
+description: "Publishes Wasm bindings to npm"
 inputs:
   tag:
-    description: 'Which npm tag to publish under e.g. `dev`, will default to `latest`'
+    description: "Which npm tag to publish under e.g. `dev`, will default to `latest`"
     required: false
   npm-token:
-    description: 'used for authenticating towards npm'
+    description: "used for authenticating towards npm"
     required: true
   input-artifact-name:
     description: "Name used for the input Wasm build artifact"
@@ -23,8 +23,8 @@ runs:
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '20.x'
-        registry-url: 'https://registry.npmjs.org'
+        node-version: "20.x"
+        registry-url: "https://registry.npmjs.org"
 
     - name: Download bindings/wasm artifacts
       uses: actions/download-artifact@v4

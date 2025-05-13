@@ -1,11 +1,10 @@
 // Copyright 2021-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-import { IotaObjectRef, IotaTransactionBlockResponse, TransactionEffects} from "@iota/iota-sdk/client";
+import { IotaObjectRef, IotaTransactionBlockResponse, TransactionEffects } from "@iota/iota-sdk/client";
 import { TransactionDataBuilder } from "@iota/iota-sdk/transactions";
-import {CoreClient, CoreClientReadOnly} from "./core_client";
-import {TransactionSigner} from "~iota_interaction_ts";
-
+import { TransactionSigner } from "~iota_interaction_ts";
+import { CoreClient, CoreClientReadOnly } from "./core_client";
 
 export interface TransactionOutput<T extends Transaction<unknown>> {
     response: IotaTransactionBlockResponse;
