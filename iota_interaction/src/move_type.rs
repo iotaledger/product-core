@@ -1,11 +1,11 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::types::base_types::IotaAddress;
-use crate::types::base_types::ObjectID;
+use serde::Serialize;
+
+use crate::types::base_types::{IotaAddress, ObjectID};
 use crate::types::TypeTag;
 use crate::IotaVerifiableCredential;
-use serde::Serialize;
 
 pub enum TypedValue<'a, T: MoveType> {
   IotaVerifiableCredential(&'a IotaVerifiableCredential),

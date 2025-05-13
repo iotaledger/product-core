@@ -5,43 +5,27 @@ use std::boxed::Box;
 use std::option::Option;
 use std::result::Result;
 
-use iota_interaction::rpc_types::IotaTransactionBlockEffects;
+use iota_interaction::error::{Error as IotaRpcError, IotaRpcResult};
+use iota_interaction::rpc_types::{
+  CoinPage, EventFilter, EventPage, IotaObjectData, IotaObjectDataOptions, IotaObjectResponse, IotaObjectResponseQuery,
+  IotaPastObjectResponse, IotaTransactionBlockEffects, IotaTransactionBlockResponseOptions, ObjectsPage,
+};
+use iota_interaction::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
-use iota_interaction::types::transaction::TransactionData;
-use secret_storage::Signer;
-
-use iota_interaction::error::Error as IotaRpcError;
-use iota_interaction::error::IotaRpcResult;
-use iota_interaction::rpc_types::CoinPage;
-use iota_interaction::rpc_types::EventFilter;
-use iota_interaction::rpc_types::EventPage;
-use iota_interaction::rpc_types::IotaObjectData;
-use iota_interaction::rpc_types::IotaObjectDataOptions;
-use iota_interaction::rpc_types::IotaObjectResponse;
-use iota_interaction::rpc_types::IotaObjectResponseQuery;
-use iota_interaction::rpc_types::IotaPastObjectResponse;
-use iota_interaction::rpc_types::IotaTransactionBlockResponseOptions;
-use iota_interaction::rpc_types::ObjectsPage;
-use iota_interaction::types::base_types::IotaAddress;
-use iota_interaction::types::base_types::ObjectID;
-use iota_interaction::types::base_types::SequenceNumber;
 use iota_interaction::types::event::EventID;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
-use iota_interaction::types::transaction::ProgrammableTransaction as ProgrammableTransactionSdk;
-use iota_interaction::types::transaction::TransactionDataAPI as _;
-use iota_interaction::CoinReadTrait;
-use iota_interaction::EventTrait;
-use iota_interaction::IotaClientTrait;
-use iota_interaction::IotaKeySignature;
-use iota_interaction::IotaTransactionBlockResponseT;
-use iota_interaction::QuorumDriverTrait;
-use iota_interaction::ReadTrait;
+use iota_interaction::types::transaction::{
+  ProgrammableTransaction as ProgrammableTransactionSdk, TransactionData, TransactionDataAPI as _,
+};
+use iota_interaction::{
+  CoinReadTrait, EventTrait, IotaClientTrait, IotaKeySignature, IotaTransactionBlockResponseT, QuorumDriverTrait,
+  ReadTrait,
+};
+use secret_storage::Signer;
 
-use crate::bindings::ManagedWasmIotaClient;
-use crate::bindings::WasmIotaClient;
-use crate::bindings::WasmIotaTransactionBlockResponseWrapper;
+use crate::bindings::{ManagedWasmIotaClient, WasmIotaClient, WasmIotaTransactionBlockResponseWrapper};
 use crate::error::TsSdkError;
 
 #[allow(dead_code)]
@@ -372,7 +356,8 @@ impl IotaClientTrait for IotaClientTsSdk {
       .await
       .map_err(|err| {
         // TODO: check error variant here, selection has been reduced / focused
-        // Self::Error::InvalidTransactionHistory(format!("could not look up object {object_id} version {version}; {err}"))
+        // Self::Error::InvalidTransactionHistory(format!("could not look up object {object_id} version {version};
+        // {err}"))
         Self::Error::JsSysError(format!("could not look up object {object_id} version {version}; {err}"))
       })
   }

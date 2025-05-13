@@ -1,40 +1,28 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use std::boxed::Box;
+#[cfg(not(target_arch = "wasm32"))]
+use std::marker::Send;
+use std::option::Option;
+use std::result::Result;
+
+use async_trait::async_trait;
+use secret_storage::{SignatureScheme as SignatureSchemeSecretStorage, Signer};
+
 use crate::error::IotaRpcResult;
-use crate::rpc_types::CoinPage;
-use crate::rpc_types::EventFilter;
-use crate::rpc_types::EventPage;
-use crate::rpc_types::IotaObjectData;
-use crate::rpc_types::IotaObjectDataOptions;
-use crate::rpc_types::IotaObjectResponse;
-use crate::rpc_types::IotaObjectResponseQuery;
-use crate::rpc_types::IotaPastObjectResponse;
-use crate::rpc_types::IotaTransactionBlockEffects;
-use crate::rpc_types::IotaTransactionBlockResponseOptions;
-use crate::rpc_types::ObjectsPage;
-use crate::types::base_types::IotaAddress;
-use crate::types::base_types::ObjectID;
-use crate::types::base_types::SequenceNumber;
-use crate::types::crypto::PublicKey;
-use crate::types::crypto::Signature;
+use crate::rpc_types::{
+  CoinPage, EventFilter, EventPage, IotaObjectData, IotaObjectDataOptions, IotaObjectResponse, IotaObjectResponseQuery,
+  IotaPastObjectResponse, IotaTransactionBlockEffects, IotaTransactionBlockResponseOptions, ObjectsPage,
+};
+use crate::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
+use crate::types::crypto::{PublicKey, Signature};
 use crate::types::digests::TransactionDigest;
 use crate::types::dynamic_field::DynamicFieldName;
 use crate::types::event::EventID;
 use crate::types::quorum_driver_types::ExecuteTransactionRequestType;
-use crate::types::transaction::ProgrammableTransaction;
-use crate::types::transaction::TransactionData;
+use crate::types::transaction::{ProgrammableTransaction, TransactionData};
 use crate::OptionalSend;
-use async_trait::async_trait;
-use secret_storage::SignatureScheme as SignatureSchemeSecretStorage;
-use secret_storage::Signer;
-use std::boxed::Box;
-use std::option::Option;
-use std::result::Result;
-
-#[cfg(not(target_arch = "wasm32"))]
-use std::marker::Send;
-
 #[cfg(feature = "send-sync-transaction")]
 use crate::OptionalSync;
 

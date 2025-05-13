@@ -4,11 +4,10 @@
 
 #[allow(unused)] // Kept in sync with original source, so keep as is.
 use serde::{Deserialize, Serialize};
-use super::super::move_core_types::{
-    account_address::AccountAddress,
-    language_storage::{TypeTag, StructTag},
-};
-use super::base_types::{ObjectID, SequenceNumber, IotaAddress};
+
+use super::super::move_core_types::account_address::AccountAddress;
+use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use super::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use super::object::OBJECT_START_VERSION;
 
 macro_rules! built_in_ids {
@@ -52,11 +51,11 @@ pub const IOTA_CLOCK_OBJECT_SHARED_VERSION: SequenceNumber = OBJECT_START_VERSIO
 pub const IOTA_AUTHENTICATOR_STATE_OBJECT_SHARED_VERSION: SequenceNumber = OBJECT_START_VERSION;
 
 const fn builtin_address(suffix: u16) -> AccountAddress {
-    let mut addr = [0u8; AccountAddress::LENGTH];
-    let [hi, lo] = suffix.to_be_bytes();
-    addr[AccountAddress::LENGTH - 2] = hi;
-    addr[AccountAddress::LENGTH - 1] = lo;
-    AccountAddress::new(addr)
+  let mut addr = [0u8; AccountAddress::LENGTH];
+  let [hi, lo] = suffix.to_be_bytes();
+  addr[AccountAddress::LENGTH - 2] = hi;
+  addr[AccountAddress::LENGTH - 1] = lo;
+  AccountAddress::new(addr)
 }
 
 /// Parse `s` as a struct type: A fully-qualified name, optionally followed by a
@@ -65,8 +64,8 @@ const fn builtin_address(suffix: u16) -> AccountAddress {
 /// matches this format exactly, with no remaining input. This function is
 /// intended for use within the authority codebase.
 pub fn parse_iota_struct_tag(s: &str) -> anyhow::Result<StructTag> {
-    use super::super::move_core_types::parsing::types::ParsedStructType;
-    ParsedStructType::parse(s)?.into_struct_tag(&resolve_address)
+  use super::super::move_core_types::parsing::types::ParsedStructType;
+  ParsedStructType::parse(s)?.into_struct_tag(&resolve_address)
 }
 
 /// Parse `s` as a type: Either a struct type (see `parse_iota_struct_tag`), a
@@ -74,52 +73,52 @@ pub fn parse_iota_struct_tag(s: &str) -> anyhow::Result<StructTag> {
 /// only if `s` matches this format exactly, with no remaining input. This
 /// function is intended for use within the authority codebase.
 pub fn parse_iota_type_tag(s: &str) -> anyhow::Result<TypeTag> {
-    use super::super::move_core_types::parsing::types::ParsedType;
-    ParsedType::parse(s)?.into_type_tag(&resolve_address)
+  use super::super::move_core_types::parsing::types::ParsedType;
+  ParsedType::parse(s)?.into_type_tag(&resolve_address)
 }
 
 /// Resolve well-known named addresses into numeric addresses.
 pub fn resolve_address(addr: &str) -> Option<AccountAddress> {
-    match addr {
-        "std" => Some(MOVE_STDLIB_ADDRESS),
-        "iota" => Some(IOTA_FRAMEWORK_ADDRESS),
-        "iota_system" => Some(IOTA_SYSTEM_ADDRESS),
-        "stardust" => Some(STARDUST_ADDRESS),
-        "bridge" => Some(BRIDGE_ADDRESS),
-        _ => None,
-    }
+  match addr {
+    "std" => Some(MOVE_STDLIB_ADDRESS),
+    "iota" => Some(IOTA_FRAMEWORK_ADDRESS),
+    "iota_system" => Some(IOTA_SYSTEM_ADDRESS),
+    "stardust" => Some(STARDUST_ADDRESS),
+    "bridge" => Some(BRIDGE_ADDRESS),
+    _ => None,
+  }
 }
 
 pub trait MoveTypeTagTrait {
-    fn get_type_tag() -> TypeTag;
+  fn get_type_tag() -> TypeTag;
 }
 
 impl MoveTypeTagTrait for u8 {
-    fn get_type_tag() -> TypeTag {
-        TypeTag::U8
-    }
+  fn get_type_tag() -> TypeTag {
+    TypeTag::U8
+  }
 }
 
 impl MoveTypeTagTrait for u64 {
-    fn get_type_tag() -> TypeTag {
-        TypeTag::U64
-    }
+  fn get_type_tag() -> TypeTag {
+    TypeTag::U64
+  }
 }
 
 impl MoveTypeTagTrait for ObjectID {
-    fn get_type_tag() -> TypeTag {
-        TypeTag::Address
-    }
+  fn get_type_tag() -> TypeTag {
+    TypeTag::Address
+  }
 }
 
 impl MoveTypeTagTrait for IotaAddress {
-    fn get_type_tag() -> TypeTag {
-        TypeTag::Address
-    }
+  fn get_type_tag() -> TypeTag {
+    TypeTag::Address
+  }
 }
 
 impl<T: MoveTypeTagTrait> MoveTypeTagTrait for Vec<T> {
-    fn get_type_tag() -> TypeTag {
-        TypeTag::Vector(Box::new(T::get_type_tag()))
-    }
+  fn get_type_tag() -> TypeTag {
+    TypeTag::Vector(Box::new(T::get_type_tag()))
+  }
 }

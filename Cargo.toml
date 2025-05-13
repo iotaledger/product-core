@@ -9,10 +9,10 @@ rust-version = "1.65"
 [workspace]
 resolver = "2"
 members = [
-    "product_common",
-    "iota_interaction",
-    "bindings/wasm/iota_interaction_ts",
-    "iota_interaction_rust",
+  "product_common",
+  "iota_interaction",
+  "bindings/wasm/iota_interaction_ts",
+  "iota_interaction_rust",
 ]
 
 [workspace.dependencies]
@@ -28,7 +28,6 @@ serde = { version = "1.0", default-features = false, features = ["alloc", "deriv
 serde_json = { version = "1.0", default-features = false }
 strum = { version = "0.25", default-features = false, features = ["std", "derive"] }
 thiserror = { version = "1.0", default-features = false }
-
 
 [workspace.lints.clippy]
 result_large_err = "allow"
