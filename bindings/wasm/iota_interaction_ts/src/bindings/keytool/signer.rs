@@ -3,17 +3,15 @@
 
 use std::str::FromStr;
 
-use crate::error::Result;
-use crate::error::WasmResult;
 use fastcrypto::traits::EncodeDecodeBase64 as _;
 use iota_interaction::types::base_types::IotaAddress;
-use iota_interaction::KeytoolSigner;
-use iota_interaction::KeytoolSignerBuilder;
+use iota_interaction::{KeytoolSigner, KeytoolSignerBuilder};
 use secret_storage::Signer;
 use serde_json::Value;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsError;
 
+use crate::error::{Result, WasmResult};
 use crate::WasmPublicKey;
 
 #[wasm_bindgen(module = buffer)]

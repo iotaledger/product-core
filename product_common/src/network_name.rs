@@ -2,17 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use core::convert::TryFrom;
-use core::fmt::Display;
-use core::fmt::Formatter;
+use core::fmt::{Display, Formatter};
 use core::ops::Deref;
 use std::fmt::Debug;
 use std::str::FromStr;
 
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-use crate::error::Error;
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 /// Network name compliant with the [`crate::IotaDID`] method specification.
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]

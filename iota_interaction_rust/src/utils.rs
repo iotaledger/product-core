@@ -4,15 +4,11 @@
 use iota_interaction::interaction_error::Error;
 use iota_interaction::move_types::ident_str;
 use iota_interaction::rpc_types::OwnedObjectRef;
-use iota_interaction::types::base_types::ObjectID;
-use iota_interaction::types::base_types::STD_OPTION_MODULE_NAME;
+use iota_interaction::types::base_types::{ObjectID, STD_OPTION_MODULE_NAME};
 use iota_interaction::types::object::Owner;
 use iota_interaction::types::programmable_transaction_builder::ProgrammableTransactionBuilder as Ptb;
-use iota_interaction::types::transaction::Argument;
-use iota_interaction::types::transaction::ObjectArg;
-use iota_interaction::types::IOTA_CLOCK_OBJECT_ID;
-use iota_interaction::types::IOTA_CLOCK_OBJECT_SHARED_VERSION;
-use iota_interaction::types::MOVE_STDLIB_PACKAGE_ID;
+use iota_interaction::types::transaction::{Argument, ObjectArg};
+use iota_interaction::types::{IOTA_CLOCK_OBJECT_ID, IOTA_CLOCK_OBJECT_SHARED_VERSION, MOVE_STDLIB_PACKAGE_ID};
 use iota_interaction::MoveType;
 use serde::Serialize;
 
@@ -27,11 +23,7 @@ pub fn get_clock_ref(ptb: &mut Ptb) -> Argument {
     .expect("network has a singleton clock instantiated")
 }
 
-pub fn get_controller_delegation(
-  ptb: &mut Ptb,
-  controller_cap: Argument,
-  package: ObjectID,
-) -> (Argument, Argument) {
+pub fn get_controller_delegation(ptb: &mut Ptb, controller_cap: Argument, package: ObjectID) -> (Argument, Argument) {
   let Argument::Result(idx) = ptb.programmable_move_call(
     package,
     ident_str!("controller").into(),

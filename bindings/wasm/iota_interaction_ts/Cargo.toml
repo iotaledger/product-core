@@ -4,12 +4,12 @@ version = "1.6.0-alpha"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
-license.workspace = true
-repository.workspace = true
-rust-version.workspace = true
 keywords = ["iota", "tangle", "wasm"]
+license.workspace = true
 publish = false
 readme = "README.md"
+repository.workspace = true
+rust-version.workspace = true
 description = "iota_interaction Adapters using Web Assembly bindings."
 
 [lib]

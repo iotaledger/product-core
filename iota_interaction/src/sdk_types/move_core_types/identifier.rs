@@ -3,18 +3,14 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use core::str::FromStr;
-use core::ops::Deref;
 use core::fmt;
+use core::ops::Deref;
+use core::str::FromStr;
 use std::borrow::Borrow;
 
-use ref_cast::RefCast;
-
-use serde::Deserialize;
-use serde::Serialize;
-
 use anyhow::{bail, Result};
-
+use ref_cast::RefCast;
+use serde::{Deserialize, Serialize};
 
 /// Return true if this character can appear in a Move identifier.
 ///
@@ -22,22 +18,22 @@ use anyhow::{bail, Result};
 /// Move identifier--only alphabetic characters are allowed here.
 #[inline]
 pub const fn is_valid_identifier_char(c: char) -> bool {
-    matches!(c, '_' | 'a'..='z' | 'A'..='Z' | '0'..='9')
+  matches!(c, '_' | 'a'..='z' | 'A'..='Z' | '0'..='9')
 }
 
 /// Returns `true` if all bytes in `b` after the offset `start_offset` are valid
 /// ASCII identifier characters.
 const fn all_bytes_valid(b: &[u8], start_offset: usize) -> bool {
-    let mut i = start_offset;
-    // TODO(philiphayes): use for loop instead of while loop when it's stable in
-    // const fn's.
-    while i < b.len() {
-        if !is_valid_identifier_char(b[i] as char) {
-            return false;
-        }
-        i += 1;
+  let mut i = start_offset;
+  // TODO(philiphayes): use for loop instead of while loop when it's stable in
+  // const fn's.
+  while i < b.len() {
+    if !is_valid_identifier_char(b[i] as char) {
+      return false;
     }
-    true
+    i += 1;
+  }
+  true
 }
 
 /// Describes what identifiers are allowed.
@@ -48,16 +44,16 @@ const fn all_bytes_valid(b: &[u8], start_offset: usize) -> bool {
 // CompiledScript goes away. Note: needs to be pub as it's used in the
 // `ident_str!` macro.
 pub const fn is_valid(s: &str) -> bool {
-    // Rust const fn's don't currently support slicing or indexing &str's, so we
-    // have to operate on the underlying byte slice. This is not a problem as
-    // valid identifiers are (currently) ASCII-only.
-    let b = s.as_bytes();
-    match b {
-        b"<SELF>" => true,
-        [b'a'..=b'z', ..] | [b'A'..=b'Z', ..] => all_bytes_valid(b, 1),
-        [b'_', ..] if b.len() > 1 => all_bytes_valid(b, 1),
-        _ => false,
-    }
+  // Rust const fn's don't currently support slicing or indexing &str's, so we
+  // have to operate on the underlying byte slice. This is not a problem as
+  // valid identifiers are (currently) ASCII-only.
+  let b = s.as_bytes();
+  match b {
+    b"<SELF>" => true,
+    [b'a'..=b'z', ..] | [b'A'..=b'Z', ..] => all_bytes_valid(b, 1),
+    [b'_', ..] if b.len() > 1 => all_bytes_valid(b, 1),
+    _ => false,
+  }
 }
 
 /// An owned identifier.
@@ -69,98 +65,98 @@ pub struct Identifier(Box<str>);
 // word smaller.
 
 impl Identifier {
-    /// Creates a new `Identifier` instance.
-    pub fn new(s: impl Into<Box<str>>) -> Result<Self> {
-        let s = s.into();
-        if Self::is_valid(&s) {
-            Ok(Self(s))
-        } else {
-            bail!("Invalid identifier '{}'", s);
-        }
+  /// Creates a new `Identifier` instance.
+  pub fn new(s: impl Into<Box<str>>) -> Result<Self> {
+    let s = s.into();
+    if Self::is_valid(&s) {
+      Ok(Self(s))
+    } else {
+      bail!("Invalid identifier '{}'", s);
     }
+  }
 
-    /// Creates a new `Identifier` from a string without checking if it is a
-    /// valid identifier. This should not be used under normal
-    /// circumstances, but is used in cases where we need to
-    /// preserve backwards compatibility.
-    ///
-    /// # Safety
-    ///
-    /// Only use this function when preserving backwards compatibility.
-    pub unsafe fn new_unchecked(s: impl Into<Box<str>>) -> Self {
-        Self(s.into())
-    }
+  /// Creates a new `Identifier` from a string without checking if it is a
+  /// valid identifier. This should not be used under normal
+  /// circumstances, but is used in cases where we need to
+  /// preserve backwards compatibility.
+  ///
+  /// # Safety
+  ///
+  /// Only use this function when preserving backwards compatibility.
+  pub unsafe fn new_unchecked(s: impl Into<Box<str>>) -> Self {
+    Self(s.into())
+  }
 
-    /// Returns true if this string is a valid identifier.
-    pub fn is_valid(s: impl AsRef<str>) -> bool {
-        is_valid(s.as_ref())
-    }
+  /// Returns true if this string is a valid identifier.
+  pub fn is_valid(s: impl AsRef<str>) -> bool {
+    is_valid(s.as_ref())
+  }
 
-    /// Returns if this identifier is `<SELF>`.
-    /// TODO: remove once we fully separate CompiledScript & CompiledModule.
-    pub fn is_self(&self) -> bool {
-        &*self.0 == "<SELF>"
-    }
+  /// Returns if this identifier is `<SELF>`.
+  /// TODO: remove once we fully separate CompiledScript & CompiledModule.
+  pub fn is_self(&self) -> bool {
+    &*self.0 == "<SELF>"
+  }
 
-    /// Converts a vector of bytes to an `Identifier`.
-    pub fn from_utf8(vec: Vec<u8>) -> Result<Self> {
-        let s = String::from_utf8(vec)?;
-        Self::new(s)
-    }
+  /// Converts a vector of bytes to an `Identifier`.
+  pub fn from_utf8(vec: Vec<u8>) -> Result<Self> {
+    let s = String::from_utf8(vec)?;
+    Self::new(s)
+  }
 
-    /// Creates a borrowed version of `self`.
-    pub fn as_ident_str(&self) -> &IdentStr {
-        self
-    }
+  /// Creates a borrowed version of `self`.
+  pub fn as_ident_str(&self) -> &IdentStr {
+    self
+  }
 
-    /// Converts this `Identifier` into a `String`.
-    ///
-    /// This is not implemented as a `From` trait to discourage automatic
-    /// conversions -- these conversions should not typically happen.
-    pub fn into_string(self) -> String {
-        self.0.into()
-    }
+  /// Converts this `Identifier` into a `String`.
+  ///
+  /// This is not implemented as a `From` trait to discourage automatic
+  /// conversions -- these conversions should not typically happen.
+  pub fn into_string(self) -> String {
+    self.0.into()
+  }
 
-    /// Converts this `Identifier` into a UTF-8-encoded byte sequence.
-    pub fn into_bytes(self) -> Vec<u8> {
-        self.into_string().into_bytes()
-    }
+  /// Converts this `Identifier` into a UTF-8-encoded byte sequence.
+  pub fn into_bytes(self) -> Vec<u8> {
+    self.into_string().into_bytes()
+  }
 }
 
 impl FromStr for Identifier {
-    type Err = anyhow::Error;
+  type Err = anyhow::Error;
 
-    fn from_str(data: &str) -> Result<Self> {
-        Self::new(data)
-    }
+  fn from_str(data: &str) -> Result<Self> {
+    Self::new(data)
+  }
 }
 
 impl From<&IdentStr> for Identifier {
-    fn from(ident_str: &IdentStr) -> Self {
-        ident_str.to_owned()
-    }
+  fn from(ident_str: &IdentStr) -> Self {
+    ident_str.to_owned()
+  }
 }
 
 impl AsRef<IdentStr> for Identifier {
-    fn as_ref(&self) -> &IdentStr {
-        self
-    }
+  fn as_ref(&self) -> &IdentStr {
+    self
+  }
 }
 
 impl Deref for Identifier {
-    type Target = IdentStr;
+  type Target = IdentStr;
 
-    fn deref(&self) -> &IdentStr {
-        // Identifier and IdentStr maintain the same invariants, so it is safe to
-        // convert.
-        IdentStr::ref_cast(&self.0)
-    }
+  fn deref(&self) -> &IdentStr {
+    // Identifier and IdentStr maintain the same invariants, so it is safe to
+    // convert.
+    IdentStr::ref_cast(&self.0)
+  }
 }
 
 impl fmt::Display for Identifier {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", &self.0)
-    }
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{}", &self.0)
+  }
 }
 
 /// A borrowed identifier.
@@ -171,73 +167,73 @@ impl fmt::Display for Identifier {
 pub struct IdentStr(str);
 
 impl IdentStr {
-    pub fn new(s: &str) -> Result<&IdentStr> {
-        if Self::is_valid(s) {
-            Ok(IdentStr::ref_cast(s))
-        } else {
-            bail!("Invalid identifier '{}'", s);
-        }
+  pub fn new(s: &str) -> Result<&IdentStr> {
+    if Self::is_valid(s) {
+      Ok(IdentStr::ref_cast(s))
+    } else {
+      bail!("Invalid identifier '{}'", s);
     }
+  }
 
-    /// Returns true if this string is a valid identifier.
-    pub fn is_valid(s: impl AsRef<str>) -> bool {
-        is_valid(s.as_ref())
-    }
+  /// Returns true if this string is a valid identifier.
+  pub fn is_valid(s: impl AsRef<str>) -> bool {
+    is_valid(s.as_ref())
+  }
 
-    /// Returns the length of `self` in bytes.
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
+  /// Returns the length of `self` in bytes.
+  pub fn len(&self) -> usize {
+    self.0.len()
+  }
 
-    /// Returns `true` if `self` has a length of zero bytes.
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
+  /// Returns `true` if `self` has a length of zero bytes.
+  pub fn is_empty(&self) -> bool {
+    self.0.is_empty()
+  }
 
-    /// Converts `self` to a `&str`.
-    ///
-    /// This is not implemented as a `From` trait to discourage automatic
-    /// conversions -- these conversions should not typically happen.
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
+  /// Converts `self` to a `&str`.
+  ///
+  /// This is not implemented as a `From` trait to discourage automatic
+  /// conversions -- these conversions should not typically happen.
+  pub fn as_str(&self) -> &str {
+    &self.0
+  }
 
-    /// Converts `self` to a byte slice.
-    pub fn as_bytes(&self) -> &[u8] {
-        self.0.as_bytes()
-    }
+  /// Converts `self` to a byte slice.
+  pub fn as_bytes(&self) -> &[u8] {
+    self.0.as_bytes()
+  }
 
-    // AbstractMemorySize is not available for wasm32
-    //
-    // /// Returns the abstract size of the struct
-    // /// TODO (ade): use macro to enfornce determinism
-    // pub fn abstract_size_for_gas_metering(&self) -> AbstractMemorySize {
-    //     AbstractMemorySize::new((self.len()) as u64)
-    // }
+  // AbstractMemorySize is not available for wasm32
+  //
+  // /// Returns the abstract size of the struct
+  // /// TODO (ade): use macro to enfornce determinism
+  // pub fn abstract_size_for_gas_metering(&self) -> AbstractMemorySize {
+  //     AbstractMemorySize::new((self.len()) as u64)
+  // }
 }
 
 impl Borrow<IdentStr> for Identifier {
-    fn borrow(&self) -> &IdentStr {
-        self
-    }
+  fn borrow(&self) -> &IdentStr {
+    self
+  }
 }
 
 impl Borrow<str> for Identifier {
-    fn borrow(&self) -> &str {
-        &self.0
-    }
+  fn borrow(&self) -> &str {
+    &self.0
+  }
 }
 
 impl ToOwned for IdentStr {
-    type Owned = Identifier;
+  type Owned = Identifier;
 
-    fn to_owned(&self) -> Identifier {
-        Identifier(self.0.into())
-    }
+  fn to_owned(&self) -> Identifier {
+    Identifier(self.0.into())
+  }
 }
 
 impl fmt::Display for IdentStr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", &self.0)
-    }
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{}", &self.0)
+  }
 }

@@ -1,19 +1,15 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use super::object::Object;
 use iota_interaction::types::transaction::TransactionKind;
 use iota_interaction::ProgrammableTransactionBcs;
-use js_sys::Promise;
-use js_sys::Uint8Array;
+use js_sys::{Promise, Uint8Array};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
-use crate::error::TsSdkError;
-use crate::error::TsSdkResult;
-use crate::error::WasmError;
-use crate::error::WasmResult;
+use super::object::Object;
+use crate::error::{TsSdkError, TsSdkResult, WasmError, WasmResult};
 
 #[wasm_bindgen]
 extern "C" {

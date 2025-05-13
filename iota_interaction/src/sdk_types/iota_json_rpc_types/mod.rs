@@ -2,17 +2,16 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-pub mod iota_transaction;
-pub mod iota_object;
 pub mod iota_coin;
 pub mod iota_event;
 pub mod iota_move;
+pub mod iota_object;
+pub mod iota_transaction;
 
-pub use iota_transaction::*;
-pub use iota_object::*;
 pub use iota_coin::*;
 pub use iota_event::*;
-
+pub use iota_object::*;
+pub use iota_transaction::*;
 use serde::{Deserialize, Serialize};
 
 /// `next_cursor` points to the last item in the page;
@@ -21,7 +20,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Page<T, C> {
-    pub data: Vec<T>,
-    pub next_cursor: Option<C>,
-    pub has_next_page: bool,
+  pub data: Vec<T>,
+  pub next_cursor: Option<C>,
+  pub has_next_page: bool,
 }

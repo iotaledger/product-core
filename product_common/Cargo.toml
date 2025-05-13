@@ -4,12 +4,12 @@ version = "1.6.0-alpha"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
+keywords = ["iota", "tangle"]
 license.workspace = true
+readme = "./README.md"
 repository.workspace = true
 rust-version.workspace = true
 description = "Sources shared by IOTA products."
-keywords = ["iota", "tangle"]
-readme = "./README.md"
 
 [dependencies]
 anyhow.workspace = true
@@ -24,6 +24,8 @@ serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 
+iota-keys = { git = "https://github.com/iotaledger/iota.git", package = "iota-keys", tag = "v0.12.0-rc", optional = true }
+
 [dependencies.identity_jose]
 git = "https://github.com/iotaledger/identity.rs.git"
 branch = "feat/identity-rebased-alpha-public-interaction-rust"
@@ -31,28 +33,39 @@ package = "identity_jose"
 optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", features = [
-    "keytool",
-] }
+iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", features = ["keytool"] }
 iota_interaction_rust = { version = "=1.6.0-alpha", path = "../iota_interaction_rust", optional = true }
 iota-sdk.workspace = true
 tokio = { version = "1", default-features = false, features = ["process"] }
+bcs = { workspace = true, optional = true }
+fastcrypto = { workspace = true, optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", default-features = false }
 iota_interaction_ts = { version = "=1.6.0-alpha", path = "../bindings/wasm/iota_interaction_ts" }
 
+[dev-dependencies]
+iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction" }
+iota_interaction_rust = { version = "=1.6.0-alpha", path = "../iota_interaction_rust" }
 
 [features]
 default = []
 send-sync = ["secret-storage/send-sync-storage"]
-test-utils = ["dep:identity_jose", "dep:lazy_static", "dep:secret-storage"]
+test-utils = [
+  "dep:identity_jose",
+  "dep:lazy_static",
+  "dep:secret-storage",
+  "dep:iota-keys",
+  "dep:bcs",
+  "dep:fastcrypto",
+  "send-sync",
+]
 core-client = ["dep:secret-storage"]
 transaction = [
-    "core-client",
-    "dep:iota_interaction_rust",
-    "dep:itertools",
-    "dep:secret-storage",
+  "core-client",
+  "dep:iota_interaction_rust",
+  "dep:itertools",
+  "dep:secret-storage",
 ]
 
 [package.metadata.docs.rs]
