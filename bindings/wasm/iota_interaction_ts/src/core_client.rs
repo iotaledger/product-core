@@ -3,7 +3,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::bindings::{WasmIotaClient, WasmTransactionSigner};
 use crate::WasmPublicKey;
 
-#[wasm_bindgen]
+#[wasm_bindgen(module = "@iota/iota-interaction-ts/core_client")]
 extern "C" {
     #[derive(Clone)]
     #[wasm_bindgen(typescript_type = CoreClientReadOnly)]
