@@ -19,6 +19,12 @@ pub struct InMemSigner {
   selected_alias: Arc<RwLock<String>>,
 }
 
+impl Default for InMemSigner {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl InMemSigner {
   /// Creates a new in memory signer with a random alias
   pub fn new() -> Self {
@@ -50,7 +56,7 @@ impl InMemSigner {
 
   /// Selects an alias to be used for signing
   pub async fn select_alias(&self, alias: &str) -> anyhow::Result<()> {
-    if !self.keystore.alias_exists(alias.into()) {
+    if !self.keystore.alias_exists(alias) {
       return Err(anyhow::anyhow!("Alias does not exist"));
     }
 
@@ -92,11 +98,11 @@ impl SignerTrait<IotaKeySignature> for InMemSigner {
     data: &TransactionData,
   ) -> secret_storage::Result<<IotaKeySignature as SignerSignatureScheme>::Signature> {
     use fastcrypto::hash::Blake2b256;
-    let address = self.get_address().await.map_err(|e| secret_storage::Error::Other(e))?;
+    let address = self.get_address().await.map_err(secret_storage::Error::Other)?;
 
     let tx_data_bcs = bcs::to_bytes(data)
       .context("Failed to serialize transaction data")
-      .map_err(|e| secret_storage::Error::Other(e))?;
+      .map_err(secret_storage::Error::Other)?;
     let intent_bytes = Intent::iota_transaction().to_bytes();
     let mut hasher = Blake2b256::default();
     hasher.update(intent_bytes);
@@ -111,12 +117,11 @@ impl SignerTrait<IotaKeySignature> for InMemSigner {
   async fn public_key(
     &self,
   ) -> secret_storage::Result<<IotaKeySignature as secret_storage::SignatureScheme>::PublicKey> {
-    let address = self.get_address().await.map_err(|e| secret_storage::Error::Other(e))?;
+    let address = self.get_address().await.map_err(secret_storage::Error::Other)?;
     let res = self.keystore.get_key(&address).unwrap();
 
     Ok(res.public())
   }
-  fn key_id(&self) -> Self::KeyId {
-    ()
-  }
+
+  fn key_id(&self) -> Self::KeyId {}
 }

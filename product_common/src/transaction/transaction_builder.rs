@@ -202,8 +202,10 @@ where
       .await
       .map_err(|e| Error::TransactionBuildingFailed(e.to_string()))?;
     let signer_address = IotaAddress::from(&pk);
-    let matches_sender = self.sender.is_none_or(|sender| sender == signer_address);
-    let matches_gas_owner = self.gas.owner.is_none_or(|owner| owner == signer_address);
+
+    let matches_sender = self.sender.map_or(true, |sender| sender == signer_address);
+    let matches_gas_owner = self.gas.owner.map_or(true, |owner| owner == signer_address);
+
     if !(matches_sender || matches_gas_owner) {
       return Err(Error::TransactionBuildingFailed(format!(
         "signer's address {signer_address} doesn't match the address of either the transaction sender or the gas owner"
