@@ -7,16 +7,16 @@ on:
   workflow_call:
     inputs:
       run-unit-tests:
-        description: "Should tests be run"
+        description: 'Should tests be run'
         required: false
         type: boolean
         default: true
       ref:
-        description: "ref to checkout"
+        description: 'ref to checkout'
         required: false
         type: string
       output-artifact-name:
-        description: "Name used for the output build artifact"
+        description: 'Name used for the output build artifact'
         required: true
         type: string
 jobs:
@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ubuntu-latest]
         include:
           - os: ubuntu-latest
             sccache-path: /home/runner/.cache/sccache
@@ -72,7 +72,7 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
         working-directory: bindings/wasm/iota_interaction_ts
-        
+
       - name: Build IOTA interaction bindings
         run: npm run build
         working-directory: bindings/wasm/iota_interaction_ts
