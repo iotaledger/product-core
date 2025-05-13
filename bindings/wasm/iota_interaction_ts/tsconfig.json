@@ -1,9 +1,5 @@
 {
   "extends": "../tsconfig.json",
-  "entryPoints": [
-    "./node/"
-  ],
-  "out": "./docs/wasm",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {

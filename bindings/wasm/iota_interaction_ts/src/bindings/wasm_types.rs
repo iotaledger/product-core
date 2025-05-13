@@ -354,6 +354,9 @@ extern "C" {
 
   #[wasm_bindgen(constructor, catch)]
   pub fn new_ed25519_pk(bytes: &[u8]) -> Result<Ed25519PublicKey, JsValue>;
+
+  #[wasm_bindgen(constructor, catch)]
+  pub fn new_ed25519_pk_base64(base64: &str) -> Result<Ed25519PublicKey, JsValue>;
 }
 
 #[wasm_bindgen(module = "@iota/iota-sdk/keypairs/secp256r1")]
@@ -363,6 +366,9 @@ extern "C" {
 
   #[wasm_bindgen(constructor, catch)]
   pub fn new_secp256r1_pk(bytes: &[u8]) -> Result<Secp256r1PublicKey, JsValue>;
+
+  #[wasm_bindgen(constructor, catch)]
+  pub fn new_secp256r1_pk_base64(base64: &str) -> Result<Secp256r1PublicKey, JsValue>;
 }
 
 #[wasm_bindgen(module = "@iota/iota-sdk/keypairs/secp256k1")]
@@ -372,21 +378,25 @@ extern "C" {
 
   #[wasm_bindgen(constructor, catch)]
   pub fn new_secp256k1_pk(bytes: &[u8]) -> Result<Secp256k1PublicKey, JsValue>;
+
+  #[wasm_bindgen(constructor, catch)]
+  pub fn new_secp256k1_pk_base64(base64: &str) -> Result<Secp256k1PublicKey, JsValue>;
 }
 
 impl TryFrom<&'_ PublicKey> for WasmPublicKey {
   type Error = JsValue;
   fn try_from(pk: &PublicKey) -> Result<Self, Self::Error> {
     let pk_bytes = pk.as_ref();
+    let base64_pk = Base64::encode(pk_bytes);
     let wasm_pk: WasmPublicKey = match pk {
-      PublicKey::Ed25519(_) => Ed25519PublicKey::new_ed25519_pk(pk_bytes)?.into(),
-      PublicKey::Secp256r1(_) => Secp256r1PublicKey::new_secp256r1_pk(pk_bytes)?.into(),
-      PublicKey::Secp256k1(_) => Secp256k1PublicKey::new_secp256k1_pk(pk_bytes)?.into(),
+      PublicKey::Ed25519(_) => Ed25519PublicKey::new_ed25519_pk_base64(&base64_pk)?.into(),
+      PublicKey::Secp256r1(_) => Secp256r1PublicKey::new_secp256r1_pk_base64(&base64_pk)?.into(),
+      PublicKey::Secp256k1(_) => Secp256k1PublicKey::new_secp256k1_pk_base64(&base64_pk)?.into(),
       _ => return Err(JsError::new("unsupported PublicKey type").into()),
     };
 
-    assert_eq!(pk_bytes, &wasm_pk.to_raw_bytes());
-    assert_eq!(
+    debug_assert_eq!(pk_bytes, &wasm_pk.to_raw_bytes());
+    debug_assert_eq!(
       IotaAddress::from(pk),
       wasm_pk.to_iota_address().parse().expect("valid iota address")
     );
@@ -401,8 +411,8 @@ impl TryFrom<WasmPublicKey> for PublicKey {
     let pk = PublicKey::decode_base64(&wasm_pk.to_iota_public_key())
       .map_err(|_| JsError::new("failed to decode base64 JS PublicKey"))?;
 
-    assert_eq!(&wasm_pk.to_raw_bytes(), pk.as_ref());
-    assert_eq!(
+    debug_assert_eq!(&wasm_pk.to_raw_bytes(), pk.as_ref());
+    debug_assert_eq!(
       IotaAddress::from(&pk),
       wasm_pk.to_iota_address().parse().expect("valid iota address")
     );
