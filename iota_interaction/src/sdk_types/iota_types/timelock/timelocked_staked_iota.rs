@@ -2,15 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use serde::{Deserialize, Serialize};
+
+use super::super::base_types::{EpochId, ObjectID};
+use super::super::governance::StakedIota;
+use super::super::id::UID;
+use super::super::IOTA_SYSTEM_ADDRESS;
 use crate::ident_str;
 use crate::sdk_types::move_types::identifier::IdentStr;
 use crate::sdk_types::move_types::language_storage::StructTag;
-use super::super::{
-  IOTA_SYSTEM_ADDRESS,
-  base_types::{ObjectID, EpochId},
-  governance::StakedIota,
-  id::UID,
-};
 
 pub const TIMELOCKED_STAKED_IOTA_MODULE_NAME: &IdentStr = ident_str!("timelocked_staking");
 pub const TIMELOCKED_STAKED_IOTA_STRUCT_NAME: &IdentStr = ident_str!("TimelockedStakedIota");

@@ -1,20 +1,18 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use std::borrow::Cow;
+use std::fmt::{Debug, Display};
 use std::result::Result as StdResult;
 
+use iota_interaction::types::execution_status::{
+  CommandArgumentError, ExecutionFailureStatus, PackageUpgradeError, TypeArgumentError,
+};
 use serde::de::DeserializeOwned;
-use std::borrow::Cow;
-use std::fmt::Debug;
-use std::fmt::Display;
+use thiserror::Error as ThisError;
 use wasm_bindgen::JsValue;
 
 use crate::common::into_sdk_type;
-use iota_interaction::types::execution_status::CommandArgumentError;
-use iota_interaction::types::execution_status::ExecutionFailureStatus;
-use iota_interaction::types::execution_status::PackageUpgradeError;
-use iota_interaction::types::execution_status::TypeArgumentError;
-use thiserror::Error as ThisError;
 
 /// Convenience wrapper for `Result<T, JsValue>`.
 ///
@@ -142,7 +140,7 @@ fn error_chain_fmt(e: &impl std::error::Error, f: &mut std::fmt::Formatter<'_>) 
 
 struct ErrorMessage<'a, E: std::error::Error>(&'a E);
 
-impl<'a, E: std::error::Error> Display for ErrorMessage<'a, E> {
+impl<E: std::error::Error> Display for ErrorMessage<'_, E> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     error_chain_fmt(self.0, f)
   }
@@ -217,7 +215,7 @@ impl From<WasmError<'_>> for TsSdkError {
 
 pub fn into_ts_sdk_result<T: DeserializeOwned>(result: Result<JsValue>) -> TsSdkResult<T> {
   let result_str = stringify_js_error(result);
-  let js_value = result_str.map_err(|e| TsSdkError::JsSysError(e))?;
+  let js_value = result_str.map_err(TsSdkError::JsSysError)?;
   let ret_val: T = into_sdk_type(js_value)?;
   Ok(ret_val)
 }

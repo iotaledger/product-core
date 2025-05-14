@@ -1,12 +1,10 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr as _;
 
-use anyhow::anyhow;
-use anyhow::Context as _;
+use anyhow::{anyhow, Context as _};
 use fastcrypto::traits::EncodeDecodeBase64 as _;
 use jsonpath_rust::JsonPathQuery as _;
 use serde::Deserialize;

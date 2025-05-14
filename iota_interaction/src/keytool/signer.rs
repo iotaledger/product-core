@@ -1,23 +1,18 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use crate::types::base_types::IotaAddress;
-use crate::types::crypto::PublicKey;
-use crate::types::crypto::Signature;
-use crate::types::transaction::TransactionData;
-use crate::IotaKeySignature;
-use anyhow::anyhow;
-use anyhow::Context as _;
+use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
-use fastcrypto::encoding::Base64;
-use fastcrypto::encoding::Encoding;
-use secret_storage::Error as SecretStorageError;
-use secret_storage::Signer;
+use fastcrypto::encoding::{Base64, Encoding};
+use secret_storage::{Error as SecretStorageError, Signer};
 
 use super::internal::IotaCliWrapper;
+use crate::types::base_types::IotaAddress;
+use crate::types::crypto::{PublicKey, Signature};
+use crate::types::transaction::TransactionData;
+use crate::IotaKeySignature;
 
 /// Builder structure to ease the creation of a [KeytoolSigner].
 #[derive(Debug, Default)]

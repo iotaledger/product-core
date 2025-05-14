@@ -6,13 +6,6 @@ pub mod transaction_builder;
 pub mod utils;
 
 #[allow(unused_imports)]
-pub use iota_client_rust_sdk::IotaClientRustSdk as IotaClientAdapter;
-#[allow(unused_imports)]
-pub use transaction_builder::TransactionBuilderRustSdk as TransactionBuilderAdapter;
-
-#[allow(unused_imports)]
-pub use iota_interaction::interaction_error::Error as AdapterError;
-#[allow(unused_imports)]
 pub use iota_client_rust_sdk::CoinReadApiAdaptedT;
 #[allow(unused_imports)]
 pub use iota_client_rust_sdk::CoinReadApiAdaptedTraitObj;
@@ -25,6 +18,8 @@ pub use iota_client_rust_sdk::IotaClientAdaptedT;
 #[allow(unused_imports)]
 pub use iota_client_rust_sdk::IotaClientAdaptedTraitObj;
 #[allow(unused_imports)]
+pub use iota_client_rust_sdk::IotaClientRustSdk as IotaClientAdapter;
+#[allow(unused_imports)]
 pub use iota_client_rust_sdk::IotaTransactionBlockResponseAdaptedT;
 #[allow(unused_imports)]
 pub use iota_client_rust_sdk::IotaTransactionBlockResponseAdaptedTraitObj;
@@ -36,3 +31,7 @@ pub use iota_client_rust_sdk::QuorumDriverApiAdaptedTraitObj;
 pub use iota_client_rust_sdk::ReadApiAdaptedT;
 #[allow(unused_imports)]
 pub use iota_client_rust_sdk::ReadApiAdaptedTraitObj;
+#[allow(unused_imports)]
+pub use iota_interaction::interaction_error::Error as AdapterError;
+#[allow(unused_imports)]
+pub use transaction_builder::TransactionBuilderRustSdk as TransactionBuilderAdapter;

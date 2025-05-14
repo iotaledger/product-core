@@ -1,29 +1,16 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use iota_interaction::error::Error as IotaRpcError;
-use iota_interaction::error::IotaRpcResult;
-use iota_interaction::generated_types::ExecuteTransactionBlockParams;
-use iota_interaction::generated_types::GetCoinsParams;
-use iota_interaction::generated_types::GetDynamicFieldObjectParams;
-use iota_interaction::generated_types::GetObjectParams;
-use iota_interaction::generated_types::GetOwnedObjectsParams;
-use iota_interaction::generated_types::GetTransactionBlockParams;
-use iota_interaction::generated_types::QueryEventsParams;
-use iota_interaction::generated_types::SortOrder;
-use iota_interaction::generated_types::WaitForTransactionParams;
-use iota_interaction::rpc_types::CoinPage;
-use iota_interaction::rpc_types::EventFilter;
-use iota_interaction::rpc_types::EventPage;
-use iota_interaction::rpc_types::IotaObjectDataOptions;
-use iota_interaction::rpc_types::IotaObjectResponse;
-use iota_interaction::rpc_types::IotaObjectResponseQuery;
-use iota_interaction::rpc_types::IotaPastObjectResponse;
-use iota_interaction::rpc_types::IotaTransactionBlockResponseOptions;
-use iota_interaction::rpc_types::ObjectsPage;
-use iota_interaction::types::base_types::IotaAddress;
-use iota_interaction::types::base_types::ObjectID;
-use iota_interaction::types::base_types::SequenceNumber;
+use iota_interaction::error::{Error as IotaRpcError, IotaRpcResult};
+use iota_interaction::generated_types::{
+  ExecuteTransactionBlockParams, GetCoinsParams, GetDynamicFieldObjectParams, GetObjectParams, GetOwnedObjectsParams,
+  GetTransactionBlockParams, QueryEventsParams, SortOrder, WaitForTransactionParams,
+};
+use iota_interaction::rpc_types::{
+  CoinPage, EventFilter, EventPage, IotaObjectDataOptions, IotaObjectResponse, IotaObjectResponseQuery,
+  IotaPastObjectResponse, IotaTransactionBlockResponseOptions, ObjectsPage,
+};
+use iota_interaction::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
@@ -35,30 +22,19 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
-use super::wasm_types::PromiseIotaTransactionBlockResponse;
-use super::wasm_types::WasmExecuteTransactionBlockParams;
-use super::wasm_types::WasmIotaTransactionBlockResponseWrapper;
-use super::PromiseDryRunTransactionBlockResponse;
-use super::WasmDryRunTransactionBlockParams;
-use super::WasmWaitForTransactionParams;
-
-use crate::bindings::PromiseIotaObjectResponse;
-use crate::bindings::PromiseObjectRead;
-use crate::bindings::PromisePaginatedCoins;
-use crate::bindings::PromisePaginatedEvents;
-use crate::bindings::PromisePaginatedObjectsResponse;
-use crate::bindings::WasmGetCoinsParams;
-use crate::bindings::WasmGetDynamicFieldObjectParams;
-use crate::bindings::WasmGetObjectParams;
-use crate::bindings::WasmGetOwnedObjectsParams;
-use crate::bindings::WasmGetTransactionBlockParams;
-use crate::bindings::WasmQueryEventsParams;
-use crate::bindings::WasmTryGetPastObjectParams;
+use super::wasm_types::{
+  PromiseIotaTransactionBlockResponse, WasmExecuteTransactionBlockParams, WasmIotaTransactionBlockResponseWrapper,
+};
+use super::{PromiseDryRunTransactionBlockResponse, WasmDryRunTransactionBlockParams, WasmWaitForTransactionParams};
+use crate::bindings::{
+  PromiseIotaObjectResponse, PromiseObjectRead, PromisePaginatedCoins, PromisePaginatedEvents,
+  PromisePaginatedObjectsResponse, WasmGetCoinsParams, WasmGetDynamicFieldObjectParams, WasmGetObjectParams,
+  WasmGetOwnedObjectsParams, WasmGetTransactionBlockParams, WasmQueryEventsParams, WasmTryGetPastObjectParams,
+};
 use crate::common::types::PromiseString;
 use crate::common::PromiseBigint;
 use crate::console_log;
-use crate::error::into_ts_sdk_result;
-use crate::error::TsSdkError;
+use crate::error::{into_ts_sdk_result, TsSdkError};
 
 // This file contains the wasm-bindgen 'glue code' providing
 // the interface of the TS Iota client to rust code.
@@ -68,10 +44,6 @@ use crate::error::TsSdkError;
 // In other words: The typescript_type "IotaClient" is imported here to be bound
 // to the WasmIotaClient functions below.
 // TODO: check why this isn't done by `module` macro attribute for `WasmIotaClient`
-#[wasm_bindgen(typescript_custom_section)]
-const IOTA_CLIENT_TYPE: &'static str = r#"
-  import { IotaClient } from "@iota/iota-sdk/client";
-"#;
 
 #[wasm_bindgen(module = "@iota/iota-sdk/client")]
 extern "C" {
@@ -238,8 +210,8 @@ impl ManagedWasmIotaClient {
       address.to_string(),
       cursor.map(|v| v.to_string()),
       limit,
-      query.clone().map(|v| v.filter).flatten(),
-      query.clone().map(|v| v.options).flatten(),
+      query.clone().and_then(|v| v.filter),
+      query.clone().and_then(|v| v.options),
     ))
     .map_err(|e| {
       console_log!(

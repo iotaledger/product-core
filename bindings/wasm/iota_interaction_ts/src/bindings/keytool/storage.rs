@@ -4,18 +4,14 @@
 use std::str::FromStr;
 
 use iota_interaction::types::base_types::IotaAddress;
-use iota_interaction::types::crypto::IotaKeyPair;
-use iota_interaction::types::crypto::SignatureScheme;
+use iota_interaction::types::crypto::{IotaKeyPair, SignatureScheme};
 use iota_interaction::KeytoolStorage;
-use js_sys::Array;
-use js_sys::JsString;
+use js_sys::{Array, JsString};
 use wasm_bindgen::prelude::*;
 
-use crate::error::Result;
-use crate::error::WasmResult;
-use crate::WasmPublicKey;
-
 use super::signer::WasmKeytoolSigner;
+use crate::error::{Result, WasmResult};
+use crate::WasmPublicKey;
 
 const __TS_IMPORTS: &str = r#"
 import { PublicKey } from "@iota/iota-sdk/cryptography";

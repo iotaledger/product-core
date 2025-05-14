@@ -15,8 +15,9 @@ cfg_if::cfg_if! {
   }
 }
 
-use crate::Error;
 use iota_interaction::types::base_types::IotaAddress;
+
+use crate::Error;
 
 const FUND_WITH_ACTIVE_ADDRESS_FUNDING_TX_BUDGET: u64 = 5_000_000;
 const FUND_WITH_ACTIVE_ADDRESS_FUNDING_VALUE: u64 = 500_000_000;

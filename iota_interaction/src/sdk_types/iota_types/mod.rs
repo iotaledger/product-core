@@ -25,5 +25,7 @@ pub mod stardust;
 pub mod storage;
 pub mod timelock;
 pub mod transaction;
-pub use super::move_core_types::{identifier::Identifier, language_storage::TypeTag};
 pub use iota_types_lib::*;
+
+pub use super::move_core_types::identifier::Identifier;
+pub use super::move_core_types::language_storage::TypeTag;

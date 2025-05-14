@@ -1,58 +1,35 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use async_trait::async_trait;
 use std::boxed::Box;
 use std::marker::Send;
 use std::option::Option;
 use std::result::Result;
 
-use secret_storage::Signer;
-
-use iota_interaction::interaction_error::Error;
-use iota_interaction::apis::CoinReadApi;
-use iota_interaction::apis::EventApi;
-use iota_interaction::apis::QuorumDriverApi;
-use iota_interaction::apis::ReadApi;
+use async_trait::async_trait;
+use iota_interaction::apis::{CoinReadApi, EventApi, QuorumDriverApi, ReadApi};
 use iota_interaction::error::IotaRpcResult;
-use iota_interaction::rpc_types::Coin;
-use iota_interaction::rpc_types::CoinPage;
-use iota_interaction::rpc_types::EventFilter;
-use iota_interaction::rpc_types::EventPage;
-use iota_interaction::rpc_types::IotaExecutionStatus;
-use iota_interaction::rpc_types::IotaObjectData;
-use iota_interaction::rpc_types::IotaObjectDataOptions;
-use iota_interaction::rpc_types::IotaObjectResponse;
-use iota_interaction::rpc_types::IotaObjectResponseQuery;
-use iota_interaction::rpc_types::IotaPastObjectResponse;
-use iota_interaction::rpc_types::IotaTransactionBlockEffects;
-use iota_interaction::rpc_types::IotaTransactionBlockEffectsAPI;
-use iota_interaction::rpc_types::IotaTransactionBlockEffectsV1;
-use iota_interaction::rpc_types::IotaTransactionBlockResponse;
-use iota_interaction::rpc_types::IotaTransactionBlockResponseOptions;
-use iota_interaction::rpc_types::ObjectChange;
-use iota_interaction::rpc_types::ObjectsPage;
-use iota_interaction::types::base_types::IotaAddress;
-use iota_interaction::types::base_types::ObjectID;
-use iota_interaction::types::base_types::SequenceNumber;
+use iota_interaction::interaction_error::Error;
+use iota_interaction::rpc_types::{
+  Coin, CoinPage, EventFilter, EventPage, IotaExecutionStatus, IotaObjectData, IotaObjectDataOptions,
+  IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
+  IotaTransactionBlockEffectsAPI, IotaTransactionBlockEffectsV1, IotaTransactionBlockResponse,
+  IotaTransactionBlockResponseOptions, ObjectChange, ObjectsPage,
+};
+use iota_interaction::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
 use iota_interaction::types::event::EventID;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
-use iota_interaction::types::transaction::ProgrammableTransaction;
-use iota_interaction::types::transaction::Transaction;
-use iota_interaction::types::transaction::TransactionData;
-use iota_interaction::types::transaction::TransactionDataAPI as _;
-use iota_interaction::CoinReadTrait;
-use iota_interaction::EventTrait;
-use iota_interaction::IotaClient;
-use iota_interaction::IotaClientTrait;
-use iota_interaction::IotaKeySignature;
-use iota_interaction::IotaTransactionBlockResponseT;
-use iota_interaction::OptionalSync;
-use iota_interaction::QuorumDriverTrait;
-use iota_interaction::ReadTrait;
+use iota_interaction::types::transaction::{
+  ProgrammableTransaction, Transaction, TransactionData, TransactionDataAPI as _,
+};
+use iota_interaction::{
+  CoinReadTrait, EventTrait, IotaClient, IotaClientTrait, IotaKeySignature, IotaTransactionBlockResponseT,
+  OptionalSync, QuorumDriverTrait, ReadTrait,
+};
+use secret_storage::Signer;
 
 /// The minimum balance required to execute a transaction.
 pub const MINIMUM_BALANCE: u64 = 1_000_000_000;

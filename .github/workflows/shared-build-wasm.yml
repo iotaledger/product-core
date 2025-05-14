@@ -7,16 +7,16 @@ on:
   workflow_call:
     inputs:
       run-unit-tests:
-        description: 'Should tests be run'
+        description: "Should tests be run"
         required: false
         type: boolean
         default: true
       ref:
-        description: 'ref to checkout'
+        description: "ref to checkout"
         required: false
         type: string
       output-artifact-name:
-        description: 'Name used for the output build artifact'
+        description: "Name used for the output build artifact"
         required: true
         type: string
 jobs:
@@ -42,7 +42,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
       - name: Setup Rust and cache
-        uses: './.github/actions/rust/rust-setup'
+        uses: "./.github/actions/rust/rust-setup"
         with:
           os: ${{ runner.os }}
           job: ${{ github.job }}
@@ -57,10 +57,10 @@ jobs:
       - name: Install wasm-bindgen-cli
         uses: jetli/wasm-bindgen-action@24ba6f9fff570246106ac3f80f35185600c3f6c9
         with:
-          version: '0.2.100'
+          version: "0.2.100"
 
       - name: Setup sccache
-        uses: './.github/actions/rust/sccache/setup-sccache'
+        uses: "./.github/actions/rust/sccache/setup-sccache"
         with:
           os: ${{matrix.os}}
 
@@ -83,7 +83,7 @@ jobs:
         working-directory: bindings/wasm/iota_interaction_ts
 
       - name: Stop sccache
-        uses: './.github/actions/rust/sccache/stop-sccache'
+        uses: "./.github/actions/rust/sccache/stop-sccache"
         with:
           os: ${{matrix.os}}
 

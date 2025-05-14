@@ -1,13 +1,12 @@
-name: 'setup-sccache'
-description: 'Setup sccache.'
+name: "setup-sccache"
+description: "Setup sccache."
 inputs:
   os:
-    description: 'OS of the runner, used for sccache installation and start.'
+    description: "OS of the runner, used for sccache installation and start."
     required: true
 runs:
   using: "composite"
   steps:
-
     - name: Install sccache (macos-latest)
       if: inputs.os == 'macos-latest'
       shell: bash

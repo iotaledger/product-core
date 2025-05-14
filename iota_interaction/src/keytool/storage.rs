@@ -3,21 +3,17 @@
 
 use std::path::Path;
 
-use anyhow::anyhow;
-use anyhow::Context as _;
+use anyhow::{anyhow, Context as _};
 use fastcrypto::ed25519::Ed25519Signature;
 use fastcrypto::secp256k1::Secp256k1Signature;
 use fastcrypto::secp256r1::Secp256r1Signature;
 use fastcrypto::traits::Signer;
 use serde::Deserialize;
 
-use crate::types::base_types::IotaAddress;
-use crate::types::crypto::IotaKeyPair;
-use crate::types::crypto::PublicKey;
-use crate::types::crypto::SignatureScheme as IotaSignatureScheme;
-
 use super::internal::IotaCliWrapper;
 use super::KeytoolSignerBuilder;
+use crate::types::base_types::IotaAddress;
+use crate::types::crypto::{IotaKeyPair, PublicKey, SignatureScheme as IotaSignatureScheme};
 
 #[derive(Clone, Default)]
 pub struct KeytoolStorage {

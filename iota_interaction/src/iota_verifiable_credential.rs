@@ -1,13 +1,13 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use std::str::FromStr;
+
+use serde::{Deserialize, Serialize};
+
 use crate::move_types::language_storage::TypeTag;
 use crate::types::base_types::ObjectID;
-use crate::MoveType;
-use crate::TypedValue;
-use serde::Deserialize;
-use serde::Serialize;
-use std::str::FromStr;
+use crate::{MoveType, TypedValue};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IotaVerifiableCredential {

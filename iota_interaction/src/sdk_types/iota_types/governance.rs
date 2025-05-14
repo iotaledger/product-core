@@ -2,19 +2,16 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-use crate::ident_str;
-
-use super::super::move_core_types::language_storage::StructTag;
 use super::super::move_core_types::identifier::IdentStr;
-
-use super::gas_coin::NANOS_PER_IOTA;
+use super::super::move_core_types::language_storage::StructTag;
 use super::balance::Balance;
+use super::base_types::{EpochId, ObjectID};
+use super::gas_coin::NANOS_PER_IOTA;
+use super::id::{ID, UID};
 use super::IOTA_SYSTEM_ADDRESS;
-use super::base_types::{ObjectID, EpochId};
-use super::id::{UID, ID};
+use crate::ident_str;
 
 /// Maximum number of active validators at any moment.
 /// We do not allow the number of validators in any epoch to go above this.
@@ -52,47 +49,47 @@ pub const WITHDRAW_STAKE_FUN_NAME: &IdentStr = ident_str!("request_withdraw_stak
 
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 pub struct StakedIota {
-    id: UID,
-    pool_id: ID,
-    stake_activation_epoch: u64,
-    principal: Balance,
+  id: UID,
+  pool_id: ID,
+  stake_activation_epoch: u64,
+  principal: Balance,
 }
 
 impl StakedIota {
-    pub fn type_() -> StructTag {
-        StructTag {
-            address: IOTA_SYSTEM_ADDRESS,
-            module: STAKING_POOL_MODULE_NAME.to_owned(),
-            name: STAKED_IOTA_STRUCT_NAME.to_owned(),
-            type_params: vec![],
-        }
+  pub fn type_() -> StructTag {
+    StructTag {
+      address: IOTA_SYSTEM_ADDRESS,
+      module: STAKING_POOL_MODULE_NAME.to_owned(),
+      name: STAKED_IOTA_STRUCT_NAME.to_owned(),
+      type_params: vec![],
     }
+  }
 
-    pub fn is_staked_iota(s: &StructTag) -> bool {
-        s.address == IOTA_SYSTEM_ADDRESS
-            && s.module.as_ident_str() == STAKING_POOL_MODULE_NAME
-            && s.name.as_ident_str() == STAKED_IOTA_STRUCT_NAME
-            && s.type_params.is_empty()
-    }
+  pub fn is_staked_iota(s: &StructTag) -> bool {
+    s.address == IOTA_SYSTEM_ADDRESS
+      && s.module.as_ident_str() == STAKING_POOL_MODULE_NAME
+      && s.name.as_ident_str() == STAKED_IOTA_STRUCT_NAME
+      && s.type_params.is_empty()
+  }
 
-    pub fn id(&self) -> ObjectID {
-        self.id.id.bytes
-    }
+  pub fn id(&self) -> ObjectID {
+    self.id.id.bytes
+  }
 
-    pub fn pool_id(&self) -> ObjectID {
-        self.pool_id.bytes
-    }
+  pub fn pool_id(&self) -> ObjectID {
+    self.pool_id.bytes
+  }
 
-    pub fn activation_epoch(&self) -> EpochId {
-        self.stake_activation_epoch
-    }
+  pub fn activation_epoch(&self) -> EpochId {
+    self.stake_activation_epoch
+  }
 
-    pub fn request_epoch(&self) -> EpochId {
-        // TODO: this might change when we implement warm up period.
-        self.stake_activation_epoch.saturating_sub(1)
-    }
+  pub fn request_epoch(&self) -> EpochId {
+    // TODO: this might change when we implement warm up period.
+    self.stake_activation_epoch.saturating_sub(1)
+  }
 
-    pub fn principal(&self) -> u64 {
-        self.principal.value()
-    }
+  pub fn principal(&self) -> u64 {
+    self.principal.value()
+  }
 }

@@ -25,13 +25,12 @@ pub use transaction_builder_trait::*;
 
 #[cfg(target_arch = "wasm32")]
 mod sdk_types;
-#[cfg(target_arch = "wasm32")]
-pub use sdk_types::*;
-
 #[cfg(not(target_arch = "wasm32"))]
 pub use iota_sdk::*;
 #[cfg(not(target_arch = "wasm32"))]
 pub use move_core_types as move_types;
+#[cfg(target_arch = "wasm32")]
+pub use sdk_types::*;
 #[cfg(not(target_arch = "wasm32"))]
 pub use shared_crypto;
 

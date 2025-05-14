@@ -4,12 +4,12 @@ version = "1.6.0-alpha"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
-license.workspace = true
-repository.workspace = true
-rust-version.workspace = true
 keywords = ["iota", "tangle", "wasm"]
+license.workspace = true
 publish = false
 readme = "README.md"
+repository.workspace = true
+rust-version.workspace = true
 description = "iota_interaction Adapters using Web Assembly bindings."
 
 [lib]
@@ -47,9 +47,7 @@ rand = "0.8.5"
 [target.'cfg(all(target_arch = "wasm32", not(target_os = "wasi")))'.dependencies]
 getrandom = { version = "0.3", default-features = false, features = ["wasm_js"] }
 getrandom_0_2 = { package = "getrandom", version = "0.2", default-features = false, features = ["js"] }
-instant = { version = "0.1", default-features = false, features = [
-    "wasm-bindgen",
-] }
+instant = { version = "0.1", default-features = false, features = ["wasm-bindgen"] }
 
 [lints.clippy]
 # can be removed as soon as fix has been added to clippy
