@@ -62,12 +62,9 @@ pub trait Transaction {
     /// This is particularly important to enable the batching of transactions.
     async fn apply<C>(
         self,
-        effects: IotaTransactionBlockEffects,
+        effects: &mut IotaTransactionBlockEffects,
         client: &C,
-    ) -> (
-        Result<Self::Output, Self::Error>,
-        IotaTransactionBlockEffects,
-    )
+    ) -> Result<Self::Output, Self::Error>
     where
         C: CoreClientReadOnly + OptionalSync;
 }
@@ -388,7 +385,7 @@ where
             .map_err(|e| Error::TransactionBuildingFailed(e.to_string()))?;
 
         // Get the transaction's effects, making sure they are successful.
-        let tx_effects = dyn_tx_block
+        let mut tx_effects = dyn_tx_block
             .effects()
             .ok_or_else(|| {
                 Error::TransactionUnexpectedResponse("missing effects in response".to_owned())
@@ -402,7 +399,7 @@ where
             )));
         }
 
-        let (application_result, _remaining_effects) = tx.apply(tx_effects, client).await;
+        let application_result = tx.apply(&mut tx_effects, client).await;
         let response = {
             cfg_if! {
               if #[cfg(target_arch = "wasm32")] {
