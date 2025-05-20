@@ -41,20 +41,20 @@ pub trait Transaction {
   where
     C: CoreClientReadOnly + OptionalSync;
 
-  /// Parses a transaction result in order to compute its effects.
-  /// ## Notes
-  /// [Transaction::apply] implementations should make sure to properly consume
-  /// the parts of `effects` that are needed for the transaction - e.g., removing
-  /// the ID of the object the transaction created from the `effects`'s list of
-  /// created objects.
-  /// This is particularly important to enable the batching of transactions.
-  async fn apply<C>(
-    self,
-    effects: IotaTransactionBlockEffects,
-    client: &C,
-  ) -> (Result<Self::Output, Self::Error>, IotaTransactionBlockEffects)
-  where
-    C: CoreClientReadOnly + OptionalSync;
+    /// Parses a transaction result in order to compute its effects.
+    /// ## Notes
+    /// [Transaction::apply] implementations should make sure to properly consume
+    /// the parts of `effects` that are needed for the transaction - e.g., removing
+    /// the ID of the object the transaction created from the `effects`'s list of
+    /// created objects.
+    /// This is particularly important to enable the batching of transactions.
+    async fn apply<C>(
+        self,
+        effects: &mut IotaTransactionBlockEffects,
+        client: &C,
+    ) -> Result<Self::Output, Self::Error>
+    where
+        C: CoreClientReadOnly + OptionalSync;
 }
 
 #[derive(Debug, Default, Clone)]
@@ -358,45 +358,47 @@ where
       .await
       .map_err(|e| Error::TransactionBuildingFailed(e.to_string()))?;
 
-    // Get the transaction's effects, making sure they are successful.
-    let tx_effects = dyn_tx_block
-      .effects()
-      .ok_or_else(|| Error::TransactionUnexpectedResponse("missing effects in response".to_owned()))?
-      .clone();
-    let tx_status = tx_effects.status();
-    if tx_status.is_err() {
-      return Err(Error::TransactionUnexpectedResponse(format!(
-        "errors in transaction's effects: {}",
-        tx_status
-      )));
-    }
-
-    let (application_result, _remaining_effects) = tx.apply(tx_effects, client).await;
-    let response = {
-      cfg_if! {
-        if #[cfg(target_arch = "wasm32")] {
-          dyn_tx_block
-        } else {
-          dyn_tx_block.clone_native_response()
+        // Get the transaction's effects, making sure they are successful.
+        let mut tx_effects = dyn_tx_block
+            .effects()
+            .ok_or_else(|| {
+                Error::TransactionUnexpectedResponse("missing effects in response".to_owned())
+            })?
+            .clone();
+        let tx_status = tx_effects.status();
+        if tx_status.is_err() {
+            return Err(Error::TransactionUnexpectedResponse(format!(
+                "errors in transaction's effects: {}",
+                tx_status
+            )));
         }
-      }
-    };
-    // Apply the off-chain logic of the transaction by parsing the transaction's effects.
-    // If the application goes awry, salvage the response by returning it alongside the error.
-    let output = match application_result {
-      Ok(output) => output,
-      Err(e) => {
-        #[cfg(not(target_arch = "wasm32"))]
-        let response = Box::new(response);
-        #[cfg(target_arch = "wasm32")]
-        // For WASM the response is passed in the error as its JSON-encoded string representation.
-        let response = response.as_native_response().to_string();
-        return Err(Error::TransactionOffChainApplicationFailure {
-          source: Box::new(Error::Transaction(Box::new(e))),
-          response,
-        });
-      }
-    };
+
+        let application_result = tx.apply(&mut tx_effects, client).await;
+        let response = {
+            cfg_if! {
+              if #[cfg(target_arch = "wasm32")] {
+                dyn_tx_block
+              } else {
+                dyn_tx_block.clone_native_response()
+              }
+            }
+        };
+        // Apply the off-chain logic of the transaction by parsing the transaction's effects.
+        // If the application goes awry, salvage the response by returning it alongside the error.
+        let output = match application_result {
+            Ok(output) => output,
+            Err(e) => {
+                #[cfg(not(target_arch = "wasm32"))]
+                let response = Box::new(response);
+                #[cfg(target_arch = "wasm32")]
+                // For WASM the response is passed in the error as its JSON-encoded string representation.
+                let response = response.as_native_response().to_string();
+                return Err(Error::TransactionOffChainApplicationFailure {
+                    source: Box::new(Error::Transaction(Box::new(e))),
+                    response,
+                });
+            }
+        };
 
     Ok(TransactionOutput { output, response })
   }
