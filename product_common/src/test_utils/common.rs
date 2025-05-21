@@ -301,32 +301,28 @@ impl Transaction for GetTestCoin {
     Ok(ptb.finish())
   }
 
-  async fn apply<C>(
-    self,
-    effects: &mut IotaTransactionBlockEffects,
-    client: &C,
-  ) -> Result<Self::Output, Self::Error>
+  async fn apply<C>(self, effects: &mut IotaTransactionBlockEffects, client: &C) -> Result<Self::Output, Self::Error>
   where
     C: CoreClientReadOnly + OptionalSync,
   {
     let created_objects = effects
-        .created()
-        .iter()
-        .enumerate()
-        .filter(|(_, obj)| matches!(obj.owner, Owner::AddressOwner(address) if address == self.recipient))
-        .map(|(i, obj_ref)| (i, obj_ref.object_id()));
+      .created()
+      .iter()
+      .enumerate()
+      .filter(|(_, obj)| matches!(obj.owner, Owner::AddressOwner(address) if address == self.recipient))
+      .map(|(i, obj_ref)| (i, obj_ref.object_id()));
 
     let is_target_coin =
-        |obj_info: &IotaObjectResponse| obj_info.data.as_ref().unwrap().type_.as_ref().unwrap().is_coin();
+      |obj_info: &IotaObjectResponse| obj_info.data.as_ref().unwrap().type_.as_ref().unwrap().is_coin();
 
     let mut i = None;
     let mut id = None;
     for (pos, obj) in created_objects {
       let coin_info = client
-          .client_adapter()
-          .read_api()
-          .get_object_with_options(obj, IotaObjectDataOptions::new().with_type())
-          .await;
+        .client_adapter()
+        .read_api()
+        .get_object_with_options(obj, IotaObjectDataOptions::new().with_type())
+        .await;
       match coin_info {
         Ok(info) if is_target_coin(&info) => {
           i = Some(pos);
