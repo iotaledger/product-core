@@ -11,19 +11,20 @@ use iota_interaction::apis::{CoinReadApi, EventApi, QuorumDriverApi, ReadApi};
 use iota_interaction::error::IotaRpcResult;
 use iota_interaction::interaction_error::Error;
 use iota_interaction::rpc_types::{
-  Coin, CoinPage, EventFilter, EventPage, IotaExecutionStatus, IotaObjectData, IotaObjectDataOptions,
-  IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
-  IotaTransactionBlockEffectsAPI, IotaTransactionBlockEffectsV1, IotaTransactionBlockResponse,
-  IotaTransactionBlockResponseOptions, ObjectChange, ObjectsPage,
+  Coin, CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaExecutionStatus, IotaObjectData,
+  IotaObjectDataOptions, IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse,
+  IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI, IotaTransactionBlockEffectsV1,
+  IotaTransactionBlockResponse, IotaTransactionBlockResponseOptions, ObjectChange, ObjectsPage,
 };
 use iota_interaction::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
 use iota_interaction::types::event::EventID;
+use iota_interaction::types::iota_serde::BigInt;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
 use iota_interaction::types::transaction::{
-  ProgrammableTransaction, Transaction, TransactionData, TransactionDataAPI as _,
+  ProgrammableTransaction, Transaction, TransactionData, TransactionDataAPI as _, TransactionKind,
 };
 use iota_interaction::{
   CoinReadTrait, EventTrait, IotaClient, IotaClientTrait, IotaKeySignature, IotaTransactionBlockResponseT,
@@ -212,6 +213,19 @@ impl ReadTrait for ReadAdapter<'_> {
     options: IotaObjectDataOptions,
   ) -> IotaRpcResult<IotaPastObjectResponse> {
     self.api.try_get_parsed_past_object(object_id, version, options).await
+  }
+  async fn dev_inspect_transaction_block(
+    &self,
+    sender_address: IotaAddress,
+    tx: TransactionKind,
+    gas_price: Option<BigInt<u64>>,
+    epoch: Option<BigInt<u64>>,
+    additional_args: Option<DevInspectArgs>,
+  ) -> IotaRpcResult<DevInspectResults> {
+    self
+      .api
+      .dev_inspect_transaction_block(sender_address, tx, gas_price, epoch, additional_args)
+      .await
   }
 }
 

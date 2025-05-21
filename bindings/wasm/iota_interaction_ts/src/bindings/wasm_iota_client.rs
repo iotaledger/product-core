@@ -3,20 +3,22 @@
 
 use iota_interaction::error::{Error as IotaRpcError, IotaRpcResult};
 use iota_interaction::generated_types::{
-  ExecuteTransactionBlockParams, GetCoinsParams, GetDynamicFieldObjectParams, GetObjectParams, GetOwnedObjectsParams,
-  GetTransactionBlockParams, QueryEventsParams, SortOrder, WaitForTransactionParams,
+  DevInspectTransactionBlockParams, ExecuteTransactionBlockParams, GetCoinsParams, GetDynamicFieldObjectParams,
+  GetObjectParams, GetOwnedObjectsParams, GetTransactionBlockParams, QueryEventsParams, SortOrder,
+  WaitForTransactionParams,
 };
 use iota_interaction::rpc_types::{
-  CoinPage, EventFilter, EventPage, IotaObjectDataOptions, IotaObjectResponse, IotaObjectResponseQuery,
-  IotaPastObjectResponse, IotaTransactionBlockResponseOptions, ObjectsPage,
+  CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaObjectDataOptions, IotaObjectResponse,
+  IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
 use iota_interaction::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
 use iota_interaction::types::event::EventID;
+use iota_interaction::types::iota_serde::BigInt;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
-use iota_interaction::types::transaction::TransactionData;
+use iota_interaction::types::transaction::{TransactionData, TransactionKind};
 use js_sys::Promise;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -25,7 +27,10 @@ use wasm_bindgen_futures::JsFuture;
 use super::wasm_types::{
   PromiseIotaTransactionBlockResponse, WasmExecuteTransactionBlockParams, WasmIotaTransactionBlockResponseWrapper,
 };
-use super::{PromiseDryRunTransactionBlockResponse, WasmDryRunTransactionBlockParams, WasmWaitForTransactionParams};
+use super::{
+  PromiseDevInspectResults, PromiseDryRunTransactionBlockResponse, WasmDevInspectTransactionBlockParams,
+  WasmDryRunTransactionBlockParams, WasmWaitForTransactionParams,
+};
 use crate::bindings::{
   PromiseIotaObjectResponse, PromiseObjectRead, PromisePaginatedCoins, PromisePaginatedEvents,
   PromisePaginatedObjectsResponse, WasmGetCoinsParams, WasmGetDynamicFieldObjectParams, WasmGetObjectParams,
@@ -102,6 +107,12 @@ extern "C" {
     this: &WasmIotaClient,
     input: &WasmWaitForTransactionParams,
   ) -> PromiseIotaTransactionBlockResponse;
+
+  #[wasm_bindgen(method, js_name = devInspectTransactionBlock)]
+  pub fn dev_inspect_transaction_block(
+    this: &WasmIotaClient,
+    input: &WasmDevInspectTransactionBlockParams,
+  ) -> PromiseDevInspectResults;
 }
 
 // Helper struct used to convert TYPESCRIPT types to RUST types
@@ -142,6 +153,40 @@ impl ManagedWasmIotaClient {
       IotaRpcError::FfiError(format!("{:?}", e))
     })?;
     Ok(WasmIotaTransactionBlockResponseWrapper::new(result.into()))
+  }
+
+  pub async fn dev_inspect_transaction_block(
+    &self,
+    sender_address: IotaAddress,
+    tx: TransactionKind,
+    gas_price: Option<BigInt<u64>>,
+    epoch: Option<BigInt<u64>>,
+    additional_args: Option<DevInspectArgs>,
+  ) -> IotaRpcResult<DevInspectResults> {
+    let params = DevInspectTransactionBlockParams::new(sender_address, tx, gas_price, epoch, additional_args);
+    let wasm_params = params
+      .serialize(&serde_wasm_bindgen::Serializer::json_compatible())
+      .map_err(|e| {
+        IotaRpcError::FfiError(format!(
+          "failed to convert DevInspectTransactionBlockParams to JS value: {e}"
+        ))
+      })?
+      .into();
+
+    let js_promise: Promise = Promise::resolve(&WasmIotaClient::dev_inspect_transaction_block(&self.0, &wasm_params));
+    let result: JsValue = JsFuture::from(js_promise).await.map_err(|js_error_value| {
+      console_log!(
+        "Error executing JsFuture::from(promise) for devInspectTransactionBlock: {:?}",
+        js_error_value
+      );
+      IotaRpcError::FfiError(format!(
+        "devInspectTransactionBlock JS Promise rejected: {:?}",
+        js_error_value
+      ))
+    })?;
+
+    #[allow(deprecated)] // will be refactored
+    Ok(result.into_serde()?)
   }
 
   /**

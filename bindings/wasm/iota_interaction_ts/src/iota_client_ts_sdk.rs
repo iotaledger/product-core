@@ -7,17 +7,19 @@ use std::result::Result;
 
 use iota_interaction::error::{Error as IotaRpcError, IotaRpcResult};
 use iota_interaction::rpc_types::{
-  CoinPage, EventFilter, EventPage, IotaObjectData, IotaObjectDataOptions, IotaObjectResponse, IotaObjectResponseQuery,
-  IotaPastObjectResponse, IotaTransactionBlockEffects, IotaTransactionBlockResponseOptions, ObjectsPage,
+  CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaObjectData, IotaObjectDataOptions,
+  IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
+  IotaTransactionBlockResponseOptions, ObjectsPage,
 };
 use iota_interaction::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
 use iota_interaction::types::event::EventID;
+use iota_interaction::types::iota_serde::BigInt;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
 use iota_interaction::types::transaction::{
-  ProgrammableTransaction as ProgrammableTransactionSdk, TransactionData, TransactionDataAPI as _,
+  ProgrammableTransaction as ProgrammableTransactionSdk, TransactionData, TransactionDataAPI as _, TransactionKind,
 };
 use iota_interaction::{
   CoinReadTrait, EventTrait, IotaClientTrait, IotaKeySignature, IotaTransactionBlockResponseT, QuorumDriverTrait,
@@ -199,6 +201,20 @@ impl ReadTrait for ReadAdapter {
     //   .client
     //   .try_get_parsed_past_object(object_id, version, options)
     //   .await
+  }
+
+  async fn dev_inspect_transaction_block(
+    &self,
+    sender_address: IotaAddress,
+    tx: TransactionKind,
+    gas_price: Option<BigInt<u64>>,
+    epoch: Option<BigInt<u64>>,
+    additional_args: Option<DevInspectArgs>,
+  ) -> IotaRpcResult<DevInspectResults> {
+    self
+      .client
+      .dev_inspect_transaction_block(sender_address, tx, gas_price, epoch, additional_args)
+      .await
   }
 }
 

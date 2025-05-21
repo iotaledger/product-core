@@ -46,6 +46,8 @@ const TS_SDK_TYPES: &str = r#"
     PaginatedObjectsResponse,
     QueryEventsParams,
     TryGetPastObjectParams,
+    DevInspectTransactionBlockParams,
+    DevInspectResults
   } from "@iota/iota-sdk/client";
   import { bcs } from "@iota/iota-sdk/bcs";
   import {
@@ -134,6 +136,14 @@ extern "C" {
   #[wasm_bindgen(typescript_type = "ExecutionStatus")]
   #[derive(Clone)]
   pub type WasmExecutionStatus;
+
+  #[wasm_bindgen(typescript_type = "DevInspectTransactionBlockParams")]
+  #[derive(Clone)]
+  pub type WasmDevInspectTransactionBlockParams;
+
+  #[wasm_bindgen(typescript_type = "Promise<DevInspectResults>")]
+  #[derive(Clone)]
+  pub type PromiseDevInspectResults;
 
   #[wasm_bindgen(typescript_type = "IotaObjectRef")]
   #[derive(Clone)]
