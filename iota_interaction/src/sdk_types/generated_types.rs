@@ -266,22 +266,21 @@ impl WaitForTransactionParams {
   }
 }
 
-
 /// Params for `dev_inspect_transaction_block`
 ///Runs the transaction in dev-inspect mode. Which allows for nearly any transaction (or Move call)
 /// with any arguments. Detailed results are provided, including both the transaction effects and any
 /// return values.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct  DevInspectTransactionBlockParams {
-sender: String,
-transaction_block: Base64,
-#[serde(skip_serializing_if = "Option::is_none")]
-gas_price: Option<String>,
+pub struct DevInspectTransactionBlockParams {
+  sender: String,
+  transaction_block: Base64,
   #[serde(skip_serializing_if = "Option::is_none")]
-epoch: Option<String>,
+  gas_price: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
-additional_args: Option<DevInspectArgs>
+  epoch: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  additional_args: Option<DevInspectArgs>,
 }
 
 impl DevInspectTransactionBlockParams {
@@ -298,7 +297,7 @@ impl DevInspectTransactionBlockParams {
       transaction_block: Base64::from_bytes(&tex_bcs),
       gas_price: gas_price.map(|g| g.to_string()),
       epoch: epoch.map(|e| e.to_string()),
-      additional_args
+      additional_args,
     }
   }
 }

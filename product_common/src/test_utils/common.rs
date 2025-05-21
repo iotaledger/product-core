@@ -301,11 +301,7 @@ impl Transaction for GetTestCoin {
     Ok(ptb.finish())
   }
 
-  async fn apply<C>(
-    self,
-    mut effects: IotaTransactionBlockEffects,
-    client: &C,
-  ) -> (Result<Self::Output, Self::Error>, IotaTransactionBlockEffects)
+  async fn apply<C>(self, effects: &mut IotaTransactionBlockEffects, client: &C) -> Result<Self::Output, Self::Error>
   where
     C: CoreClientReadOnly + OptionalSync,
   {
@@ -339,15 +335,12 @@ impl Transaction for GetTestCoin {
 
     if let (Some(i), Some(id)) = (i, id) {
       effects.created_mut().swap_remove(i);
-      (Ok(id), effects)
+      Ok(id)
     } else {
-      (
-        Err(Error::TransactionUnexpectedResponse(format!(
-          "transaction didn't create any coins for address {}",
-          self.recipient
-        ))),
-        effects,
-      )
+      Err(Error::TransactionUnexpectedResponse(format!(
+        "transaction didn't create any coins for address {}",
+        self.recipient
+      )))
     }
   }
 }

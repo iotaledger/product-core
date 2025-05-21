@@ -8,11 +8,14 @@ use std::option::Option;
 use std::result::Result;
 
 use async_trait::async_trait;
-
 use secret_storage::{SignatureScheme as SignatureSchemeSecretStorage, Signer};
 
 use crate::error::IotaRpcResult;
-use crate::rpc_types::{CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaObjectData, IotaObjectDataOptions, IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects, IotaTransactionBlockResponseOptions, ObjectsPage};
+use crate::rpc_types::{
+  CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaObjectData, IotaObjectDataOptions,
+  IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
+  IotaTransactionBlockResponseOptions, ObjectsPage,
+};
 use crate::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use crate::types::crypto::{PublicKey, Signature};
 use crate::types::digests::TransactionDigest;
@@ -21,7 +24,6 @@ use crate::types::event::EventID;
 use crate::types::iota_serde::BigInt;
 use crate::types::quorum_driver_types::ExecuteTransactionRequestType;
 use crate::types::transaction::{ProgrammableTransaction, TransactionData, TransactionKind};
-
 use crate::OptionalSend;
 #[cfg(feature = "send-sync-transaction")]
 use crate::OptionalSync;
