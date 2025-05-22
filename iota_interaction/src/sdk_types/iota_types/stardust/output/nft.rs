@@ -18,14 +18,14 @@ pub const NFT_DYNAMIC_OBJECT_FIELD_KEY_TYPE: &str = "vector<u8>";
 pub struct Nft {}
 
 impl Nft {
-  /// Returns the struct tag that represents the fully qualified path of an
-  /// [`Nft`] in its move package.
-  pub fn tag() -> StructTag {
-    StructTag {
-      address: STARDUST_ADDRESS.into(),
-      module: NFT_MODULE_NAME.to_owned(),
-      name: NFT_STRUCT_NAME.to_owned(),
-      type_params: Vec::new(),
+    /// Returns the struct tag that represents the fully qualified path of an
+    /// [`Nft`] in its move package.
+    pub fn tag() -> StructTag {
+        StructTag {
+            address: STARDUST_ADDRESS.into(),
+            module: NFT_MODULE_NAME.to_owned(),
+            name: NFT_STRUCT_NAME.to_owned(),
+            type_params: Vec::new(),
+        }
     }
-  }
 }
