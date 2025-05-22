@@ -7,3 +7,6 @@ tab_spaces = 2
 wrap_comments = true
 imports_granularity = "Module"
 group_imports = "StdExternalCrate"
+ignore = [
+    "iota_interaction/src/sdk_types",
+]
