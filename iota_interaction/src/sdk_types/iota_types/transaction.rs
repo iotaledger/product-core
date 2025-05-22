@@ -85,6 +85,14 @@ impl ObjectArg {
         initial_shared_version: IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION,
         mutable: true,
     };
+
+    pub fn id(&self) -> ObjectID {
+        match self {
+            Self::ImmOrOwnedObject((id, _, _)) => *id,
+            Self::SharedObject { id, .. } => *id,
+            Self::Receiving((id, _, _)) => *id,
+        }
+    }
 }
 
 /// A series of commands where the results of one command can be used in future
@@ -130,6 +138,24 @@ pub enum Command {
     /// 4. An argument holding the `UpgradeTicket` that must have been produced
     ///    from an earlier command in the same programmable transaction.
     Upgrade(Vec<Vec<u8>>, Vec<ObjectID>, ObjectID, Argument),
+}
+
+impl Command {
+    pub fn move_call(
+        package: ObjectID,
+        module: Identifier,
+        function: Identifier,
+        type_arguments: Vec<TypeTag>,
+        arguments: Vec<Argument>,
+    ) -> Self {
+        Self::MoveCall(Box::new(ProgrammableMoveCall {
+           package,
+           module,
+           function,
+           type_arguments,
+           arguments,
+        }))
+    }
 }
 
 /// An argument to a programmable transaction command
