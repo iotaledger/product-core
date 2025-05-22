@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ubuntu-latest]
         include:
           - os: ubuntu-latest
             sccache-path: /home/runner/.cache/sccache
@@ -42,7 +42,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
       - name: Setup Rust and cache
-        uses: './.github/actions/rust/rust-setup'
+        uses: "./.github/actions/rust/rust-setup"
         with:
           os: ${{ runner.os }}
           job: ${{ github.job }}
@@ -57,10 +57,10 @@ jobs:
       - name: Install wasm-bindgen-cli
         uses: jetli/wasm-bindgen-action@24ba6f9fff570246106ac3f80f35185600c3f6c9
         with:
-          version: '0.2.100'
+          version: "0.2.100"
 
       - name: Setup sccache
-        uses: './.github/actions/rust/sccache/setup-sccache'
+        uses: "./.github/actions/rust/sccache/setup-sccache"
         with:
           os: ${{matrix.os}}
 
@@ -72,7 +72,7 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
         working-directory: bindings/wasm/iota_interaction_ts
-        
+
       - name: Build IOTA interaction bindings
         run: npm run build
         working-directory: bindings/wasm/iota_interaction_ts
@@ -83,7 +83,7 @@ jobs:
         working-directory: bindings/wasm/iota_interaction_ts
 
       - name: Stop sccache
-        uses: './.github/actions/rust/sccache/stop-sccache'
+        uses: "./.github/actions/rust/sccache/stop-sccache"
         with:
           os: ${{matrix.os}}
 

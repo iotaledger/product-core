@@ -1,0 +1,33 @@
+[workspace.package]
+authors = ["IOTA Stiftung"]
+edition = "2021"
+homepage = "https://www.iota.org"
+license = "Apache-2.0"
+repository = "https://github.com/iotaledger/product-core.rs"
+rust-version = "1.65"
+
+[workspace]
+resolver = "2"
+members = [
+  "product_common",
+  "iota_interaction",
+  "bindings/wasm/iota_interaction_ts",
+  "iota_interaction_rust",
+]
+
+[workspace.dependencies]
+anyhow = "1.0.95"
+async-trait = "0.1.88"
+bcs = "0.1.6"
+cfg-if = "1.0.0"
+fastcrypto = { git = "https://github.com/MystenLabs/fastcrypto", rev = "2f502fd8570fe4e9cff36eea5bbd6fef22002898", package = "fastcrypto" }
+iota-sdk = { git = "https://github.com/iotaledger/iota.git", package = "iota-sdk", tag = "v0.12.0-rc" }
+phf = { version = "0.11.2", features = ["macros"] }
+secret-storage = { git = "https://github.com/iotaledger/secret-storage.git", default-features = false, tag = "v0.3.0" }
+serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1.0", default-features = false }
+strum = { version = "0.25", default-features = false, features = ["std", "derive"] }
+thiserror = { version = "1.0", default-features = false }
+
+[workspace.lints.clippy]
+result_large_err = "allow"
