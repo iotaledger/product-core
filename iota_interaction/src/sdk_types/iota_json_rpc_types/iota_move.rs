@@ -2,29 +2,21 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::collections::BTreeMap;
 use std::boxed::Box;
+use std::collections::BTreeMap;
 use std::fmt::{self, Display, Formatter, Write};
 
 use itertools::Itertools;
-
-use serde::Deserialize;
-use serde::Serialize;
-use serde_with::{serde_as};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-
+use serde_with::serde_as;
 use tracing::warn;
 
-use crate::types::{
-    base_types::{IotaAddress, ObjectID},
-    iota_serde::IotaStructTag,
-};
-
-use super::super::move_core_types::{
-    language_storage::StructTag,
-    annotated_value::{MoveStruct, MoveValue, MoveVariant},
-    identifier::Identifier,
-};
+use super::super::move_core_types::annotated_value::{MoveStruct, MoveValue, MoveVariant};
+use super::super::move_core_types::identifier::Identifier;
+use super::super::move_core_types::language_storage::StructTag;
+use crate::types::base_types::{IotaAddress, ObjectID};
+use crate::types::iota_serde::IotaStructTag;
 
 #[serde_as]
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]

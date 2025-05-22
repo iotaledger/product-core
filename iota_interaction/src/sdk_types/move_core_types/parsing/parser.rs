@@ -2,19 +2,17 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{fmt::Display, iter::Peekable, num::ParseIntError};
+use std::fmt::Display;
+use std::iter::Peekable;
+use std::num::ParseIntError;
 
 use anyhow::{anyhow, bail, Result};
-use super::super::{
-    account_address::AccountAddress,
-    u256::{U256FromStrError, U256},
-};
 
-use super::{
-    address::{NumericalAddress, ParsedAddress},
-    types::{ParsedFqName, ParsedModuleId, ParsedStructType, ParsedType, TypeToken},
-    values::{ParsableValue, ParsedValue, ValueToken},
-};
+use super::super::account_address::AccountAddress;
+use super::super::u256::{U256FromStrError, U256};
+use super::address::{NumericalAddress, ParsedAddress};
+use super::types::{ParsedFqName, ParsedModuleId, ParsedStructType, ParsedType, TypeToken};
+use super::values::{ParsableValue, ParsedValue, ValueToken};
 
 const MAX_TYPE_DEPTH: u64 = 128;
 const MAX_TYPE_NODE_COUNT: u64 = 256;

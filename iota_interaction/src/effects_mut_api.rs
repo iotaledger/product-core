@@ -1,11 +1,10 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::rpc_types::IotaObjectRef;
-use crate::rpc_types::IotaTransactionBlockEffects;
-use crate::rpc_types::IotaTransactionBlockEffectsAPI;
-use crate::rpc_types::IotaTransactionBlockEffectsV1;
-use crate::rpc_types::OwnedObjectRef;
+use crate::rpc_types::{
+  IotaObjectRef, IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI, IotaTransactionBlockEffectsV1,
+  OwnedObjectRef,
+};
 
 /// A mutable version of [IotaTransactionBlockEffectsAPI] that allows the
 /// in-place mutation of [IotaTransactionBlockEffects]

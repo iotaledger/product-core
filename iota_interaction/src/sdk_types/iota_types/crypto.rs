@@ -4,32 +4,34 @@
 use std::hash::Hash;
 use std::str::FromStr;
 
+use derive_more::{AsMut, AsRef, From};
 use enum_dispatch::enum_dispatch;
-use strum::EnumString;
-use schemars::JsonSchema;
-use derive_more::{AsRef, AsMut, From};
 use eyre::{eyre, Report};
-
-use fastcrypto::{
-    bls12381::min_sig::{
-        BLS12381AggregateSignature, BLS12381AggregateSignatureAsBytes, BLS12381KeyPair,
-        BLS12381PrivateKey, BLS12381PublicKey, BLS12381Signature,
-    }, ed25519::{
-        Ed25519KeyPair, Ed25519PrivateKey, Ed25519PublicKey, Ed25519PublicKeyAsBytes,
-        Ed25519Signature
-    }, encoding::{Base64, Bech32, Encoding}, error::{FastCryptoError, FastCryptoResult}, hash::{Blake2b256, HashFunction}, secp256k1::{Secp256k1KeyPair, Secp256k1PublicKey, Secp256k1PublicKeyAsBytes, Secp256k1Signature}, secp256r1::{Secp256r1KeyPair, Secp256r1PublicKey, Secp256r1PublicKeyAsBytes, Secp256r1Signature}, traits::{Authenticator, EncodeDecodeBase64, KeyPair as KeypairTraits, Signer, ToFromBytes, VerifyingKey}
+use fastcrypto::bls12381::min_sig::{
+  BLS12381AggregateSignature, BLS12381AggregateSignatureAsBytes, BLS12381KeyPair, BLS12381PrivateKey,
+  BLS12381PublicKey, BLS12381Signature,
+};
+use fastcrypto::ed25519::{
+  Ed25519KeyPair, Ed25519PrivateKey, Ed25519PublicKey, Ed25519PublicKeyAsBytes, Ed25519Signature,
+};
+use fastcrypto::encoding::{Base64, Bech32, Encoding};
+use fastcrypto::error::{FastCryptoError, FastCryptoResult};
+use fastcrypto::hash::{Blake2b256, HashFunction};
+use fastcrypto::secp256k1::{Secp256k1KeyPair, Secp256k1PublicKey, Secp256k1PublicKeyAsBytes, Secp256k1Signature};
+use fastcrypto::secp256r1::{Secp256r1KeyPair, Secp256r1PublicKey, Secp256r1PublicKeyAsBytes, Secp256r1Signature};
+use fastcrypto::traits::{
+  Authenticator, EncodeDecodeBase64, KeyPair as KeypairTraits, Signer, ToFromBytes, VerifyingKey,
 };
 use fastcrypto_zkp::zk_login_utils::Bn254FrElement;
-
-use serde::{Deserialize, Deserializer, Serializer};
-use serde::Serialize;
+use schemars::JsonSchema;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_with::{serde_as, Bytes};
+use strum::EnumString;
 
+use super::base_types::IotaAddress;
+use super::error::{IotaError, IotaResult};
+use super::iota_serde::Readable;
 use crate::shared_crypto::intent::IntentMessage;
-
-use super::{
-    base_types::IotaAddress, error::{IotaError, IotaResult}, iota_serde::Readable
-};
 
 const IOTA_PRIV_KEY_PREFIX: &str = "iotaprivkey";
 

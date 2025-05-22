@@ -2,17 +2,16 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use std::convert::{TryFrom, TryInto};
+use std::default::Default;
+use std::result::Result::{Err, Ok};
 use std::str::FromStr;
 use std::vec::Vec;
-use std::default::Default;
-use std::convert::{TryFrom, TryInto};
-use std::result::Result::{Ok, Err};
 
 use eyre::eyre;
 use fastcrypto::encoding::decode_bytes_hex;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
-
 use Result;
 
 pub const INTENT_PREFIX_LENGTH: usize = 3;

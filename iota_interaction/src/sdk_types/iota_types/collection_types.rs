@@ -4,7 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{base_types::ObjectID, id::UID};
+use super::base_types::ObjectID;
+use super::id::UID;
 
 /// Rust version of the Move iota::vec_map::VecMap type
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]

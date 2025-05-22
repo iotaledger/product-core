@@ -6,17 +6,12 @@ use std::fmt::{self, Display};
 
 use anyhow::bail;
 
-use super::super::{
-    account_address::AccountAddress,
-    identifier,
-    runtime_value::{MoveStruct, MoveValue},
-    u256::U256,
-};
-
-use super::{
-    address::ParsedAddress,
-    parser::{Parser, Token},
-};
+use super::super::account_address::AccountAddress;
+use super::super::identifier;
+use super::super::runtime_value::{MoveStruct, MoveValue};
+use super::super::u256::U256;
+use super::address::ParsedAddress;
+use super::parser::{Parser, Token};
 
 #[derive(Eq, PartialEq, Debug, Clone, Copy)]
 pub enum ValueToken {

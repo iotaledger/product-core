@@ -4,12 +4,10 @@
 
 use std::fmt;
 
-use schemars::JsonSchema;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_with::{serde_as, Bytes};
-
 use fastcrypto::encoding::{Base58, Encoding};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, Bytes};
 
 use super::iota_serde::Readable;
 

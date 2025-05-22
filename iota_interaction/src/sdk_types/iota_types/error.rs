@@ -3,22 +3,20 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{collections::BTreeMap, fmt::Debug};
+use std::collections::BTreeMap;
+use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, IntoStaticStr};
 use thiserror::Error;
 
-use super::super::{
-    rpc_types::CheckpointSequenceNumber,
+use super::super::rpc_types::CheckpointSequenceNumber;
+use super::base_types::*;
+use super::digests::{
+    CheckpointContentsDigest, ObjectDigest, TransactionDigest, TransactionEffectsDigest, TransactionEventsDigest,
 };
-use super::{
-    base_types::*,
-    digests::{ObjectDigest, TransactionDigest, TransactionEffectsDigest, TransactionEventsDigest,
-              CheckpointContentsDigest},
-    execution_status::{CommandArgumentError, ExecutionFailureStatus},
-    object::Owner,
-};
+use super::execution_status::{CommandArgumentError, ExecutionFailureStatus};
+use super::object::Owner;
 
 pub const TRANSACTION_NOT_FOUND_MSG_PREFIX: &str = "Could not find the referenced transaction";
 pub const TRANSACTIONS_NOT_FOUND_MSG_PREFIX: &str = "Could not find the referenced transactions";

@@ -2,35 +2,30 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{
-    fmt,
-    fmt::{Display, Formatter},
-};
+use std::fmt;
+use std::fmt::{Display, Formatter};
 
 use fastcrypto::encoding::Base64;
-
-use crate::ident_str;
-
-use super::super::move_core_types::{
-    // annotated_value::{MoveStruct, MoveValue},
-    identifier::IdentStr,
-    language_storage::{StructTag, TypeTag},
-};
-
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{serde_as, DisplayFromStr};
 
-use super::{
-    base_types::{ObjectID, SequenceNumber},
-    digests::ObjectDigest,
-    error::{IotaError, IotaResult},
-    id::UID,
-    iota_serde::{IotaTypeTag, Readable},
-    //object::Object,
-    //storage::ObjectStore,
-    IOTA_FRAMEWORK_ADDRESS,
+use super::super::move_core_types::{
+  // annotated_value::{MoveStruct, MoveValue},
+  identifier::IdentStr,
+  language_storage::{StructTag, TypeTag},
 };
+use super::{
+  base_types::{ObjectID, SequenceNumber},
+  digests::ObjectDigest,
+  error::{IotaError, IotaResult},
+  id::UID,
+  iota_serde::{IotaTypeTag, Readable},
+  //object::Object,
+  //storage::ObjectStore,
+  IOTA_FRAMEWORK_ADDRESS,
+};
+use crate::ident_str;
 
 const DYNAMIC_FIELD_MODULE_NAME: &IdentStr = ident_str!("dynamic_field");
 const DYNAMIC_FIELD_FIELD_STRUCT_NAME: &IdentStr = ident_str!("Field");

@@ -2,39 +2,29 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::collections::BTreeMap;
-use std::string::String;
-use std::fmt::{self, Display, Formatter, Write};
 use std::cmp::Ordering;
-
-use schemars::JsonSchema;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_with::{DisplayFromStr, serde_as};
-use serde_json::Value;
+use std::collections::BTreeMap;
+use std::fmt::{self, Display, Formatter, Write};
+use std::string::String;
 
 use anyhow::anyhow;
-
-use crate::move_core_types::{
-    identifier::Identifier,
-    language_storage::StructTag
-};
-use crate::types::{
-    base_types::{ObjectID, SequenceNumber, ObjectType, ObjectRef, ObjectInfo, IotaAddress},
-    move_package::{TypeOrigin, UpgradeInfo, MovePackage},
-    iota_serde::{IotaStructTag, BigInt, SequenceNumber as AsSequenceNumber},
-    digests::{ObjectDigest,TransactionDigest},
-    object::Owner,
-    error::{IotaObjectResponseError, UserInputResult, UserInputError},
-    gas_coin::GasCoin,
-};
-
 use fastcrypto::encoding::Base64;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use serde_with::{serde_as, DisplayFromStr};
 
-use super::{
-    Page,
-    iota_move::{IotaMoveStruct, IotaMoveValue},
-};
+use super::iota_move::{IotaMoveStruct, IotaMoveValue};
+use super::Page;
+use crate::move_core_types::identifier::Identifier;
+use crate::move_core_types::language_storage::StructTag;
+use crate::types::base_types::{IotaAddress, ObjectID, ObjectInfo, ObjectRef, ObjectType, SequenceNumber};
+use crate::types::digests::{ObjectDigest, TransactionDigest};
+use crate::types::error::{IotaObjectResponseError, UserInputError, UserInputResult};
+use crate::types::gas_coin::GasCoin;
+use crate::types::iota_serde::{BigInt, IotaStructTag, SequenceNumber as AsSequenceNumber};
+use crate::types::move_package::{MovePackage, TypeOrigin, UpgradeInfo};
+use crate::types::object::Owner;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct IotaObjectResponse {

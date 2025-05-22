@@ -2,15 +2,16 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{fmt, hash::Hash};
-use std::option::Option::{self, Some, None};
+use std::fmt;
+use std::hash::Hash;
+use std::option::Option::{self, None, Some};
 use std::string::String;
 
 use anyhow::anyhow;
 
 use super::super::account_address::AccountAddress;
 use super::super::u256::U256;
-use super::parser::{NumberFormat, parse_address_number};
+use super::parser::{parse_address_number, NumberFormat};
 
 // Parsed Address, either a name or a numerical address
 #[derive(Eq, PartialEq, Debug, Clone)]

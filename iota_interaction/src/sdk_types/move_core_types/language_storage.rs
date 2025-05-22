@@ -3,18 +3,14 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{
-    fmt::{Display, Formatter},
-    str::FromStr,
-};
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use super::{
-    account_address::AccountAddress,
-    identifier::{IdentStr, Identifier},
-    parsing::types::{ParsedModuleId, ParsedStructType, ParsedType},
-};
+use super::account_address::AccountAddress;
+use super::identifier::{IdentStr, Identifier};
+use super::parsing::types::{ParsedModuleId, ParsedStructType, ParsedType};
 
 pub const CODE_TAG: u8 = 0;
 pub const RESOURCE_TAG: u8 = 1;

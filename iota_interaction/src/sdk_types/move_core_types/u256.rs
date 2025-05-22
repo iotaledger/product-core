@@ -2,17 +2,12 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{
-    fmt,
-    mem::size_of,
-    ops::{
-        Shl, Shr,
-    },
-};
+use std::fmt;
+use std::mem::size_of;
+use std::ops::{Shl, Shr};
 
 // This U256 impl was chosen for now but we are open to changing it as needed
 use primitive_types::U256 as PrimitiveU256;
-
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uint::FromStrRadixErr;
 

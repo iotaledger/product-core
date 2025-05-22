@@ -4,13 +4,11 @@
 
 use std::io::{Cursor, Read};
 
-use super::{
-    VARIANT_COUNT_MAX,
-    account_address::AccountAddress,
-    annotated_value::{MoveEnumLayout, MoveFieldLayout, MoveStructLayout, MoveTypeLayout},
-    identifier::IdentStr,
-    u256::U256,
-};
+use super::account_address::AccountAddress;
+use super::annotated_value::{MoveEnumLayout, MoveFieldLayout, MoveStructLayout, MoveTypeLayout};
+use super::identifier::IdentStr;
+use super::u256::U256;
+use super::VARIANT_COUNT_MAX;
 
 /// Visitors can be used for building values out of a serialized Move struct or
 /// value.

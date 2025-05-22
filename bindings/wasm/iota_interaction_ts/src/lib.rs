@@ -3,9 +3,10 @@
 
 #[cfg(target_arch = "wasm32")]
 pub mod bindings;
-
 #[cfg(target_arch = "wasm32")]
 pub mod common;
+#[cfg(target_arch = "wasm32")]
+pub mod core_client;
 #[cfg(target_arch = "wasm32")]
 pub mod error;
 #[cfg(target_arch = "wasm32")]

@@ -2,21 +2,16 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{ident_str, fp_ensure};
-
-use super::super::move_core_types::{
-    identifier::{IdentStr},
-    language_storage::{StructTag, TypeTag},
-    annotated_value::{MoveStructLayout, MoveFieldLayout, MoveTypeLayout}
-};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use super::{
-    error::{ExecutionError, ExecutionErrorKind},
-    iota_serde::{BigInt, Readable},
-    IOTA_FRAMEWORK_ADDRESS,
-};
+use super::super::move_core_types::annotated_value::{MoveFieldLayout, MoveStructLayout, MoveTypeLayout};
+use super::super::move_core_types::identifier::IdentStr;
+use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use super::error::{ExecutionError, ExecutionErrorKind};
+use super::iota_serde::{BigInt, Readable};
+use super::IOTA_FRAMEWORK_ADDRESS;
+use crate::{fp_ensure, ident_str};
 
 pub const BALANCE_MODULE_NAME: &IdentStr = ident_str!("balance");
 pub const BALANCE_STRUCT_NAME: &IdentStr = ident_str!("Balance");

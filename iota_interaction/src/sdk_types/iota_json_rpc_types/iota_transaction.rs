@@ -2,23 +2,24 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{
-    vec::Vec,
-    fmt::{self, Display, Formatter},
-};
+use std::fmt::{self, Display, Formatter};
+use std::vec::Vec;
 
 use enum_dispatch::enum_dispatch;
 use schemars::JsonSchema;
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use crate::{iota_types::{base_types::EpochId, digests::{TransactionDigest, TransactionEventsDigest}, gas::GasCostSummary, storage::{DeleteKind, WriteKind}}, types::{
-    base_types::{ObjectID, SequenceNumber}, execution_status::ExecutionStatus, object::Owner, quorum_driver_types::ExecuteTransactionRequestType,
-    iota_serde::{BigInt, SequenceNumber as AsSequenceNumber},
-}};
-
 use super::iota_object::IotaObjectRef;
+use crate::iota_types::base_types::EpochId;
+use crate::iota_types::digests::{TransactionDigest, TransactionEventsDigest};
+use crate::iota_types::gas::GasCostSummary;
+use crate::iota_types::storage::{DeleteKind, WriteKind};
+use crate::types::base_types::{ObjectID, SequenceNumber};
+use crate::types::execution_status::ExecutionStatus;
+use crate::types::iota_serde::{BigInt, SequenceNumber as AsSequenceNumber};
+use crate::types::object::Owner;
+use crate::types::quorum_driver_types::ExecuteTransactionRequestType;
 
 /// BCS serialized IotaTransactionBlockEffects
 pub type IotaTransactionBlockEffectsBcs = Vec<u8>;

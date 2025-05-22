@@ -3,28 +3,21 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{
-    collections::BTreeMap,
-    fmt::{self, Debug},
-    io::Cursor,
-};
+use std::collections::BTreeMap;
+use std::fmt::{self, Debug};
+use std::io::Cursor;
 
 use anyhow::Result as AResult;
-use serde::{
-    Deserialize, Serialize,
-    de::Error as DeError,
-    ser::{SerializeMap, SerializeSeq, SerializeStruct},
-};
+use serde::de::Error as DeError;
+use serde::ser::{SerializeMap, SerializeSeq, SerializeStruct};
+use serde::{Deserialize, Serialize};
 
-use super::{
-    VARIANT_COUNT_MAX,
-    account_address::AccountAddress,
-    annotated_visitor::{Error as VError, ValueDriver, Visitor, visit_struct, visit_value},
-    identifier::Identifier,
-    language_storage::{StructTag, TypeTag},
-    runtime_value::{self as R, MOVE_STRUCT_FIELDS, MOVE_STRUCT_TYPE},
-    u256,
-};
+use super::account_address::AccountAddress;
+use super::annotated_visitor::{visit_struct, visit_value, Error as VError, ValueDriver, Visitor};
+use super::identifier::Identifier;
+use super::language_storage::{StructTag, TypeTag};
+use super::runtime_value::{self as R, MOVE_STRUCT_FIELDS, MOVE_STRUCT_TYPE};
+use super::{u256, VARIANT_COUNT_MAX};
 
 /// In the `WithTypes` configuration, a Move struct gets serialized into a Serde
 /// struct with this name

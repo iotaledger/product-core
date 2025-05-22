@@ -3,11 +3,15 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{convert::TryFrom, fmt, str::FromStr};
+use std::convert::TryFrom;
+use std::fmt;
+use std::str::FromStr;
 
 use hex::FromHex;
-use rand::{rngs::OsRng, Rng};
-use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
+use rand::rngs::OsRng;
+use rand::Rng;
+use serde::de::Error as _;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// A struct that represents an account address.
 #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone, Copy)]

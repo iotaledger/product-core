@@ -4,22 +4,13 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::super::move_core_types::account_address::AccountAddress;
+use super::super::move_core_types::annotated_value::{MoveFieldLayout, MoveStructLayout, MoveTypeLayout};
+use super::super::move_core_types::identifier::IdentStr;
+use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use super::base_types::ObjectID;
+use super::{MoveTypeTagTrait, IOTA_FRAMEWORK_ADDRESS};
 use crate::ident_str;
-
-use super::super::{
-    move_core_types::{
-        account_address::AccountAddress,
-        identifier::IdentStr,
-        language_storage::{StructTag, TypeTag},
-        annotated_value::{MoveStructLayout, MoveFieldLayout, MoveTypeLayout},
-    },
-};
-
-use super::{
-    base_types::ObjectID,
-    MoveTypeTagTrait,
-    IOTA_FRAMEWORK_ADDRESS,
-};
 
 pub const OBJECT_MODULE_NAME_STR: &str = "object";
 pub const OBJECT_MODULE_NAME: &IdentStr = ident_str!(OBJECT_MODULE_NAME_STR);

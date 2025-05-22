@@ -3,18 +3,14 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use core::str::FromStr;
-use core::ops::Deref;
 use core::fmt;
+use core::ops::Deref;
+use core::str::FromStr;
 use std::borrow::Borrow;
 
-use ref_cast::RefCast;
-
-use serde::Deserialize;
-use serde::Serialize;
-
 use anyhow::{bail, Result};
-
+use ref_cast::RefCast;
+use serde::{Deserialize, Serialize};
 
 /// Return true if this character can appear in a Move identifier.
 ///

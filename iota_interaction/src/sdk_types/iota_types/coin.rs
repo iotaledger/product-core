@@ -2,20 +2,17 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-use crate::ident_str;
-
-use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use super::super::move_core_types::annotated_value::{MoveFieldLayout, MoveStructLayout, MoveTypeLayout};
 use super::super::move_core_types::identifier::IdentStr;
-use super::super::move_core_types::annotated_value::{MoveStructLayout, MoveFieldLayout, MoveTypeLayout};
-
+use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use super::balance::{Balance, Supply};
+use super::base_types::ObjectID;
+use super::error::{ExecutionError, ExecutionErrorKind, IotaError};
 use super::id::UID;
 use super::IOTA_FRAMEWORK_ADDRESS;
-use super::error::{IotaError, ExecutionError, ExecutionErrorKind};
-use super::balance::{Supply, Balance};
-use super::base_types::ObjectID;
+use crate::ident_str;
 
 pub const COIN_MODULE_NAME: &IdentStr = ident_str!("coin");
 pub const COIN_STRUCT_NAME: &IdentStr = ident_str!("Coin");

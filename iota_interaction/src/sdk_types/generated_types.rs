@@ -2,17 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use fastcrypto::encoding::Base64;
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::iota_json_rpc_types::iota_transaction::IotaTransactionBlockResponseOptions;
 use super::iota_types::quorum_driver_types::ExecuteTransactionRequestType;
 use super::types::crypto::Signature;
 use super::types::transaction::TransactionData;
-
-use crate::rpc_types::EventFilter;
-use crate::rpc_types::IotaObjectDataFilter;
-use crate::rpc_types::IotaObjectDataOptions;
+use crate::rpc_types::{EventFilter, IotaObjectDataFilter, IotaObjectDataOptions};
 use crate::types::dynamic_field::DynamicFieldName;
 use crate::types::event::EventID;
 use crate::types::iota_serde::SequenceNumber;

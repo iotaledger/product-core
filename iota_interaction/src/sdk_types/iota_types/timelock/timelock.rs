@@ -1,30 +1,25 @@
 // Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use serde::Deserialize;
-use serde::Serialize;
-
-use crate::ident_str;
-
-#[allow(unused)] // Kept in sync with original source, so keep as is.
-use crate::sdk_types::move_types::{
-    language_storage::{TypeTag, StructTag},
-    identifier::{IdentStr},
-};
+use serde::{Deserialize, Serialize};
 
 #[allow(unused)] // Kept in sync with original source, so keep as is.
 use super::super::{
-    IOTA_FRAMEWORK_ADDRESS,
-    IOTA_SYSTEM_ADDRESS,
-    base_types::{ObjectID, EpochId},
-    balance::Balance,
-    governance::StakedIota,
-    id::UID,
-    error::IotaError,
+  balance::Balance,
+  base_types::{EpochId, ObjectID},
+  error::IotaError,
+  governance::StakedIota,
+  id::UID,
+  IOTA_FRAMEWORK_ADDRESS, IOTA_SYSTEM_ADDRESS,
 };
-
 #[allow(unused)] // Kept in sync with original source, so keep as is.
 use super::timelocked_staked_iota::{TIMELOCKED_STAKED_IOTA_MODULE_NAME, TIMELOCKED_STAKED_IOTA_STRUCT_NAME};
+use crate::ident_str;
+#[allow(unused)] // Kept in sync with original source, so keep as is.
+use crate::sdk_types::move_types::{
+  identifier::IdentStr,
+  language_storage::{StructTag, TypeTag},
+};
 
 pub const TIMELOCK_MODULE_NAME: &IdentStr = ident_str!("timelock");
 pub const TIMELOCK_STRUCT_NAME: &IdentStr = ident_str!("TimeLock");

@@ -3,50 +3,45 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::fmt;
-use std::vec::Vec;
-use std::option::Option;
 use std::convert::{AsRef, TryFrom};
-use std::result::Result::Ok;
+use std::fmt;
+use std::option::Option;
 use std::option::Option::Some;
+use std::result::Result::Ok;
 use std::str::FromStr;
 use std::string::String;
+use std::vec::Vec;
 
+use anyhow::anyhow;
+use fastcrypto::encoding::{decode_bytes_hex, Encoding, Hex};
+use fastcrypto::hash::HashFunction;
+use rand::Rng;
 use schemars::JsonSchema;
+use serde::ser::Error;
+use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 use Result;
 
-use rand::Rng;
-use anyhow::anyhow;
-
-use serde::{ser::Error, Deserialize, Serialize};
-use serde_with::serde_as;
-
-use fastcrypto::encoding::{Hex, Encoding, decode_bytes_hex};
-use fastcrypto::hash::HashFunction;
-
-use crate::ident_str;
-
-use super::super::move_core_types::language_storage::{StructTag, TypeTag, ModuleId};
-use super::super::move_core_types::identifier::IdentStr;
 use super::super::move_core_types::account_address::AccountAddress;
-
-use super::{IOTA_FRAMEWORK_ADDRESS, IOTA_CLOCK_OBJECT_ID, IOTA_SYSTEM_ADDRESS, MOVE_STDLIB_ADDRESS};
+use super::super::move_core_types::identifier::IdentStr;
+use super::super::move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
 use super::balance::Balance;
 use super::coin::{Coin, CoinMetadata, TreasuryCap, COIN_MODULE_NAME, COIN_STRUCT_NAME};
-use super::crypto::{AuthorityPublicKeyBytes, IotaPublicKey, DefaultHash, PublicKey};
+use super::crypto::{AuthorityPublicKeyBytes, DefaultHash, IotaPublicKey, PublicKey};
+pub use super::digests::{ObjectDigest, TransactionDigest};
 use super::dynamic_field::DynamicFieldInfo;
 use super::error::{IotaError, IotaResult};
-use super::gas_coin::GAS;
-use super::governance::{StakedIota, STAKING_POOL_MODULE_NAME, STAKED_IOTA_STRUCT_NAME};
-use super::iota_serde::{Readable, HexAccountAddress, to_iota_struct_tag_string};
+use super::gas_coin::{GasCoin, GAS};
+use super::governance::{StakedIota, STAKED_IOTA_STRUCT_NAME, STAKING_POOL_MODULE_NAME};
+use super::iota_serde::{to_iota_struct_tag_string, HexAccountAddress, Readable};
+use super::object::Owner;
+use super::stardust::output::Nft;
 use super::timelock::timelock::{self, TimeLock};
 use super::timelock::timelocked_staked_iota::TimelockedStakedIota;
-use super::stardust::output::Nft;
-use super::gas_coin::GasCoin;
-use super::object::{Owner};
-use super::parse_iota_struct_tag;
-
-pub use super::digests::{ObjectDigest, TransactionDigest};
+use super::{
+  parse_iota_struct_tag, IOTA_CLOCK_OBJECT_ID, IOTA_FRAMEWORK_ADDRESS, IOTA_SYSTEM_ADDRESS, MOVE_STDLIB_ADDRESS,
+};
+use crate::ident_str;
 
 // -----------------------------------------------------------------
 // Originally defined in crates/iota-types/src/committee.rs

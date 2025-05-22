@@ -2,42 +2,33 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{
-    fmt,
-    fmt::{Debug, Display, Formatter, Write},
-    marker::PhantomData,
-    ops::Deref,
-    str::FromStr,
-};
-use std::marker::Sized;
-use std::string::{String, ToString};
-use std::result::Result::Ok;
+use std::fmt;
+use std::fmt::{Debug, Display, Formatter, Write};
+use std::marker::{PhantomData, Sized};
+use std::ops::Deref;
 #[allow(unused)] // Kept in sync with original source, so keep as is.
 use std::option::Option;
 use std::option::Option::Some;
+use std::result::Result::Ok;
+use std::str::FromStr;
+use std::string::{String, ToString};
 
 use fastcrypto::encoding::Hex;
-use serde::{
-    self,
-    de::{Deserializer, Error},
-    ser::{Error as SerError, Serializer},
-    Deserialize, Serialize,
-};
-use serde_with::{serde_as, DeserializeAs, DisplayFromStr, SerializeAs};
 use schemars::JsonSchema;
-
+use serde::de::{Deserializer, Error};
+use serde::ser::{Error as SerError, Serializer};
+use serde::{self, Deserialize, Serialize};
+use serde_with::{serde_as, DeserializeAs, DisplayFromStr, SerializeAs};
 use Result;
 
-use super::super::move_core_types::{
-    account_address::AccountAddress,
-    language_storage::{StructTag, TypeTag}
-};
-
+use super::super::move_core_types::account_address::AccountAddress;
+use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use super::{parse_iota_struct_tag, parse_iota_type_tag};
 #[allow(unused)] // Kept in sync with original source, so keep as is.
-use super::{IOTA_FRAMEWORK_ADDRESS, MOVE_STDLIB_ADDRESS, IOTA_SYSTEM_ADDRESS,
-            STARDUST_ADDRESS, IOTA_SYSTEM_STATE_ADDRESS, IOTA_CLOCK_ADDRESS };
-use super::parse_iota_struct_tag;
-use super::parse_iota_type_tag;
+use super::{
+  IOTA_CLOCK_ADDRESS, IOTA_FRAMEWORK_ADDRESS, IOTA_SYSTEM_ADDRESS, IOTA_SYSTEM_STATE_ADDRESS, MOVE_STDLIB_ADDRESS,
+  STARDUST_ADDRESS,
+};
 
 /// The minimum and maximum protocol versions supported by this build.
 const MIN_PROTOCOL_VERSION: u64 = 1;      // Originally defined in crates/iota-protocol-config/src/lib.rs

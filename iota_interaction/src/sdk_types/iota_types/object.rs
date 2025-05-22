@@ -5,11 +5,10 @@
 use std::fmt::{Display, Formatter};
 
 use schemars::JsonSchema;
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-use super::base_types::{IotaAddress, SequenceNumber, ObjectID};
-use super::error::{IotaResult, IotaError};
+use super::base_types::{IotaAddress, ObjectID, SequenceNumber};
+use super::error::{IotaError, IotaResult};
 
 pub const OBJECT_START_VERSION: SequenceNumber = SequenceNumber::from_u64(1);
 

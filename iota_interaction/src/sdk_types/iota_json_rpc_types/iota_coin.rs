@@ -3,14 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as};
+use serde_with::serde_as;
 
-use super::super::iota_types::{
-    base_types::{ObjectID, ObjectRef, TransactionDigest, SequenceNumber},
-    digests::ObjectDigest,
-    iota_serde::{BigInt, SequenceNumber as AsSequenceNumber}
-};
-
+use super::super::iota_types::base_types::{ObjectID, ObjectRef, SequenceNumber, TransactionDigest};
+use super::super::iota_types::digests::ObjectDigest;
+use super::super::iota_types::iota_serde::{BigInt, SequenceNumber as AsSequenceNumber};
 use super::Page;
 
 pub type CoinPage = Page<Coin, ObjectID>;

@@ -4,14 +4,13 @@
 
 use std::fmt::{self, Display};
 
-use anyhow::{bail};
-use super::super::{
-    account_address::AccountAddress,
-    identifier::{self, Identifier},
-    language_storage::{StructTag, TypeTag, ModuleId}
-};
+use anyhow::bail;
 
-use super::{address::ParsedAddress, parser::Token};
+use super::super::account_address::AccountAddress;
+use super::super::identifier::{self, Identifier};
+use super::super::language_storage::{ModuleId, StructTag, TypeTag};
+use super::address::ParsedAddress;
+use super::parser::Token;
 
 #[derive(Eq, PartialEq, Debug, Clone, Copy)]
 pub enum TypeToken {

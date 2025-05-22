@@ -3,17 +3,18 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use super::{
-    account_address::AccountAddress, annotated_value as A, fmt_list, u256, VARIANT_COUNT_MAX,
-};
+use std::fmt::{self, Debug};
+
 use anyhow::{anyhow, Result as AResult};
 // use move_proc_macros::test_variant_order;
 use serde::{
-    de::Error as DeError,
-    ser::{SerializeSeq, SerializeTuple},
-    Deserialize, Serialize,
+  de::Error as DeError,
+  ser::{SerializeSeq, SerializeTuple},
+  Deserialize, Serialize,
 };
-use std::fmt::{self, Debug};
+
+use super::account_address::AccountAddress;
+use super::{annotated_value as A, fmt_list, u256, VARIANT_COUNT_MAX};
 
 /// In the `WithTypes` configuration, a Move struct gets serialized into a Serde
 /// struct with this name

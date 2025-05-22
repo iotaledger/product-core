@@ -11,14 +11,13 @@ use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 use strum::IntoStaticStr;
 
-
 use super::super::move_core_types::identifier::Identifier;
 use super::super::move_core_types::language_storage::TypeTag;
-
 use super::base_types::{EpochId, IotaAddress, ObjectID, ObjectRef, SequenceNumber};
 use super::error::UserInputError;
 use super::{
-    IOTA_AUTHENTICATOR_STATE_OBJECT_ID, IOTA_AUTHENTICATOR_STATE_OBJECT_SHARED_VERSION, IOTA_CLOCK_OBJECT_ID, IOTA_CLOCK_OBJECT_SHARED_VERSION, IOTA_SYSTEM_STATE_OBJECT_ID, IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION
+  IOTA_AUTHENTICATOR_STATE_OBJECT_ID, IOTA_AUTHENTICATOR_STATE_OBJECT_SHARED_VERSION, IOTA_CLOCK_OBJECT_ID,
+  IOTA_CLOCK_OBJECT_SHARED_VERSION, IOTA_SYSTEM_STATE_OBJECT_ID, IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION,
 };
 
 pub const TEST_ONLY_GAS_UNIT_FOR_TRANSFER: u64 = 10_000;
@@ -150,11 +149,11 @@ impl Command {
         arguments: Vec<Argument>,
     ) -> Self {
         Self::MoveCall(Box::new(ProgrammableMoveCall {
-            package,
-            module,
-            function,
-            type_arguments,
-            arguments,
+           package,
+           module,
+           function,
+           type_arguments,
+           arguments,
         }))
     }
 }

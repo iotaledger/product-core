@@ -2,36 +2,25 @@
 // SPDX-License-Identifier: Apache-2.0
 use std::str::FromStr;
 
-use fastcrypto::encoding::Base64;
-use fastcrypto::encoding::Encoding;
+use fastcrypto::encoding::{Base64, Encoding};
 use fastcrypto::traits::EncodeDecodeBase64 as _;
-use iota_interaction::rpc_types::IotaTransactionBlockEffects;
-use iota_interaction::rpc_types::OwnedObjectRef;
-use iota_interaction::types::base_types::IotaAddress;
-use iota_interaction::types::base_types::ObjectID;
-use iota_interaction::types::base_types::ObjectRef;
-use iota_interaction::types::base_types::SequenceNumber;
-use iota_interaction::types::crypto::PublicKey;
-use iota_interaction::types::crypto::Signature;
+use iota_interaction::rpc_types::{IotaTransactionBlockEffects, OwnedObjectRef};
+use iota_interaction::types::base_types::{IotaAddress, ObjectID, ObjectRef, SequenceNumber};
+use iota_interaction::types::crypto::{PublicKey, Signature};
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::execution_status::CommandArgumentError;
 use iota_interaction::types::object::Owner;
 use iota_interaction::types::transaction::TransactionData;
 use iota_interaction::ProgrammableTransactionBcs;
-use js_sys::Promise;
-use js_sys::Uint8Array;
-use serde::Deserialize;
-use serde::Serialize;
+use js_sys::{Promise, Uint8Array};
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::JsCast;
-use wasm_bindgen::JsError;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsError, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
 use crate::bindings::WasmIotaClient;
 use crate::console_log;
-use crate::error::TsSdkError;
-use crate::error::WasmError;
+use crate::error::{TsSdkError, WasmError};
 
 // TODO: fix/add signer or remove functions relying on it
 type WasmStorageSigner = ();

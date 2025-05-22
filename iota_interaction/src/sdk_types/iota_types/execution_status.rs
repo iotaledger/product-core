@@ -4,11 +4,11 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use super::super::move_core_types::language_storage::ModuleId;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use super::base_types::{ObjectID, IotaAddress, TypeParameterIndex, CodeOffset};
+use super::super::move_core_types::language_storage::ModuleId;
+use super::base_types::{CodeOffset, IotaAddress, ObjectID, TypeParameterIndex};
 
 #[derive(Eq, PartialEq, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")] // Needed for QuorumDriverTrait implementation in IotaClientTsSdk

@@ -4,11 +4,10 @@
 
 #[allow(unused)] // Kept in sync with original source, so keep as is.
 use serde::{Deserialize, Serialize};
-use super::super::move_core_types::{
-    account_address::AccountAddress,
-    language_storage::{TypeTag, StructTag},
-};
-use super::base_types::{ObjectID, SequenceNumber, IotaAddress};
+
+use super::super::move_core_types::account_address::AccountAddress;
+use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use super::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use super::object::OBJECT_START_VERSION;
 
 macro_rules! built_in_ids {

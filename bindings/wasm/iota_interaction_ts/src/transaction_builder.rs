@@ -1,14 +1,12 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::ops::Deref;
-use std::ops::DerefMut;
+use std::ops::{Deref, DerefMut};
+
+use iota_interaction::{ProgrammableTransactionBcs, TransactionBuilderT};
 
 use crate::bindings::WasmTransactionBuilder;
-use crate::error::TsSdkError;
-use crate::error::WasmError;
-use iota_interaction::ProgrammableTransactionBcs;
-use iota_interaction::TransactionBuilderT;
+use crate::error::{TsSdkError, WasmError};
 
 pub type NativeTsTransactionBuilderBindingWrapper = WasmTransactionBuilder;
 

@@ -2,22 +2,19 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use serde::Deserialize;
-use serde::Serialize;
-
-use crate::ident_str;
-
-use super::super::move_core_types::language_storage::{StructTag, TypeTag};
-use super::super::move_core_types::identifier::IdentStr;
-use super::super::move_core_types::annotated_value::MoveStructLayout;
-
-use super::super::types::IOTA_FRAMEWORK_ADDRESS;
-
-use super::coin::{Coin, TreasuryCap};
-use super::base_types::{ObjectID};
-use super::id::UID;
-use super::balance::{Balance, Supply};
 use std::fmt::{Display, Formatter};
+
+use serde::{Deserialize, Serialize};
+
+use super::super::move_core_types::annotated_value::MoveStructLayout;
+use super::super::move_core_types::identifier::IdentStr;
+use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use super::super::types::IOTA_FRAMEWORK_ADDRESS;
+use super::balance::{Balance, Supply};
+use super::base_types::ObjectID;
+use super::coin::{Coin, TreasuryCap};
+use super::id::UID;
+use crate::ident_str;
 
 /// The number of Nanos per IOTA token
 pub const NANOS_PER_IOTA: u64 = 1_000_000_000;

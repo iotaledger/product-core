@@ -4,14 +4,12 @@
 
 use std::str::FromStr;
 
+use anyhow::ensure;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-use anyhow::ensure;
 
-use super::{
-    digests::TransactionDigest,
-    iota_serde::{Readable, BigInt},
-};
+use super::digests::TransactionDigest;
+use super::iota_serde::{BigInt, Readable};
 
 /// Unique ID of an IOTA Event, the ID is a combination of tx seq number and
 /// event seq number, the ID is local to this particular fullnode and will be

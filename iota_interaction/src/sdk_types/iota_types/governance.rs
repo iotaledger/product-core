@@ -2,19 +2,16 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-use crate::ident_str;
-
-use super::super::move_core_types::language_storage::StructTag;
 use super::super::move_core_types::identifier::IdentStr;
-
-use super::gas_coin::NANOS_PER_IOTA;
+use super::super::move_core_types::language_storage::StructTag;
 use super::balance::Balance;
+use super::base_types::{EpochId, ObjectID};
+use super::gas_coin::NANOS_PER_IOTA;
+use super::id::{ID, UID};
 use super::IOTA_SYSTEM_ADDRESS;
-use super::base_types::{ObjectID, EpochId};
-use super::id::{UID, ID};
+use crate::ident_str;
 
 /// Maximum number of active validators at any moment.
 /// We do not allow the number of validators in any epoch to go above this.
