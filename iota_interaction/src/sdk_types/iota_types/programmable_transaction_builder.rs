@@ -10,12 +10,11 @@ use indexmap::IndexMap;
 use serde::Serialize;
 
 use crate::ident_str;
-use crate::move_types::identifier::IdentStr;
 use crate::types::base_types::{IotaAddress, ObjectID, ObjectRef};
 use crate::types::transaction::{Argument, CallArg, Command, ObjectArg, ProgrammableMoveCall, ProgrammableTransaction};
 use crate::types::{Identifier, TypeTag, IOTA_FRAMEWORK_PACKAGE_ID};
 
-pub const PACKAGE_MODULE_NAME: &IdentStr = ident_str!("package");
+use super::move_package::PACKAGE_MODULE_NAME;
 
 #[derive(PartialEq, Eq, Hash)]
 enum BuilderArg {
@@ -123,8 +122,14 @@ impl ProgrammableTransactionBuilder {
     }
   }
 
-  pub fn make_obj_vec(&mut self, objs: impl IntoIterator<Item = ObjectArg>) -> anyhow::Result<Argument> {
-    let make_vec_args = objs.into_iter().map(|obj| self.obj(obj)).collect::<Result<_, _>>()?;
+    pub fn make_obj_vec(
+        &mut self,
+        objs: impl IntoIterator<Item = ObjectArg>,
+    ) -> anyhow::Result<Argument> {
+        let make_vec_args = objs
+            .into_iter()
+            .map(|obj| self.obj(obj))
+            .collect::<Result<_, _>>()?;
     Ok(self.command(Command::MakeMoveVec(None, make_vec_args)))
   }
 
@@ -143,14 +148,17 @@ impl ProgrammableTransactionBuilder {
     type_arguments: Vec<TypeTag>,
     call_args: Vec<CallArg>,
   ) -> anyhow::Result<()> {
-    let arguments = call_args.into_iter().map(|a| self.input(a)).collect::<Result<_, _>>()?;
-    self.command(Command::MoveCall(Box::new(ProgrammableMoveCall {
+        let arguments = call_args
+            .into_iter()
+            .map(|a| self.input(a))
+            .collect::<Result<_, _>>()?;
+        self.command(Command::move_call(
       package,
       module,
       function,
       type_arguments,
       arguments,
-    })));
+        ));
     Ok(())
   }
 
@@ -171,13 +179,18 @@ impl ProgrammableTransactionBuilder {
     })))
   }
 
-  pub fn publish_upgradeable(&mut self, modules: Vec<Vec<u8>>, dep_ids: Vec<ObjectID>) -> Argument {
+    pub fn publish_upgradeable(
+        &mut self,
+        modules: Vec<Vec<u8>>,
+        dep_ids: Vec<ObjectID>,
+    ) -> Argument {
     self.command(Command::Publish(modules, dep_ids))
   }
 
   pub fn publish_immutable(&mut self, modules: Vec<Vec<u8>>, dep_ids: Vec<ObjectID>) {
     let cap = self.publish_upgradeable(modules, dep_ids);
-    self.commands.push(Command::MoveCall(Box::new(ProgrammableMoveCall {
+        self.commands
+            .push(Command::MoveCall(Box::new(ProgrammableMoveCall {
       package: IOTA_FRAMEWORK_PACKAGE_ID,
       module: PACKAGE_MODULE_NAME.to_owned(),
       function: ident_str!("make_immutable").to_owned(),
@@ -210,10 +223,15 @@ impl ProgrammableTransactionBuilder {
     self.commands.push(Command::TransferObjects(args, rec_arg));
   }
 
-  pub fn transfer_object(&mut self, recipient: IotaAddress, object_ref: ObjectRef) -> anyhow::Result<()> {
+    pub fn transfer_object(
+        &mut self,
+        recipient: IotaAddress,
+        object_ref: ObjectRef,
+    ) -> anyhow::Result<()> {
     let rec_arg = self.pure(recipient).unwrap();
     let obj_arg = self.obj(ObjectArg::ImmOrOwnedObject(object_ref));
-    self.commands.push(Command::TransferObjects(vec![obj_arg?], rec_arg));
+        self.commands
+            .push(Command::TransferObjects(vec![obj_arg?], rec_arg));
     Ok(())
   }
 
@@ -235,13 +253,22 @@ impl ProgrammableTransactionBuilder {
 
   /// Will fail to generate if recipients and amounts do not have the same
   /// lengths
-  pub fn pay_iota(&mut self, recipients: Vec<IotaAddress>, amounts: Vec<u64>) -> anyhow::Result<()> {
+    pub fn pay_iota(
+        &mut self,
+        recipients: Vec<IotaAddress>,
+        amounts: Vec<u64>,
+    ) -> anyhow::Result<()> {
     self.pay_impl(recipients, amounts, Argument::GasCoin)
   }
 
   /// Will fail to generate if recipients and amounts do not have the same
   /// lengths. Or if coins is empty
-  pub fn pay(&mut self, coins: Vec<ObjectRef>, recipients: Vec<IotaAddress>, amounts: Vec<u64>) -> anyhow::Result<()> {
+    pub fn pay(
+        &mut self,
+        coins: Vec<ObjectRef>,
+        recipients: Vec<IotaAddress>,
+        amounts: Vec<u64>,
+    ) -> anyhow::Result<()> {
     let mut coins = coins.into_iter();
     let Some(coin) = coins.next() else {
       anyhow::bail!("coins vector is empty");
@@ -256,7 +283,12 @@ impl ProgrammableTransactionBuilder {
     self.pay_impl(recipients, amounts, coin_arg)
   }
 
-  fn pay_impl(&mut self, recipients: Vec<IotaAddress>, amounts: Vec<u64>, coin: Argument) -> anyhow::Result<()> {
+    fn pay_impl(
+        &mut self,
+        recipients: Vec<IotaAddress>,
+        amounts: Vec<u64>,
+        coin: Argument,
+    ) -> anyhow::Result<()> {
     if recipients.len() != amounts.len() {
       anyhow::bail!(
         "Recipients and amounts mismatch. Got {} recipients but {} amounts",
@@ -276,7 +308,8 @@ impl ProgrammableTransactionBuilder {
       recipient_map.entry(recipient).or_default().push(i);
       amt_args.push(self.pure(amount)?);
     }
-    let Argument::Result(split_primary) = self.command(Command::SplitCoins(coin, amt_args)) else {
+        let Argument::Result(split_primary) = self.command(Command::SplitCoins(coin, amt_args))
+        else {
       panic!("self.command should always give a Argument::Result")
     };
     for (recipient, split_secondaries) in recipient_map {

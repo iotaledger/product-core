@@ -13,5 +13,8 @@ pub mod generated_types;
 pub mod iota_sdk_lib;
 pub mod shared_crypto;
 
+pub(crate) use types as iota_types;
+pub(crate) use move_types as move_core_types;
+pub(crate) use rpc_types as iota_json_rpc_types;
+
 pub use iota_sdk_lib::*;
-pub(crate) use {move_types as move_core_types, rpc_types as iota_json_rpc_types, types as iota_types};
