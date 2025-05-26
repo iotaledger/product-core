@@ -8,11 +8,12 @@ use super::iota_json_rpc_types::iota_transaction::IotaTransactionBlockResponseOp
 use super::iota_types::quorum_driver_types::ExecuteTransactionRequestType;
 use super::types::crypto::Signature;
 use super::types::transaction::TransactionData;
-use crate::rpc_types::{EventFilter, IotaObjectDataFilter, IotaObjectDataOptions};
+use crate::rpc_types::{DevInspectArgs, EventFilter, IotaObjectDataFilter, IotaObjectDataOptions};
+use crate::types::base_types::IotaAddress;
 use crate::types::dynamic_field::DynamicFieldName;
 use crate::types::event::EventID;
-use crate::types::iota_serde::SequenceNumber;
-
+use crate::types::iota_serde::{BigInt, SequenceNumber};
+use crate::types::transaction::TransactionKind;
 // The types defined in this file:
 // * do not exist in the iota rust sdk
 // * have an equivalent type in the iota typescript sdk
@@ -261,6 +262,42 @@ impl WaitForTransactionParams {
       get_transaction_block_params: GetTransactionBlockParams::new(digest, options),
       timeout,
       poll_interval,
+    }
+  }
+}
+
+/// Params for `dev_inspect_transaction_block`
+///Runs the transaction in dev-inspect mode. Which allows for nearly any transaction (or Move call)
+/// with any arguments. Detailed results are provided, including both the transaction effects and any
+/// return values.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DevInspectTransactionBlockParams {
+  sender: String,
+  transaction_block: Base64,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  gas_price: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  epoch: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  additional_args: Option<DevInspectArgs>,
+}
+
+impl DevInspectTransactionBlockParams {
+  pub fn new(
+    sender_address: IotaAddress,
+    tx: TransactionKind,
+    gas_price: Option<BigInt<u64>>,
+    epoch: Option<BigInt<u64>>,
+    additional_args: Option<DevInspectArgs>,
+  ) -> Self {
+    let tex_bcs = bcs::to_bytes(&tx).expect("this serialization cannot fail");
+    DevInspectTransactionBlockParams {
+      sender: sender_address.to_string(),
+      transaction_block: Base64::from_bytes(&tex_bcs),
+      gas_price: gas_price.map(|g| g.to_string()),
+      epoch: epoch.map(|e| e.to_string()),
+      additional_args,
     }
   }
 }

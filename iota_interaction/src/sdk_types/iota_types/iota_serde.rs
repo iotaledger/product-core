@@ -245,6 +245,7 @@ impl<'de> DeserializeAs<'de, StructTag> for IotaStructTag {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct IotaTypeTag;
 
 impl SerializeAs<TypeTag> for IotaTypeTag {
