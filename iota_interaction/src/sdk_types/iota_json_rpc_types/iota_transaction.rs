@@ -15,11 +15,13 @@ use crate::iota_types::base_types::EpochId;
 use crate::iota_types::digests::{TransactionDigest, TransactionEventsDigest};
 use crate::iota_types::gas::GasCostSummary;
 use crate::iota_types::storage::{DeleteKind, WriteKind};
+use crate::move_core_types::language_storage::TypeTag;
 use crate::rpc_types::IotaEvent;
 use crate::types::base_types::{IotaAddress, ObjectID, ObjectRef, SequenceNumber};
 use crate::types::execution_status::ExecutionStatus;
-use crate::types::iota_serde::{BigInt, IotaTypeTag, SequenceNumber as AsSequenceNumber};
+use crate::types::iota_serde::{BigInt, SequenceNumber as AsSequenceNumber};
 use crate::types::object::Owner;
+use crate::types::parse_iota_type_tag;
 use crate::types::quorum_driver_types::ExecuteTransactionRequestType;
 
 /// BCS serialized IotaTransactionBlockEffects
@@ -482,6 +484,29 @@ impl Display for IotaArgument {
             Self::Result(i) => write!(f, "Result({i})"),
             Self::NestedResult(i, j) => write!(f, "NestedResult({i},{j})"),
         }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]
+#[serde(rename = "TypeTag", rename_all = "camelCase")]
+pub struct IotaTypeTag(String);
+
+impl IotaTypeTag {
+    pub fn new(tag: String) -> Self {
+        Self(tag)
+    }
+}
+
+impl TryInto<TypeTag> for IotaTypeTag {
+    type Error = anyhow::Error;
+    fn try_into(self) -> Result<TypeTag, Self::Error> {
+        parse_iota_type_tag(&self.0)
+    }
+}
+
+impl From<TypeTag> for IotaTypeTag {
+    fn from(tag: TypeTag) -> Self {
+        Self(format!("{tag}"))
     }
 }
 
