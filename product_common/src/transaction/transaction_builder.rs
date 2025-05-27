@@ -279,6 +279,22 @@ where
     Ok(self.programmable_tx.as_ref().unwrap())
   }
 
+  /// Similar to [Self::build] but missing values are replaced by defaults.
+  pub async fn build_with_defaults<C>(mut self, client: &C) -> Result<(TransactionData, Vec<Signature>, Tx), Error>
+  where
+    C: CoreClientReadOnly + OptionalSync,
+  {
+    if self.sender.is_none() {
+      self.sender = Some(IotaAddress::default());
+    }
+    let tx_data = self
+      .transaction_data_with_partial_gas(client)
+      .await
+      .map_err(|e| Error::TransactionBuildingFailed(e.to_string()))?;
+
+    Ok((tx_data, self.signatures, self.tx))
+  }
+
   /// Attempts to build this transaction using `client` in a best effort manner:
   /// - when no sender had been supplied, client's address is used;
   /// - when gas information is incomplete, the client will attempt to fill it, making use of whatever funds its address
