@@ -345,7 +345,7 @@ impl IotaTransactionBlockEffectsAPI for IotaTransactionBlockEffectsV1 {
     }
 }
 
-#[derive(Eq, PartialEq, Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Eq, PartialEq, Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename = "TransactionBlockEvents", transparent)]
 pub struct IotaTransactionBlockEvents {
     pub data: Vec<IotaEvent>,
@@ -371,7 +371,7 @@ pub struct DevInspectArgs {
 }
 
 /// The response from processing a dev inspect transaction
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename = "DevInspectResults", rename_all = "camelCase")]
 pub struct DevInspectResults {
     /// Summary of effects that likely would be generated if the transaction is
