@@ -97,12 +97,14 @@ pub type IotaClientAdaptedTraitObj =
 pub struct IotaTransactionBlockResponseProvider {
   response: WasmIotaTransactionBlockResponseWrapper,
   effects: Option<IotaTransactionBlockEffects>,
+  events: Option<IotaTransactionBlockEvents>,
 }
 
 impl IotaTransactionBlockResponseProvider {
   pub fn new(response: WasmIotaTransactionBlockResponseWrapper) -> Self {
     let effects = response.effects().map(Into::into);
-    IotaTransactionBlockResponseProvider { response, effects }
+    let events = response.events().map(Into::into);
+    IotaTransactionBlockResponseProvider { response, effects, events }
   }
 }
 
@@ -134,8 +136,9 @@ impl IotaTransactionBlockResponseT for IotaTransactionBlockResponseProvider {
   fn digest(&self) -> Result<TransactionDigest, Self::Error> {
     self.response.digest()
   }
+
   fn events(&self) -> Option<&IotaTransactionBlockEvents> {
-    self.response.events.as_ref()
+    self.events.as_ref()
   }
 }
 

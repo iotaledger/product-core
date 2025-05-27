@@ -232,6 +232,14 @@ impl SharedInputObject {
     }
 }
 
+impl TransactionKind {
+    /// present to make migrations to programmable transactions eaier.
+    /// Will be removed
+    pub fn programmable(pt: ProgrammableTransaction) -> Self {
+        TransactionKind::ProgrammableTransaction(pt)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub struct GasData {
     pub payment: Vec<ObjectRef>,

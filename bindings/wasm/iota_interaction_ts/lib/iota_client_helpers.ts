@@ -1,7 +1,13 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-import { CoinStruct, IotaClient, IotaTransactionBlockResponse, TransactionEffects } from "@iota/iota-sdk/client";
+import {
+    CoinStruct,
+    IotaClient,
+    IotaEvent,
+    IotaTransactionBlockResponse,
+    TransactionEffects
+} from "@iota/iota-sdk/client";
 import { GasData, TransactionDataBuilder } from "@iota/iota-sdk/transactions";
 
 export type Signer = { sign(data: Uint8Array): Promise<string> };
@@ -29,6 +35,10 @@ export class WasmIotaTransactionBlockResponseWrapper {
 
     get_digest(): string {
         return this.response.digest;
+    }
+
+    get_events(): IotaEvent[] | null | undefined {
+        return this.response.events;
     }
 }
 
