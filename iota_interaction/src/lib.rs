@@ -14,6 +14,8 @@ mod iota_verifiable_credential;
 pub mod keytool;
 mod move_type;
 mod transaction_builder_trait;
+#[cfg(feature = "keypair-signer")]
+mod keypair_signer;
 
 pub use effects_mut_api::*;
 pub use iota_client_trait::*;
@@ -22,6 +24,8 @@ pub use iota_verifiable_credential::*;
 pub use keytool::*;
 pub use move_type::*;
 pub use transaction_builder_trait::*;
+#[cfg(feature = "keypair-signer")]
+pub use keypair_signer::*;
 
 #[cfg(target_arch = "wasm32")]
 mod sdk_types;

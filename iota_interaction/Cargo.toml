@@ -62,9 +62,10 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = ["send-sync-transaction", "secret-storage/send-sync-storage"]
+default = ["send-sync-transaction"]
 send-sync-transaction = ["secret-storage/send-sync-storage"]
 keytool = ["dep:tokio", "dep:jsonpath-rust"]
+keypair-signer = []
 
 [lints.clippy]
 result_large_err = "allow"
