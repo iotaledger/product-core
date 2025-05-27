@@ -225,9 +225,9 @@ impl From<WasmIotaTransactionBlockEvents> for IotaTransactionBlockEvents {
 impl From<&'_ IotaTransactionBlockEvents> for WasmIotaTransactionBlockEvents {
   fn from(value: &'_ IotaTransactionBlockEvents) -> Self {
     value
-        .serialize(&serde_wasm_bindgen::Serializer::json_compatible())
-        .expect("same representation")
-        .unchecked_into()
+      .serialize(&serde_wasm_bindgen::Serializer::json_compatible())
+      .expect("same representation")
+      .unchecked_into()
   }
 }
 

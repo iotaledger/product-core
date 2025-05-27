@@ -104,7 +104,11 @@ impl IotaTransactionBlockResponseProvider {
   pub fn new(response: WasmIotaTransactionBlockResponseWrapper) -> Self {
     let effects = response.effects().map(Into::into);
     let events = response.events().map(Into::into);
-    IotaTransactionBlockResponseProvider { response, effects, events }
+    IotaTransactionBlockResponseProvider {
+      response,
+      effects,
+      events,
+    }
   }
 }
 
