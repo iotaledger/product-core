@@ -25,6 +25,7 @@ serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 toml = "0.8"
+wasm-bindgen = { version = "0.2.100", optional = true }
 
 [dependencies.identity_jose]
 git = "https://github.com/iotaledger/identity.rs.git"
@@ -67,6 +68,7 @@ transaction = [
   "dep:itertools",
   "dep:secret-storage",
 ]
+wasm-utils = ["wasm-bindgen"]
 
 [package.metadata.docs.rs]
 # To build locally:
