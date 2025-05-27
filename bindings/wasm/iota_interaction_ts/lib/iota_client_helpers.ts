@@ -6,7 +6,7 @@ import {
     IotaClient,
     IotaEvent,
     IotaTransactionBlockResponse,
-    TransactionEffects
+    TransactionEffects,
 } from "@iota/iota-sdk/client";
 import { GasData, TransactionDataBuilder } from "@iota/iota-sdk/transactions";
 
