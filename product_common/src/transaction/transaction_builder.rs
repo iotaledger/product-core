@@ -53,9 +53,11 @@ pub trait Transaction: Sized {
   where
     C: CoreClientReadOnly + OptionalSync;
 
-  /// Parses a transaction result in order to compute its effects and events.
+  /// Parses a transaction result in order to compute its effects and optionally use events.
   /// This method is a convenience wrapper around [Transaction::apply] that
-  /// also returns the effects and events produced by the transaction.
+  /// passes the effects and events to the transaction logic.
+  /// By default, this implementation ignores the `events` parameter.
+  /// If you need to handle events in your transaction logic, override this method.
   async fn apply_with_events<C>(
     self,
     effects: &mut IotaTransactionBlockEffects,
@@ -67,8 +69,7 @@ pub trait Transaction: Sized {
   {
     let _ = events;
 
-    let output = self.apply(effects, client).await?;
-    Ok(output)
+    self.apply(effects, client).await
   }
 }
 
