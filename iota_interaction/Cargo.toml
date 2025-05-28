@@ -22,9 +22,9 @@ jsonpath-rust = { version = "0.5.1", optional = true }
 secret-storage.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+shared-crypto = { git = "https://github.com/iotaledger/iota.git", package = "shared-crypto", tag = "v0.12.0-rc" }
 strum.workspace = true
 thiserror.workspace = true
-shared-crypto = { git = "https://github.com/iotaledger/iota.git", package = "shared-crypto", tag = "v0.12.0-rc" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iota-sdk = { git = "https://github.com/iotaledger/iota.git", package = "iota-sdk", tag = "v0.12.0-rc" }
