@@ -1,3 +1,6 @@
+// Copyright 2020-2025 IOTA Stiftung
+// SPDX-License-Identifier: Apache-2.0
+
 use anyhow::anyhow;
 use async_trait::async_trait;
 use secret_storage::{Error as SecretStorageError, Signer};
