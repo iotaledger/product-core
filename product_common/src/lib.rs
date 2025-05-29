@@ -18,3 +18,6 @@ pub mod transaction;
 pub mod test_utils;
 
 pub use error::*;
+
+#[cfg(feature = "move-utils")]
+pub mod move_utils;

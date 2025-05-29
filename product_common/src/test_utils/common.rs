@@ -31,11 +31,6 @@ use crate::transaction::transaction_builder::Transaction;
 use crate::transaction::transaction_builder::TransactionBuilder;
 use crate::Error;
 
-/// Directory containing the scripts used for testing.
-///
-/// Default value is the `scripts` directory relative to the current crate.
-pub const SCRIPT_FILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/scripts/publish_package.sh");
-
 /// Cached package file for the product related package.
 pub const CACHED_PKG_FILE: &str = "/tmp/product_pkg_id.txt";
 
@@ -51,12 +46,11 @@ lazy_static! {
 ///
 /// * `iota_client` - The IotaClient to use for the request.
 /// * `cached_pkg_file` - The path to the cached package file (optional).
-/// * `script_file` - The path to the script file (optional).
+/// * `script_file` - The path to the script file.
 ///
 /// If the optional arguments are not provided, the default values will be used.
 /// The default values are:
 /// * `cached_pkg_file`: [`CACHED_PKG_FILE`]
-/// * `script_file`: [`SCRIPT_FILE`]
 ///
 /// # Returns
 ///
@@ -68,7 +62,7 @@ lazy_static! {
 pub async fn init_product_package(
   iota_client: &IotaClient,
   cached_pkg_file: Option<&str>,
-  script_file: Option<&str>,
+  script_file: &str,
 ) -> anyhow::Result<ObjectID> {
   let network_id = iota_client.read_api().get_chain_identifier().await?;
   let address = get_active_address().await?;
@@ -77,12 +71,7 @@ pub async fn init_product_package(
     std::env::set_var("PRODUCT_IOTA_PKG_ID", id.clone());
     id.parse().context("failed to parse object id from str")
   } else {
-    publish_package(
-      address,
-      script_file.unwrap_or(SCRIPT_FILE),
-      cached_pkg_file.unwrap_or(CACHED_PKG_FILE),
-    )
-    .await
+    publish_package(address, script_file, cached_pkg_file.unwrap_or(CACHED_PKG_FILE)).await
   }
 }
 

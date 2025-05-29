@@ -68,6 +68,8 @@ transaction = [
   "dep:secret-storage",
 ]
 
+move-utils = []
+
 [package.metadata.docs.rs]
 # To build locally:
 # RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --no-deps --workspace --open
