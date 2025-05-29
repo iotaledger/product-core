@@ -61,7 +61,7 @@ pub trait Transaction: Sized {
   async fn apply_with_events<C>(
     self,
     effects: &mut IotaTransactionBlockEffects,
-    events: Option<IotaTransactionBlockEvents>,
+    events: &mut IotaTransactionBlockEvents,
     client: &C,
   ) -> Result<Self::Output, Self::Error>
   where
@@ -388,7 +388,11 @@ where
     }
 
     let application_result = tx
-      .apply_with_events(&mut tx_effects, dyn_tx_block.events().cloned(), client)
+      .apply_with_events(
+        &mut tx_effects,
+        &mut dyn_tx_block.events().cloned().unwrap_or_default(),
+        client,
+      )
       .await;
     let response = {
       cfg_if! {
