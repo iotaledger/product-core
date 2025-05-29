@@ -14,7 +14,8 @@ use iota_interaction::rpc_types::{
   Coin, CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaExecutionStatus, IotaObjectData,
   IotaObjectDataOptions, IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse,
   IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI, IotaTransactionBlockEffectsV1,
-  IotaTransactionBlockResponse, IotaTransactionBlockResponseOptions, ObjectChange, ObjectsPage,
+  IotaTransactionBlockEvents, IotaTransactionBlockResponse, IotaTransactionBlockResponseOptions, ObjectChange,
+  ObjectsPage,
 };
 use iota_interaction::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use iota_interaction::types::crypto::Signature;
@@ -122,6 +123,10 @@ impl IotaTransactionBlockResponseT for IotaTransactionBlockResponseProvider {
 
   fn digest(&self) -> Result<TransactionDigest, Self::Error> {
     Ok(self.response.digest)
+  }
+
+  fn events(&self) -> Option<&IotaTransactionBlockEvents> {
+    self.response.events.as_ref()
   }
 }
 
