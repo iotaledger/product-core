@@ -15,6 +15,7 @@ description = "Sources shared by IOTA products."
 anyhow.workspace = true
 async-trait.workspace = true
 cfg-if.workspace = true
+iota-keys = { git = "https://github.com/iotaledger/iota.git", package = "iota-keys", tag = "v0.12.0-rc", optional = true }
 itertools = { version = "0.13.0", optional = true }
 lazy_static = { version = "1.5.0", optional = true }
 phf.workspace = true
@@ -24,7 +25,6 @@ serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 toml = "0.8"
-iota-keys = { git = "https://github.com/iotaledger/iota.git", package = "iota-keys", tag = "v0.12.0-rc", optional = true }
 
 [dependencies.identity_jose]
 git = "https://github.com/iotaledger/identity.rs.git"
