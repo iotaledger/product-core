@@ -54,10 +54,26 @@ pub trait Transaction: Sized {
     C: CoreClientReadOnly + OptionalSync;
 
   /// Parses a transaction result in order to compute its effects and optionally use events.
-  /// This method is a convenience wrapper around [Transaction::apply] that
-  /// passes the effects and events to the transaction logic.
-  /// By default, this implementation ignores the `events` parameter.
-  /// If you need to handle events in your transaction logic, override this method.
+  ///
+  /// This method is a convenience wrapper around [`Transaction::apply`] that passes the
+  /// effects and events to the transaction logic. By default, this implementation ignores
+  /// the `events` parameter and simply calls [`apply`].
+  ///
+  /// ## Handling Events
+  ///
+  /// If you need to handle events in your transaction logic, override this
+  /// method and process the effects and events in this function. Also make
+  /// sure to return an appropriate error in your [`apply`] function implementation, since users  could still call
+  /// `apply` directly in their own code.
+  ///
+  /// ## Important Notes
+  ///
+  /// Although users are not expected to call the `apply` function directly, it
+  /// is possible.
+  /// Therefore, always ensure that `apply` returns a meaningful error if
+  /// called in a context
+  /// where event handling is required, rather than panicking or failing
+  /// silently. This improves debuggability and prevents silent failures.
   async fn apply_with_events<C>(
     self,
     effects: &mut IotaTransactionBlockEffects,
@@ -297,6 +313,22 @@ where
     }
 
     Ok(self.programmable_tx.as_ref().unwrap())
+  }
+
+  /// Similar to [Self::build] but missing values are replaced by defaults.
+  pub async fn build_with_defaults<C>(mut self, client: &C) -> Result<(TransactionData, Vec<Signature>, Tx), Error>
+  where
+    C: CoreClientReadOnly + OptionalSync,
+  {
+    if self.sender.is_none() {
+      self.sender = Some(IotaAddress::default());
+    }
+    let tx_data = self
+      .transaction_data_with_partial_gas(client)
+      .await
+      .map_err(|e| Error::TransactionBuildingFailed(e.to_string()))?;
+
+    Ok((tx_data, self.signatures, self.tx))
   }
 
   /// Attempts to build this transaction using `client` in a best effort manner:

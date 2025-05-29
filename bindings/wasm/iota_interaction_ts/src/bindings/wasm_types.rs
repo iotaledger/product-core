@@ -6,7 +6,7 @@ use fastcrypto::encoding::{Base64, Encoding};
 use fastcrypto::traits::EncodeDecodeBase64 as _;
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEvents, OwnedObjectRef};
 use iota_interaction::types::base_types::{IotaAddress, ObjectID, ObjectRef, SequenceNumber};
-use iota_interaction::types::crypto::{PublicKey, Signature};
+use iota_interaction::types::crypto::{IotaKeyPair, PublicKey, Signature};
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::execution_status::CommandArgumentError;
 use iota_interaction::types::object::Owner;
@@ -377,6 +377,13 @@ extern "C" {
 
   #[wasm_bindgen(method)]
   pub fn flag(this: &WasmPublicKey) -> u8;
+
+  #[derive(Clone)]
+  #[wasm_bindgen(typescript_type = KeyPair)]
+  pub type WasmKeyPair;
+
+  #[wasm_bindgen(js_name = getSecretKey, method)]
+  pub fn bech32_secret_key(this: &WasmKeyPair) -> String;
 }
 
 #[wasm_bindgen(module = "@iota/iota-sdk/keypairs/ed25519")]
@@ -413,6 +420,14 @@ extern "C" {
 
   #[wasm_bindgen(constructor, catch)]
   pub fn new_secp256k1_pk_base64(base64: &str) -> Result<Secp256k1PublicKey, JsValue>;
+}
+
+impl TryFrom<&'_ WasmKeyPair> for IotaKeyPair {
+  type Error = JsError;
+  fn try_from(value: &'_ WasmKeyPair) -> Result<Self, Self::Error> {
+    let bech32_sk = value.bech32_secret_key();
+    IotaKeyPair::decode(&bech32_sk).map_err(|e| JsError::new(&e.to_string()))
+  }
 }
 
 impl TryFrom<&'_ PublicKey> for WasmPublicKey {
