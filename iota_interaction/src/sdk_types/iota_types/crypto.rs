@@ -96,6 +96,17 @@ impl EncodeDecodeBase64 for IotaKeyPair {
         Self::from_bytes(&bytes).map_err(|_| FastCryptoError::InvalidInput)
     }
 }
+
+impl Signer<Signature> for IotaKeyPair {
+    fn sign(&self, msg: &[u8]) -> Signature {
+        match self {
+            IotaKeyPair::Ed25519(kp) => kp.sign(msg),
+            IotaKeyPair::Secp256k1(kp) => kp.sign(msg),
+            IotaKeyPair::Secp256r1(kp) => kp.sign(msg),
+        }
+    }
+}
+
 impl IotaKeyPair {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
@@ -443,6 +454,12 @@ impl ToFromBytes for Ed25519IotaSignature {
     }
 }
 
+impl Signer<Signature> for Ed25519KeyPair {
+    fn sign(&self, msg: &[u8]) -> Signature {
+        Ed25519IotaSignature::new(self, msg).into()
+    }
+}
+
 // Secp256k1 Iota Signature port
 //
 #[serde_as]
@@ -477,6 +494,11 @@ impl ToFromBytes for Secp256k1IotaSignature {
     }
 }
 
+impl Signer<Signature> for Secp256k1KeyPair {
+    fn sign(&self, msg: &[u8]) -> Signature {
+        Secp256k1IotaSignature::new(self, msg).into()
+    }
+}
 // Secp256r1 Iota Signature port
 //
 #[serde_as]
@@ -511,6 +533,11 @@ impl ToFromBytes for Secp256r1IotaSignature {
     }
 }
 
+impl Signer<Signature> for Secp256r1KeyPair {
+    fn sign(&self, msg: &[u8]) -> Signature {
+        Secp256r1IotaSignature::new(self, msg).into()
+    }
+}
 // This struct exists due to the limitations of the `enum_dispatch` library.
 //
 pub trait IotaSignatureInner: Sized + ToFromBytes + PartialEq + Eq + Hash {

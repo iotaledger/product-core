@@ -57,3 +57,4 @@ empty_docs = "allow"
 [features]
 default = []
 keytool = ["iota_interaction/keytool"]
+keypair-signer = ["iota_interaction/keypair-signer"]

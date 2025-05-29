@@ -14,6 +14,9 @@ pub mod iota_client_ts_sdk;
 #[cfg(target_arch = "wasm32")]
 pub mod transaction_builder;
 
+#[cfg(all(target_arch = "wasm32", feature = "keypair-signer"))]
+mod keypair_signer;
+
 cfg_if::cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         #[allow(unused_imports)] pub use error::TsSdkError as AdapterError;
@@ -44,6 +47,9 @@ cfg_if::cfg_if! {
         #[cfg(feature = "keytool")]
         #[allow(unused_imports)]
         pub use bindings::keytool::*;
+
+        #[cfg(feature = "keypair-signer")]
+        pub use keypair_signer::*;
 
         #[allow(unused_imports)] pub use transaction_builder::NativeTsTransactionBuilderBindingWrapper;
     }
