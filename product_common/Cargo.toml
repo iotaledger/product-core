@@ -25,6 +25,8 @@ serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 toml = "0.8"
+bcs = { workspace = true, optional = true }
+fastcrypto = { workspace = true, optional = true }
 
 [dependencies.identity_jose]
 git = "https://github.com/iotaledger/identity.rs.git"
@@ -33,16 +35,19 @@ package = "identity_jose"
 optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", features = ["keytool"] }
+iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", features = [
+  "keytool",
+] }
 iota_interaction_rust = { version = "=1.6.0-alpha", path = "../iota_interaction_rust", optional = true }
 iota-sdk.workspace = true
 tokio = { version = "1", default-features = false, features = ["process"] }
-bcs = { workspace = true, optional = true }
-fastcrypto = { workspace = true, optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", default-features = false }
 iota_interaction_ts = { version = "=1.6.0-alpha", path = "../bindings/wasm/iota_interaction_ts" }
+wasm-bindgen = { version = "0.2.100", optional = true }
+wasm-bindgen-futures = { version = "0.4", default-features = false, optional = true }
+js-sys = { version = "0.3", optional = true }
 
 [dev-dependencies]
 iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction" }
@@ -51,6 +56,13 @@ iota_interaction_rust = { version = "=1.6.0-alpha", path = "../iota_interaction_
 [features]
 default = []
 send-sync = ["secret-storage/send-sync-storage"]
+bindings = [
+  "dep:wasm-bindgen",
+  "dep:wasm-bindgen-futures",
+  "dep:js-sys",
+  "dep:bcs",
+  "dep:fastcrypto",
+]
 test-utils = [
   "dep:identity_jose",
   "dep:lazy_static",

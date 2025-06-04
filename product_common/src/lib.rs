@@ -1,6 +1,8 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(all(feature = "bindings", target_arch = "wasm32"))]
+pub mod bindings;
 #[cfg(feature = "core-client")]
 pub mod core_client;
 pub mod error;
