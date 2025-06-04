@@ -67,76 +67,7 @@ pub fn ptb_obj(ptb: &mut Ptb, name: &str, value: ObjectArg) -> Result<Argument, 
     .map_err(|err| Error::InvalidArgument(format!("could not serialize object {name} {value:?}; {err}")))
 }
 
-pub fn option_to_move<T: MoveType + Serialize>(
-  option: Option<T>,
-  ptb: &mut Ptb,
-  package: ObjectID,
-) -> Result<Argument, Error> {
-  let arg = if let Some(t) = option {
-    let t = ptb
-      .pure(t)
-      .map_err(|err| Error::InvalidArgument(format!("could not serialize pure value; {err}")))?;
-    ptb.programmable_move_call(
-      MOVE_STDLIB_PACKAGE_ID,
-      STD_OPTION_MODULE_NAME.into(),
-      ident_str!("some").into(),
-      vec![T::move_type(package)],
-      vec![t],
-    )
-  } else {
-    ptb.programmable_move_call(
-      MOVE_STDLIB_PACKAGE_ID,
-      STD_OPTION_MODULE_NAME.into(),
-      ident_str!("none").into(),
-      vec![T::move_type(package)],
-      vec![],
-    )
-  };
-
-  Ok(arg)
-}
-
-/// Creates a new move string
-pub fn new_move_string(value: String, ptb: &mut Ptb) -> Result<Argument, Error> {
-  let v = ptb
-    .pure(value.as_bytes())
-    .map_err(|err| Error::InvalidArgument(format!("could not serialize string value; {err}")))?;
-  Ok(ptb.programmable_move_call(
-    MOVE_STDLIB_PACKAGE_ID,
-    STD_UTF8_MODULE_NAME.into(),
-    ident_str!("utf8").into(),
-    vec![],
-    vec![v],
-  ))
-}
-
 /// Create new option string
-pub fn new_move_option_string(value: Option<String>, ptb: &mut Ptb) -> Result<Argument, Error> {
-  let string_tag = TypeTag::from_str(format!("{}::string::String", MOVE_STDLIB_PACKAGE_ID).as_str())
-    .map_err(|err| Error::InvalidArgument(format!("could not create string tag; {err}")))?;
-
-  match value {
-    Some(v) => {
-      let v = ptb
-        .pure(v.as_bytes())
-        .map_err(|err| Error::InvalidArgument(format!("could not serialize string value; {err}")))?;
-      Ok(ptb.programmable_move_call(
-        MOVE_STDLIB_PACKAGE_ID,
-        STD_OPTION_MODULE_NAME.into(),
-        ident_str!("some").into(),
-        vec![string_tag],
-        vec![v],
-      ))
-    }
-    None => Ok(ptb.programmable_move_call(
-      MOVE_STDLIB_PACKAGE_ID,
-      STD_OPTION_MODULE_NAME.into(),
-      ident_str!("none").into(),
-      vec![string_tag],
-      vec![],
-    )),
-  }
-}
 
 pub async fn get_type_tag<C>(client: &C, object_id: &ObjectID) -> Result<TypeTag, Error>
 where
