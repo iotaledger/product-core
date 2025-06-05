@@ -180,26 +180,23 @@ impl WasmTransactionBuilder {
   #[wasm_bindgen(unchecked_return_type = "[Uint8Array, string[], Transaction]")]
   pub async fn build(self, client: &WasmCoreClient) -> Result<JsValue> {
     let managed_client = WasmManagedCoreClient::from_wasm(client)?;
-    let (tx_data, signatures, inner_tx) = self.0.build(&managed_client).await.wasm_result()?;
-    let tx_data_bcs = bcs::to_bytes(&tx_data)
+    self
+      .0
+      .build(&managed_client)
+      .await
       .wasm_result()
-      .map(|bcs_bytes| js_sys::Uint8Array::from(bcs_bytes.as_slice()))?;
-    let wasm_signatures = {
-      let wasm_signatures = js_sys::Array::new();
-      for sig in signatures {
-        let b64_sig = sig.encode_base64();
-        wasm_signatures.push(&JsValue::from_str(&b64_sig));
-      }
+      .and_then(tx_parts_to_js)
+  }
 
-      wasm_signatures
-    };
-
-    let wasm_triple = js_sys::Array::new();
-    wasm_triple.push(&tx_data_bcs);
-    wasm_triple.push(wasm_signatures.as_ref());
-    wasm_triple.push(inner_tx.as_ref());
-
-    Ok(wasm_triple.into())
+  #[wasm_bindgen(unchecked_return_type = "[Uint8Array, string[], Transaction]")]
+  pub async fn build_with_defaults(self, client: &WasmCoreClientReadOnly) -> Result<JsValue> {
+    let managed_client = WasmManagedCoreClientReadOnly::from_wasm(client)?;
+    self
+      .0
+      .build_with_defaults(&managed_client)
+      .await
+      .wasm_result()
+      .and_then(tx_parts_to_js)
   }
 
   #[wasm_bindgen(js_name = buildAndExecute, unchecked_return_type = "TransactionOutput<unknown>")]
@@ -232,4 +229,26 @@ impl From<TransactionOutputInternal<JsValue>> for WasmTransactionOutput {
       response: value.response.clone_native_response().response(),
     }
   }
+}
+
+fn tx_parts_to_js((tx_data, signatures, tx): (TransactionData, Vec<Signature>, WasmTransaction)) -> Result<JsValue> {
+  let tx_data_bcs = bcs::to_bytes(&tx_data)
+    .wasm_result()
+    .map(|bcs_bytes| js_sys::Uint8Array::from(bcs_bytes.as_slice()))?;
+  let wasm_signatures = {
+    let wasm_signatures = js_sys::Array::new();
+    for sig in signatures {
+      let b64_sig = sig.encode_base64();
+      wasm_signatures.push(&JsValue::from_str(&b64_sig));
+    }
+
+    wasm_signatures
+  };
+
+  let wasm_triple = js_sys::Array::new();
+  wasm_triple.push(&tx_data_bcs);
+  wasm_triple.push(wasm_signatures.as_ref());
+  wasm_triple.push(tx.as_ref());
+
+  Ok(wasm_triple.into())
 }
