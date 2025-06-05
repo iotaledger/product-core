@@ -9,7 +9,7 @@ use iota_interaction::error::{Error as IotaRpcError, IotaRpcResult};
 use iota_interaction::rpc_types::{
   CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaObjectData, IotaObjectDataOptions,
   IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
-  IotaTransactionBlockResponseOptions, ObjectsPage,
+  IotaTransactionBlockEvents, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
 use iota_interaction::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use iota_interaction::types::crypto::Signature;
@@ -97,12 +97,18 @@ pub type IotaClientAdaptedTraitObj =
 pub struct IotaTransactionBlockResponseProvider {
   response: WasmIotaTransactionBlockResponseWrapper,
   effects: Option<IotaTransactionBlockEffects>,
+  events: Option<IotaTransactionBlockEvents>,
 }
 
 impl IotaTransactionBlockResponseProvider {
   pub fn new(response: WasmIotaTransactionBlockResponseWrapper) -> Self {
     let effects = response.effects().map(Into::into);
-    IotaTransactionBlockResponseProvider { response, effects }
+    let events = response.events().map(Into::into);
+    IotaTransactionBlockResponseProvider {
+      response,
+      effects,
+      events,
+    }
   }
 }
 
@@ -133,6 +139,10 @@ impl IotaTransactionBlockResponseT for IotaTransactionBlockResponseProvider {
 
   fn digest(&self) -> Result<TransactionDigest, Self::Error> {
     self.response.digest()
+  }
+
+  fn events(&self) -> Option<&IotaTransactionBlockEvents> {
+    self.events.as_ref()
   }
 }
 

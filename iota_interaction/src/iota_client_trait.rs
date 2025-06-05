@@ -14,7 +14,7 @@ use crate::error::IotaRpcResult;
 use crate::rpc_types::{
   CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaObjectData, IotaObjectDataOptions,
   IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
-  IotaTransactionBlockResponseOptions, ObjectsPage,
+  IotaTransactionBlockEvents, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
 use crate::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use crate::types::crypto::{PublicKey, Signature};
@@ -66,7 +66,7 @@ impl SignatureSchemeSecretStorage for IotaKeySignature {
 pub trait IotaTransactionBlockResponseT: OptionalSend {
   /// Error type used
   type Error;
-  /// The response type used in the platform specific client sdk
+  /// The response type used in the platform-specific client sdk
   type NativeResponse;
 
   /// Returns Debug representation of the IotaTransactionBlockResponse
@@ -75,17 +75,20 @@ pub trait IotaTransactionBlockResponseT: OptionalSend {
   /// Returns the effects of this transaction
   fn effects(&self) -> Option<&IotaTransactionBlockEffects>;
 
-  /// Returns a reference to the platform specific client sdk response instance wrapped by this adapter
+  /// Returns a reference to the platform-specific client sdk response instance wrapped by this adapter
   fn as_native_response(&self) -> &Self::NativeResponse;
 
-  /// Returns a mutable reference to the platform specific client sdk response instance wrapped by this adapter
+  /// Returns a mutable reference to the platform-specific client sdk response instance wrapped by this adapter
   fn as_mut_native_response(&mut self) -> &mut Self::NativeResponse;
 
-  /// Returns a clone of the wrapped platform specific client sdk response
+  /// Returns a clone of the wrapped platform-specific client sdk response
   fn clone_native_response(&self) -> Self::NativeResponse;
 
   // Returns digest for transaction block.
   fn digest(&self) -> Result<TransactionDigest, Self::Error>;
+
+  /// Returns the events of this transaction
+  fn events(&self) -> Option<&IotaTransactionBlockEvents>;
 }
 
 #[cfg_attr(not(feature = "send-sync-transaction"), async_trait(?Send))]
@@ -93,7 +96,7 @@ pub trait IotaTransactionBlockResponseT: OptionalSend {
 pub trait QuorumDriverTrait {
   /// Error type used
   type Error;
-  /// The response type used in the platform specific client sdk
+  /// The response type used in the platform-specific client sdk
   type NativeResponse;
 
   async fn execute_transaction_block(

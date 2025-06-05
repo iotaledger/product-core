@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use fastcrypto::encoding::{Base64, Encoding};
 use fastcrypto::traits::EncodeDecodeBase64 as _;
-use iota_interaction::rpc_types::{IotaTransactionBlockEffects, OwnedObjectRef};
+use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEvents, OwnedObjectRef};
 use iota_interaction::types::base_types::{IotaAddress, ObjectID, ObjectRef, SequenceNumber};
 use iota_interaction::types::crypto::{IotaKeyPair, PublicKey, Signature};
 use iota_interaction::types::digests::TransactionDigest;
@@ -96,6 +96,13 @@ extern "C" {
     extends = js_sys::Object,
   )]
   pub type WasmIotaTransactionBlockEffects;
+
+  #[derive(Clone)]
+  #[wasm_bindgen(
+    typescript_type = "IotaEvent[]",
+    extends = js_sys::Object,
+  )]
+  pub type WasmIotaTransactionBlockEvents;
 
   #[wasm_bindgen(typescript_type = "GetDynamicFieldObjectParams")]
   #[derive(Clone)]
@@ -202,6 +209,21 @@ impl From<WasmIotaTransactionBlockEffects> for IotaTransactionBlockEffects {
 
 impl From<&'_ IotaTransactionBlockEffects> for WasmIotaTransactionBlockEffects {
   fn from(value: &'_ IotaTransactionBlockEffects) -> Self {
+    value
+      .serialize(&serde_wasm_bindgen::Serializer::json_compatible())
+      .expect("same representation")
+      .unchecked_into()
+  }
+}
+
+impl From<WasmIotaTransactionBlockEvents> for IotaTransactionBlockEvents {
+  fn from(value: WasmIotaTransactionBlockEvents) -> Self {
+    serde_wasm_bindgen::from_value(value.into()).expect("have the same repr")
+  }
+}
+
+impl From<&'_ IotaTransactionBlockEvents> for WasmIotaTransactionBlockEvents {
+  fn from(value: &'_ IotaTransactionBlockEvents) -> Self {
     value
       .serialize(&serde_wasm_bindgen::Serializer::json_compatible())
       .expect("same representation")
@@ -528,6 +550,9 @@ extern "C" {
 
   #[wasm_bindgen(method, js_name = get_effects)]
   pub fn effects(this: &WasmIotaTransactionBlockResponseWrapper) -> Option<WasmIotaTransactionBlockEffects>;
+
+  #[wasm_bindgen(method, js_name = get_events)]
+  pub fn events(this: &WasmIotaTransactionBlockResponseWrapper) -> Option<WasmIotaTransactionBlockEvents>;
 
   #[wasm_bindgen(method)]
   pub fn to_string(this: &WasmIotaTransactionBlockResponseWrapper) -> String;

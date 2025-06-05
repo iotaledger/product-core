@@ -7,7 +7,8 @@ use anyhow::Context as _;
 use async_trait::async_trait;
 use cfg_if::cfg_if;
 use iota_interaction::rpc_types::{
-  IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI as _, IotaTransactionBlockResponseOptions,
+  IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI as _, IotaTransactionBlockEvents,
+  IotaTransactionBlockResponseOptions,
 };
 use iota_interaction::shared_crypto::intent::{Intent, IntentMessage};
 use iota_interaction::types::base_types::{IotaAddress, ObjectRef};
@@ -16,7 +17,7 @@ use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
 use iota_interaction::types::transaction::{
   GasData, ProgrammableTransaction, TransactionData, TransactionDataAPI as _, TransactionKind,
 };
-use iota_interaction::{IotaClientTrait, IotaKeySignature, OptionalSync};
+use iota_interaction::{IotaClientTrait, IotaKeySignature, OptionalSend, OptionalSync};
 use itertools::Itertools;
 use secret_storage::Signer;
 
@@ -30,7 +31,7 @@ use crate::Error;
 /// An operation that combines a transaction with its off-chain effects.
 #[cfg_attr(feature = "send-sync", async_trait)]
 #[cfg_attr(not(feature = "send-sync"), async_trait(?Send))]
-pub trait Transaction {
+pub trait Transaction: Sized {
   /// Error type for this transaction.
   type Error: std::error::Error + Sync + Send + 'static;
   /// Output type for this transaction.
@@ -51,6 +52,41 @@ pub trait Transaction {
   async fn apply<C>(self, effects: &mut IotaTransactionBlockEffects, client: &C) -> Result<Self::Output, Self::Error>
   where
     C: CoreClientReadOnly + OptionalSync;
+
+  /// Parses a transaction result in order to compute its effects and optionally use events.
+  ///
+  /// This method is a convenience wrapper around [`Transaction::apply`] that passes the
+  /// effects and events to the transaction logic. By default, this implementation ignores
+  /// the `events` parameter and simply calls [`apply`].
+  ///
+  /// ## Handling Events
+  ///
+  /// If you need to handle events in your transaction logic, override this
+  /// method and process the effects and events in this function. Also make
+  /// sure to return an appropriate error in your [`apply`] function implementation, since users  could still call
+  /// `apply` directly in their own code.
+  ///
+  /// ## Important Notes
+  ///
+  /// Although users are not expected to call the `apply` function directly, it
+  /// is possible.
+  /// Therefore, always ensure that `apply` returns a meaningful error if
+  /// called in a context
+  /// where event handling is required, rather than panicking or failing
+  /// silently. This improves debuggability and prevents silent failures.
+  async fn apply_with_events<C>(
+    self,
+    effects: &mut IotaTransactionBlockEffects,
+    events: &mut IotaTransactionBlockEvents,
+    client: &C,
+  ) -> Result<Self::Output, Self::Error>
+  where
+    C: CoreClientReadOnly + OptionalSync,
+  {
+    let _ = events;
+
+    self.apply(effects, client).await
+  }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -140,7 +176,7 @@ impl<Tx> AsRef<Tx> for TransactionBuilder<Tx> {
 
 impl<Tx> TransactionBuilder<Tx>
 where
-  Tx: Transaction,
+  Tx: Transaction + OptionalSend,
 {
   /// Starts the creation of an executable transaction by supplying
   /// a type implementing [Transaction].
@@ -183,9 +219,9 @@ where
     ))
   }
 
-  /// Adds `signer`'s signature to this this transaction's signatures list.
+  /// Adds `signer`'s signature to this transaction's signatures' list.
   /// # Notes
-  /// This methods asserts that `signer`'s address matches the address of
+  /// This method asserts that `signer`'s address matches the address of
   /// either this transaction's sender or the gas owner - failing otherwise.
   pub async fn with_signature<C, S>(mut self, client: &C) -> Result<Self, Error>
   where
@@ -348,7 +384,7 @@ where
   /// After the transaction has been successfully executed, the transaction's effect will be computed.
   /// ## Notes
   /// This method *DOES NOT* remove nor checks for invalid signatures.
-  /// Transaction with invalid signatures will fail after attempting to execute them.
+  /// Transactions with invalid signatures will fail after attempting to execute them.
   pub async fn build_and_execute<C, S>(self, client: &C) -> Result<TransactionOutput<Tx::Output>, Error>
   where
     C: CoreClient<S> + OptionalSync,
@@ -383,7 +419,13 @@ where
       )));
     }
 
-    let application_result = tx.apply(&mut tx_effects, client).await;
+    let application_result = tx
+      .apply_with_events(
+        &mut tx_effects,
+        &mut dyn_tx_block.events().cloned().unwrap_or_default(),
+        client,
+      )
+      .await;
     let response = {
       cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
