@@ -25,7 +25,7 @@ console_error_panic_hook = { version = "0.1" }
 eyre = "0.6.12"
 fastcrypto.workspace = true
 futures = { version = "0.3" }
-iota_interaction = { version = "=1.6.0-alpha", path = "../../../iota_interaction", default-features = false }
+iota_interaction = { version = "0.2.0", path = "../../../iota_interaction", default-features = false }
 js-sys = { version = "0.3.61" }
 secret-storage = { git = "https://github.com/iotaledger/secret-storage.git", default-features = false, tag = "v0.3.0" }
 serde = { version = "1.0", features = ["derive"] }
