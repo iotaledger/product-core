@@ -1,6 +1,8 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use std::result::Result as StdResult;
+
 use iota_interaction::types::base_types::{IotaAddress, ObjectID, ObjectIDParseError};
 use iota_interaction::types::crypto::PublicKey;
 use iota_interaction_ts::bindings::{WasmIotaClient, WasmTransactionSigner};
@@ -15,22 +17,24 @@ use crate::network_name::NetworkName;
 #[derive(Clone)]
 #[wasm_bindgen]
 pub struct WasmManagedCoreClientReadOnly {
-  package_id: ObjectID,
+  package_history: Vec<ObjectID>,
   network: NetworkName,
   iota_client_adapter: IotaClientAdapter,
 }
 
 impl WasmManagedCoreClientReadOnly {
   pub fn from_wasm(wasm_core_client: &WasmCoreClientReadOnly) -> Result<Self> {
-    let package_id = wasm_core_client
-      .package_id()
-      .parse()
-      .map_err(|e: ObjectIDParseError| JsError::new(&e.to_string()))?;
+    let package_history = wasm_core_client
+      .package_history()
+      .into_iter()
+      .map(|pkg_id| pkg_id.parse())
+      .collect::<StdResult<Vec<_>, ObjectIDParseError>>()
+      .map_err(|e| JsError::new(&e.to_string()))?;
     let network = wasm_core_client.network().parse().wasm_result()?;
     let iota_client_adapter = IotaClientAdapter::new(wasm_core_client.iota_client());
 
     Ok(Self {
-      package_id,
+      package_history,
       network,
       iota_client_adapter,
     })
@@ -44,12 +48,12 @@ impl WasmManagedCoreClientReadOnly {
   where
     C: CoreClientReadOnly,
   {
-    let package_id = core_client.package_id();
+    let package_history = core_client.package_history();
     let network = core_client.network_name().clone();
     let iota_client_adapter = core_client.client_adapter().clone();
 
     Self {
-      package_id,
+      package_history,
       network,
       iota_client_adapter,
     }
@@ -62,7 +66,16 @@ impl WasmManagedCoreClientReadOnly {
 
   #[wasm_bindgen(js_name = packageId)]
   pub fn package_id(&self) -> String {
-    self.package_id.to_string()
+    self
+      .package_history
+      .first()
+      .expect("at least one package is present in history")
+      .to_string()
+  }
+
+  #[wasm_bindgen(js_name = packageHistory)]
+  pub fn package_history(&self) -> Vec<String> {
+    self.package_history.iter().map(|pkg| pkg.to_string()).collect()
   }
 
   #[wasm_bindgen]
@@ -78,7 +91,11 @@ impl WasmManagedCoreClientReadOnly {
 
 impl CoreClientReadOnly for WasmManagedCoreClientReadOnly {
   fn package_id(&self) -> ObjectID {
-    self.package_id
+    *self.package_history.first().expect("at least one package in history")
+  }
+
+  fn package_history(&self) -> Vec<ObjectID> {
+    self.package_history.clone()
   }
 
   fn network_name(&self) -> &NetworkName {
@@ -146,7 +163,12 @@ impl WasmManagedCoreClient {
 
   #[wasm_bindgen(js_name = packageId)]
   pub fn package_id(&self) -> String {
-    self.read_only.package_id.to_string()
+    self.read_only.package_id()
+  }
+
+  #[wasm_bindgen(js_name = packageHistory)]
+  pub fn package_history(&self) -> Vec<String> {
+    self.read_only.package_history()
   }
 
   #[wasm_bindgen]
@@ -179,7 +201,11 @@ impl WasmManagedCoreClient {
 
 impl CoreClientReadOnly for WasmManagedCoreClient {
   fn package_id(&self) -> ObjectID {
-    self.read_only.package_id
+    CoreClientReadOnly::package_id(&self.read_only)
+  }
+
+  fn package_history(&self) -> Vec<ObjectID> {
+    CoreClientReadOnly::package_history(&self.read_only)
   }
 
   fn network_name(&self) -> &NetworkName {

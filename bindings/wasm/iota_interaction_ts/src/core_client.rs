@@ -15,6 +15,9 @@ extern "C" {
   #[wasm_bindgen(method, js_name = packageId)]
   pub fn package_id(this: &WasmCoreClientReadOnly) -> String;
 
+  #[wasm_bindgen(method, js_name = packageHistory)]
+  pub fn package_history(this: &WasmCoreClientReadOnly) -> Vec<String>;
+
   #[wasm_bindgen(method, js_name = network)]
   pub fn network(this: &WasmCoreClientReadOnly) -> String;
 
