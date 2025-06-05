@@ -173,6 +173,15 @@ impl From<anyhow::Error> for WasmError<'_> {
   }
 }
 
+impl From<bcs::Error> for WasmError<'_> {
+  fn from(error: bcs::Error) -> Self {
+    Self {
+      name: Cow::Borrowed("BCS"),
+      message: Cow::Owned(error.to_string()),
+    }
+  }
+}
+
 /// Consumes the struct and returns a Result<_, String>, leaving an `Ok` value untouched.
 pub fn stringify_js_error<T>(result: Result<T>) -> StdResult<T, String> {
   result.map_err(|js_value| {

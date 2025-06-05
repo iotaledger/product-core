@@ -37,6 +37,11 @@ pub trait CoreClientReadOnly {
   /// This allows access to lower-level client operations if needed.
   fn client_adapter(&self) -> &IotaClientAdapter;
 
+  /// Returns the IDs of all packages version, from initial to current.
+  fn package_history(&self) -> Vec<ObjectID> {
+    vec![self.package_id()]
+  }
+
   /// Retrieves a _Move_ Object by its ID.
   ///
   /// This function parses the object ID and returns the corresponding object
@@ -107,20 +112,30 @@ pub trait CoreClientReadOnly {
     T: MoveType + DeserializeOwned,
     P: Fn(&T) -> bool + Send,
   {
-    let tag = T::move_type(self.package_id())
-      .to_string()
-      .parse()
-      .expect("type tag is a valid struct tag");
-    let filter = IotaObjectResponseQuery::new(
-      Some(IotaObjectDataFilter::StructType(tag)),
-      Some(IotaObjectDataOptions::default().with_content()),
-    );
+    let filter = {
+      // We don't know the exact Move type of T, therefore we have to check for all
+      // possible ones by going through the package's history.
+      let struct_filters = self
+        .package_history()
+        .into_iter()
+        .map(|pkg| {
+          T::move_type(pkg)
+            .to_string()
+            .parse()
+            .expect("type tag is a valid struct tag")
+        })
+        .map(IotaObjectDataFilter::StructType)
+        .collect();
+
+      IotaObjectDataFilter::MatchAny(struct_filters)
+    };
+    let query = IotaObjectResponseQuery::new(Some(filter), Some(IotaObjectDataOptions::default().with_content()));
     let mut cursor = None;
     loop {
       let mut page = self
         .client_adapter()
         .read_api()
-        .get_owned_objects(address, Some(filter.clone()), cursor, Some(25))
+        .get_owned_objects(address, Some(query.clone()), cursor, Some(25))
         .await?;
       let maybe_obj = std::mem::take(&mut page.data)
         .into_iter()
