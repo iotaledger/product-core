@@ -14,7 +14,9 @@ description = "Sources shared by IOTA products."
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true
+bcs = { workspace = true, optional = true }
 cfg-if.workspace = true
+fastcrypto = { workspace = true, optional = true }
 iota-keys = { git = "https://github.com/iotaledger/iota.git", package = "iota-keys", tag = "v0.12.0-rc", optional = true }
 itertools = { version = "0.13.0", optional = true }
 lazy_static = { version = "1.5.0", optional = true }
@@ -25,8 +27,6 @@ serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 toml = "0.8"
-bcs = { workspace = true, optional = true }
-fastcrypto = { workspace = true, optional = true }
 
 [dependencies.identity_jose]
 git = "https://github.com/iotaledger/identity.rs.git"
@@ -35,9 +35,7 @@ package = "identity_jose"
 optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", features = [
-  "keytool",
-] }
+iota_interaction = { version = "=1.6.0-alpha", path = "../iota_interaction", features = ["keytool"] }
 iota_interaction_rust = { version = "=1.6.0-alpha", path = "../iota_interaction_rust", optional = true }
 iota-sdk.workspace = true
 tokio = { version = "1", default-features = false, features = ["process"] }
