@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 
 use anyhow::Context;
-use iota_sdk::types::base_types::ObjectID;
+use iota_interaction::types::base_types::ObjectID;
 use serde::{Deserialize, Deserializer, Serialize};
 
 pub const MAINNET_CHAIN_ID: &str = "6364aad5";
