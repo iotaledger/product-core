@@ -4,6 +4,7 @@ import { TransactionSigner } from "~iota_interaction_ts";
 
 export interface CoreClientReadOnly {
     packageId(): string;
+    packageHistory(): string[];
     network(): string;
     iotaClient(): IotaClient;
 }
