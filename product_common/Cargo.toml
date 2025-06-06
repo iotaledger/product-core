@@ -16,7 +16,7 @@ anyhow.workspace = true
 async-trait.workspace = true
 bcs = { workspace = true, optional = true }
 cfg-if.workspace = true
-fastcrypto = { workspace = true, optional = true }
+http-client = { version = "6.5", default-features = false, optional = true }
 iota-keys = { git = "https://github.com/iotaledger/iota.git", package = "iota-keys", tag = "v0.12.0-rc", optional = true }
 itertools = { version = "0.13.0", optional = true }
 lazy_static = { version = "1.5.0", optional = true }
@@ -26,6 +26,7 @@ serde.workspace = true
 serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
+fastcrypto = { workspace = true, optional = true }
 toml = "0.8"
 
 [dependencies.identity_jose]
@@ -76,7 +77,10 @@ transaction = [
   "dep:iota_interaction_rust",
   "dep:itertools",
   "dep:secret-storage",
+  "dep:fastcrypto",
+  "dep:bcs",
 ]
+gas-station = ["transaction", "dep:http-client"]
 
 [package.metadata.docs.rs]
 # To build locally:

@@ -1,6 +1,9 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(feature = "gas-station")]
+use crate::transaction::transaction_builder::gas_station::GasStationError;
+
 /// Alias for a `Result` with the error type [`Error`].
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
@@ -45,4 +48,9 @@ pub enum Error {
   /// Transaction specific error.
   #[error("Transaction specific error: {0}")]
   Transaction(Box<dyn std::error::Error + Send + Sync + 'static>),
+
+  /// Gas Station specific error.
+  #[cfg(feature = "gas-station")]
+  #[error("gas-station sponsoring failed: {0}")]
+  GasStation(#[from] GasStationError),
 }
