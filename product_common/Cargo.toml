@@ -16,7 +16,6 @@ anyhow.workspace = true
 async-trait.workspace = true
 bcs = { workspace = true, optional = true }
 cfg-if.workspace = true
-http-client = { version = "6.5", default-features = false, optional = true }
 iota-keys = { git = "https://github.com/iotaledger/iota.git", package = "iota-keys", tag = "v0.12.0-rc", optional = true }
 itertools = { version = "0.13.0", optional = true }
 lazy_static = { version = "1.5.0", optional = true }
@@ -27,6 +26,8 @@ serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 fastcrypto = { workspace = true, optional = true }
+http = { version = "1", default-features = false, optional = true }
+url = { version = "2", default-features = false, optional = true }
 toml = "0.8"
 
 [dependencies.identity_jose]
@@ -80,7 +81,11 @@ transaction = [
   "dep:fastcrypto",
   "dep:bcs",
 ]
-gas-station = ["transaction", "dep:http-client"]
+http-client = ["dep:http", "dep:url"]
+gas-station = ["transaction", "http-client"]
+# APIs that rely on an HTTP Client won't require the user to provide an HttpClient instance but will
+# instead use a default Hyper-based HttpClient.
+# default-http-client = ["dep:http-client", "http-client/hyper_client"]
 
 [package.metadata.docs.rs]
 # To build locally:

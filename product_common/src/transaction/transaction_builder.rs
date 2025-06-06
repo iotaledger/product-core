@@ -580,8 +580,7 @@ pub mod gas_station {
   use std::time::Duration;
 
   use fastcrypto::encoding::{Base64, Encoding as _};
-  use http_client::http_types::Url;
-  use http_client::{HttpClient, Request};
+  use http::Request;
   use iota_interaction::rpc_types::{IotaObjectRef, IotaTransactionBlockEffects};
   use iota_interaction::types::base_types::IotaAddress;
   use iota_interaction::types::crypto::Signature;
@@ -590,9 +589,11 @@ pub mod gas_station {
   use iota_sdk::types::crypto::EncodeDecodeBase64;
   use secret_storage::Signer;
   use serde::{Deserialize, Serialize};
+  use url::Url;
 
   use super::{Transaction, TransactionBuilder};
   use crate::core_client::CoreClient;
+  use crate::http_client::HttpClient;
   use crate::Error;
 
   const DEFAULT_GAS_RESERVATION_DURATION: u64 = 60; // 1 minute.
@@ -601,6 +602,7 @@ pub mod gas_station {
   #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
   #[non_exhaustive]
   pub enum ErrorKind {
+    Url,
     GasReservation,
     TxExecution,
   }
@@ -610,6 +612,7 @@ pub mod gas_station {
       use ErrorKind::*;
 
       match *self {
+        Url => "invalid URL",
         GasReservation => "gas reservation failed",
         TxExecution => "transaction execution failed",
       }
@@ -672,10 +675,10 @@ pub mod gas_station {
   where
     Tx: Transaction,
   {
-    pub async fn execute_with_gas_station<C, S>(
+    pub async fn execute_with_gas_station<C, S, U>(
       self,
       client: &C,
-      gas_station_url: &Url,
+      gas_station_url: U,
       auth_token: impl AsRef<str>,
       http_client: &impl HttpClient,
       options: Option<GasStationOptions>,
@@ -683,11 +686,17 @@ pub mod gas_station {
     where
       C: CoreClient<S> + OptionalSync,
       S: Signer<IotaKeySignature> + OptionalSync,
+      U: TryInto<Url>,
+      U::Error: Into<Box<dyn error::Error + Send + Sync>>,
     {
+      let gas_station_url = gas_station_url
+        .try_into()
+        .map_err(|e| GasStationError::new(ErrorKind::Url, e))?;
+
       execute_with_gas_station_impl(
         self,
         client,
-        gas_station_url,
+        &gas_station_url,
         auth_token.as_ref(),
         http_client,
         options.unwrap_or_default(),
@@ -812,23 +821,24 @@ pub mod gas_station {
     // Prepare the request.
     let url = gas_station_url
       .join("/v1/reserve_gas")
-      .map_err(GasStationError::gas_reservation)?;
-    let mut reserve_gas_req = Request::post(url);
-    // Set bearer auth with given `auth_token`.
-    reserve_gas_req.insert_header("Authorization", format!("Bearer {auth_token}"));
-    let body = serde_json::to_value(ReserveGasRequest {
+      .expect("a valid URL joined by another valid path is valid");
+    let body = serde_json::to_vec(&ReserveGasRequest {
       gas_budget,
       reserve_duration_secs,
     })
     .map_err(GasStationError::gas_reservation)?;
-    reserve_gas_req.set_body(body);
+    let reserve_gas_req = Request::post(url.as_str())
+      // Set bearer auth with given `auth_token`.
+      .header("Authorization", format!("Bearer {auth_token}"))
+      .body(body)
+      .map_err(GasStationError::gas_reservation)?;
 
     let ReserveGasResponse { result, error } = http_client
       .send(reserve_gas_req)
       .await
       .map_err(GasStationError::gas_reservation)?
-      .body_json()
-      .await
+      .map(|res_bytes| serde_json::from_slice(&res_bytes))
+      .into_body()
       .map_err(GasStationError::gas_reservation)?;
     let Some(reservation_result) = result else {
       return Err(GasStationError::new(
@@ -864,25 +874,26 @@ pub mod gas_station {
     // Prepare the request.
     let url = gas_station_url
       .join("/v1/execute_tx")
-      .map_err(|e| GasStationError::new(ErrorKind::TxExecution, e))?;
-    let mut execute_tx_req = Request::post(url);
-    // Set bearer auth with given `auth_token`.
-    execute_tx_req.insert_header("Authorization", format!("Bearer {auth_token}"));
+      .expect("a valid URL joined by another valid path is valid");
     let tx_bcs = bcs::to_bytes(&tx_data).map_err(|e| GasStationError::new(ErrorKind::TxExecution, e))?;
-    let body = serde_json::to_value(ExecuteTxRequest {
+    let body = serde_json::to_vec(&ExecuteTxRequest {
       reservation_id,
       tx_bytes: Base64::encode(&tx_bcs),
       user_sig: sender_sig.encode_base64(),
     })
     .map_err(|e| GasStationError::new(ErrorKind::TxExecution, e))?;
-    execute_tx_req.set_body(body);
+    let execute_tx_req = Request::post(url.as_str())
+      // Set bearer auth with given `auth_token`.
+      .header("Authorization", format!("Bearer {auth_token}"))
+      .body(body)
+      .map_err(GasStationError::tx_execution)?;
 
     let ExecuteTxResponse { effects, error } = http_client
       .send(execute_tx_req)
       .await
       .map_err(|e| GasStationError::new(ErrorKind::TxExecution, e))?
-      .body_json()
-      .await
+      .map(|res_bytes| serde_json::from_slice(&res_bytes))
+      .into_body()
       .map_err(|e| GasStationError::new(ErrorKind::TxExecution, e))?;
 
     let Some(effects) = effects else {
