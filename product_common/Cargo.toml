@@ -26,8 +26,8 @@ serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 fastcrypto = { workspace = true, optional = true }
-http = { version = "1", default-features = false, optional = true }
 url = { version = "2", default-features = false, optional = true }
+reqwest = { version = "0.12", default-features = false, optional = true }
 toml = "0.8"
 
 [dependencies.identity_jose]
@@ -81,11 +81,11 @@ transaction = [
   "dep:fastcrypto",
   "dep:bcs",
 ]
-http-client = ["dep:http", "dep:url"]
+http-client = ["dep:url"]
 gas-station = ["transaction", "http-client"]
 # APIs that rely on an HTTP Client won't require the user to provide an HttpClient instance but will
-# instead use a default Hyper-based HttpClient.
-# default-http-client = ["dep:http-client", "http-client/hyper_client"]
+# instead use reqwest::Client.
+default-http-client = ["http-client", "dep:reqwest"]
 
 [package.metadata.docs.rs]
 # To build locally:

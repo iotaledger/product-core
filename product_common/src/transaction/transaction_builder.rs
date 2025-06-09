@@ -575,99 +575,85 @@ fn address_from_signature(signature: &Signature) -> IotaAddress {
 
 #[cfg(feature = "gas-station")]
 pub mod gas_station {
+  use std::borrow::Cow;
   use std::error;
   use std::fmt::Display;
   use std::time::Duration;
 
   use fastcrypto::encoding::{Base64, Encoding as _};
-  use http::Request;
+  use fastcrypto::traits::EncodeDecodeBase64 as _;
   use iota_interaction::rpc_types::{IotaObjectRef, IotaTransactionBlockEffects};
   use iota_interaction::types::base_types::IotaAddress;
   use iota_interaction::types::crypto::Signature;
   use iota_interaction::types::transaction::TransactionData;
   use iota_interaction::{IotaKeySignature, OptionalSync};
-  use iota_sdk::types::crypto::EncodeDecodeBase64;
   use secret_storage::Signer;
   use serde::{Deserialize, Serialize};
-  use url::Url;
 
   use super::{Transaction, TransactionBuilder};
   use crate::core_client::CoreClient;
-  use crate::http_client::HttpClient;
+  use crate::http_client::{HttpClient, Method, Request, Url, UrlParsingError};
   use crate::Error;
 
   const DEFAULT_GAS_RESERVATION_DURATION: u64 = 60; // 1 minute.
   const DEFAULT_GAS_BUDGET_RESERVATION: u64 = 1_000_000_000; // 1 IOTA.
 
-  #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+  /// Possible types of error that might occur when executing
+  /// transactions through an IOTA Gas Station.
+  #[derive(Debug)]
   #[non_exhaustive]
   pub enum ErrorKind {
-    Url,
-    GasReservation,
-    TxExecution,
+    Url(UrlParsingError),
+    GasReservation(GasStationRequestError),
+    TxExecution(GasStationRequestError),
+    TxDataBuilding(Box<Error>),
+    TxApplication(Box<Error>),
   }
 
-  impl ErrorKind {
-    pub fn as_str(&self) -> &'static str {
-      use ErrorKind::*;
-
-      match *self {
-        Url => "invalid URL",
-        GasReservation => "gas reservation failed",
-        TxExecution => "transaction execution failed",
-      }
-    }
-  }
-
+  /// Failure for the execution of a transaction through an IOTA Gas Station.
   #[derive(Debug)]
+  #[non_exhaustive]
   pub struct GasStationError {
-    kind: ErrorKind,
-    error: Box<dyn error::Error + Send + Sync>,
+    pub kind: ErrorKind,
   }
 
   impl GasStationError {
-    pub fn new<E>(kind: ErrorKind, error: E) -> Self
-    where
-      E: Into<Box<dyn error::Error + Send + Sync>>,
-    {
-      fn new_impl(kind: ErrorKind, error: Box<dyn error::Error + Send + Sync>) -> GasStationError {
-        GasStationError { kind, error }
+    #[inline(always)]
+    fn new(kind: ErrorKind) -> Self {
+      Self { kind }
+    }
+
+    #[inline(always)]
+    fn from_reservation_error(e: GasStationRequestError) -> Self {
+      Self {
+        kind: ErrorKind::GasReservation(e),
       }
-
-      new_impl(kind, error.into())
     }
 
-    pub fn gas_reservation(error: impl Into<Box<dyn error::Error + Send + Sync>>) -> Self {
-      Self::new_impl(ErrorKind::GasReservation, error.into())
-    }
-
-    pub fn tx_execution(error: impl Into<Box<dyn error::Error + Send + Sync>>) -> Self {
-      Self::new_impl(ErrorKind::TxExecution, error.into())
-    }
-
-    fn new_impl(kind: ErrorKind, error: Box<dyn error::Error + Send + Sync>) -> GasStationError {
-      GasStationError { kind, error }
-    }
-
-    pub fn kind(&self) -> ErrorKind {
-      self.kind
-    }
-
-    pub fn into_inner(self) -> Box<dyn error::Error + Send + Sync> {
-      self.error
+    #[inline(always)]
+    fn from_tx_execution_error(e: GasStationRequestError) -> Self {
+      Self {
+        kind: ErrorKind::TxExecution(e),
+      }
     }
   }
 
   impl Display for GasStationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-      write!(f, "{}: ", self.kind.as_str())?;
-      self.error.fmt(f)
+      write!(f, "failed to execute transaction with gas station")
     }
   }
 
   impl error::Error for GasStationError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-      self.error.source()
+      use ErrorKind::*;
+      match &self.kind {
+        Url(e) => Some(e),
+        GasReservation(e) => Some(e),
+        TxExecution(e) => Some(e),
+        TxDataBuilding(e) => Some(e),
+        TxApplication(e) => Some(e),
+      }
     }
   }
 
@@ -675,30 +661,55 @@ pub mod gas_station {
   where
     Tx: Transaction,
   {
-    pub async fn execute_with_gas_station<C, S, U>(
+    /// Execute this transaction using an IOTA Gas Station.
+    #[cfg(not(feature = "default-http-client"))]
+    pub async fn execute_with_gas_station<C, S, H>(
       self,
       client: &C,
-      gas_station_url: U,
+      gas_station_url: &str,
       auth_token: impl AsRef<str>,
-      http_client: &impl HttpClient,
+      http_client: &H,
       options: Option<GasStationOptions>,
-    ) -> Result<Tx::Output, Error>
+    ) -> Result<Tx::Output, GasStationError>
     where
       C: CoreClient<S> + OptionalSync,
       S: Signer<IotaKeySignature> + OptionalSync,
-      U: TryInto<Url>,
-      U::Error: Into<Box<dyn error::Error + Send + Sync>>,
+      H: HttpClient,
+      H::Error: Into<Box<dyn error::Error + Send + Sync>>,
     {
-      let gas_station_url = gas_station_url
-        .try_into()
-        .map_err(|e| GasStationError::new(ErrorKind::Url, e))?;
-
+      let gas_station_url = Url::parse(gas_station_url).map_err(|e| GasStationError::new(ErrorKind::Url(e)))?;
       execute_with_gas_station_impl(
         self,
         client,
         &gas_station_url,
         auth_token.as_ref(),
         http_client,
+        options.unwrap_or_default(),
+      )
+      .await
+    }
+
+    /// Execute this transaction using an IOTA Gas Station.
+    #[cfg(feature = "default-http-client")]
+    pub async fn execute_with_gas_station<C, S>(
+      self,
+      client: &C,
+      gas_station_url: &str,
+      auth_token: impl AsRef<str>,
+      options: Option<GasStationOptions>,
+    ) -> Result<Tx::Output, GasStationError>
+    where
+      C: CoreClient<S> + OptionalSync,
+      S: Signer<IotaKeySignature> + OptionalSync,
+    {
+      let gas_station_url = Url::parse(gas_station_url).map_err(|e| GasStationError::new(ErrorKind::Url(e)))?;
+      let http_client = reqwest::Client::new();
+      execute_with_gas_station_impl(
+        self,
+        client,
+        &gas_station_url,
+        auth_token.as_ref(),
+        &http_client,
         options.unwrap_or_default(),
       )
       .await
@@ -721,18 +732,19 @@ pub mod gas_station {
   }
 
   #[inline(always)]
-  async fn execute_with_gas_station_impl<C, S, Tx>(
+  async fn execute_with_gas_station_impl<C, S, Tx, H>(
     mut tx_builder: TransactionBuilder<Tx>,
     client: &C,
     gas_station_url: &Url,
     auth_token: &str,
-    http_client: &dyn HttpClient,
+    http_client: &H,
     gas_station_options: GasStationOptions,
-  ) -> Result<Tx::Output, Error>
+  ) -> Result<Tx::Output, GasStationError>
   where
     S: Signer<IotaKeySignature> + OptionalSync,
     C: CoreClient<S> + OptionalSync,
     Tx: Transaction,
+    H: HttpClient<Error: Into<Box<dyn error::Error + Sync + Send>>>,
   {
     // Compute the arguments for gas reservation.
     let reserve_duration_secs = gas_station_options.gas_reservation_duration.as_secs();
@@ -750,7 +762,8 @@ pub mod gas_station {
       auth_token,
       http_client,
     )
-    .await?;
+    .await
+    .map_err(GasStationError::from_reservation_error)?;
     // Map coins to known format.
     let gas_coins = gas_coins
       .into_iter()
@@ -769,11 +782,11 @@ pub mod gas_station {
     tx_builder.gas.payment = gas_coins;
     tx_builder.gas.budget = Some(gas_budget);
 
-    // Add a sender's signature through `client`.
-    tx_builder = tx_builder.with_signature(client).await?;
-
     // Consume the builder into its parts.
-    let (tx_data, mut sigs, tx) = tx_builder.build(client).await?;
+    let (tx_data, mut sigs, tx) = tx_builder
+      .build(client)
+      .await
+      .map_err(|e| GasStationError::new(ErrorKind::TxDataBuilding(Box::new(e))))?;
 
     // Let gas-station execute this transaction.
     let mut effects = execute_sponsored_tx(
@@ -784,12 +797,14 @@ pub mod gas_station {
       auth_token,
       http_client,
     )
-    .await?;
+    .await
+    .map_err(GasStationError::from_tx_execution_error)?;
 
     // Apply tx's side-effects.
     tx.apply(&mut effects, client)
       .await
       .map_err(|e| Error::Transaction(e.into()))
+      .map_err(|e| GasStationError::new(ErrorKind::TxApplication(Box::new(e))))
   }
 
   #[derive(Debug, Serialize)]
@@ -811,13 +826,82 @@ pub mod gas_station {
     gas_coins: Vec<IotaObjectRef>,
   }
 
-  async fn reserve_gas(
+  #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+  #[non_exhaustive]
+  pub enum GasStationRequestErrorKind {
+    BodySerialization,
+    #[non_exhaustive]
+    HttpClient {
+      method: Method,
+      url: Url,
+    },
+    BodyDeserialization,
+    #[non_exhaustive]
+    InvalidResponse {
+      message: Option<String>,
+    },
+  }
+
+  impl GasStationRequestErrorKind {
+    fn to_error_message(&self) -> Cow<'static, str> {
+      use GasStationRequestErrorKind::*;
+      match self {
+        BodySerialization => "failed to serialize request's body".into(),
+        HttpClient { method, url } => format!("HTTP request `{method} {url}` failed").into(),
+        BodyDeserialization => "failed to deserialize respose's body".into(),
+        InvalidResponse { message, .. } => {
+          let msg = Cow::Borrowed("invalid response");
+          let Some(response_error) = message else {
+            return msg;
+          };
+
+          format!("{msg}: {response_error}").into()
+        }
+      }
+    }
+  }
+
+  impl Display for GasStationRequestErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+      write!(f, "{}", self.to_error_message())
+    }
+  }
+
+  /// Gas station request error.
+  #[derive(Debug, thiserror::Error)]
+  #[error("{kind}")]
+  pub struct GasStationRequestError {
+    kind: GasStationRequestErrorKind,
+    source: Option<Box<dyn error::Error + Send + Sync>>,
+  }
+
+  impl GasStationRequestError {
+    fn new(kind: GasStationRequestErrorKind) -> Self {
+      Self { kind, source: None }
+    }
+
+    fn with_source(mut self, e: impl Into<Box<dyn error::Error + Send + Sync>>) -> Self {
+      self.source = Some(e.into());
+      self
+    }
+
+    /// Returns a reference to this error's [ErrorKind].
+    pub fn kind(&self) -> &GasStationRequestErrorKind {
+      &self.kind
+    }
+  }
+
+  async fn reserve_gas<H>(
     gas_station_url: &Url,
     gas_budget: u64,
     reserve_duration_secs: u64,
     auth_token: &str,
-    http_client: &dyn HttpClient,
-  ) -> Result<ReserveGasResult, GasStationError> {
+    http_client: &H,
+  ) -> Result<ReserveGasResult, GasStationRequestError>
+  where
+    H: HttpClient,
+    H::Error: Into<Box<dyn error::Error + Send + Sync>>,
+  {
     // Prepare the request.
     let url = gas_station_url
       .join("/v1/reserve_gas")
@@ -826,24 +910,28 @@ pub mod gas_station {
       gas_budget,
       reserve_duration_secs,
     })
-    .map_err(GasStationError::gas_reservation)?;
-    let reserve_gas_req = Request::post(url.as_str())
-      // Set bearer auth with given `auth_token`.
-      .header("Authorization", format!("Bearer {auth_token}"))
-      .body(body)
-      .map_err(GasStationError::gas_reservation)?;
+    .map_err(|e| GasStationRequestError::new(GasStationRequestErrorKind::BodySerialization).with_source(e))?;
+    let reserve_gas_req = Request {
+      method: Method::Post,
+      url: url.clone(),
+      headers: std::iter::once(("Authorization".to_owned(), format!("Bearer {auth_token}"))).collect(),
+      payload: body,
+    };
 
-    let ReserveGasResponse { result, error } = http_client
-      .send(reserve_gas_req)
-      .await
-      .map_err(GasStationError::gas_reservation)?
-      .map(|res_bytes| serde_json::from_slice(&res_bytes))
-      .into_body()
-      .map_err(GasStationError::gas_reservation)?;
+    let response = http_client.send(reserve_gas_req).await.map_err(|e| {
+      GasStationRequestError::new(GasStationRequestErrorKind::HttpClient {
+        method: Method::Post,
+        url,
+      })
+      .with_source(e)
+    })?;
+
+    let ReserveGasResponse { result, error } = serde_json::from_slice(&response.payload)
+      .map_err(|e| GasStationRequestError::new(GasStationRequestErrorKind::BodyDeserialization).with_source(e))?;
+
     let Some(reservation_result) = result else {
-      return Err(GasStationError::new(
-        ErrorKind::GasReservation,
-        error.unwrap_or_else(|| "reserve_gas produced no results".to_owned()),
+      return Err(GasStationRequestError::new(
+        GasStationRequestErrorKind::InvalidResponse { message: error },
       ));
     };
 
@@ -863,43 +951,51 @@ pub mod gas_station {
     error: Option<String>,
   }
 
-  async fn execute_sponsored_tx(
+  async fn execute_sponsored_tx<H>(
     gas_station_url: &Url,
     tx_data: TransactionData,
     sender_sig: Signature,
     reservation_id: u64,
     auth_token: &str,
-    http_client: &dyn HttpClient,
-  ) -> Result<IotaTransactionBlockEffects, GasStationError> {
+    http_client: &H,
+  ) -> Result<IotaTransactionBlockEffects, GasStationRequestError>
+  where
+    H: HttpClient,
+    H::Error: Into<Box<dyn error::Error + Send + Sync>>,
+  {
     // Prepare the request.
     let url = gas_station_url
       .join("/v1/execute_tx")
       .expect("a valid URL joined by another valid path is valid");
-    let tx_bcs = bcs::to_bytes(&tx_data).map_err(|e| GasStationError::new(ErrorKind::TxExecution, e))?;
+    let tx_bcs = bcs::to_bytes(&tx_data)
+      .map_err(|e| GasStationRequestError::new(GasStationRequestErrorKind::BodySerialization).with_source(e))?;
     let body = serde_json::to_vec(&ExecuteTxRequest {
       reservation_id,
       tx_bytes: Base64::encode(&tx_bcs),
       user_sig: sender_sig.encode_base64(),
     })
-    .map_err(|e| GasStationError::new(ErrorKind::TxExecution, e))?;
-    let execute_tx_req = Request::post(url.as_str())
-      // Set bearer auth with given `auth_token`.
-      .header("Authorization", format!("Bearer {auth_token}"))
-      .body(body)
-      .map_err(GasStationError::tx_execution)?;
+    .map_err(|e| GasStationRequestError::new(GasStationRequestErrorKind::BodySerialization).with_source(e))?;
+    let execute_tx_req = Request {
+      method: Method::Post,
+      url: url.clone(),
+      headers: std::iter::once(("Authorization".to_owned(), format!("Bearer {auth_token}"))).collect(),
+      payload: body,
+    };
 
-    let ExecuteTxResponse { effects, error } = http_client
-      .send(execute_tx_req)
-      .await
-      .map_err(|e| GasStationError::new(ErrorKind::TxExecution, e))?
-      .map(|res_bytes| serde_json::from_slice(&res_bytes))
-      .into_body()
-      .map_err(|e| GasStationError::new(ErrorKind::TxExecution, e))?;
+    let response = http_client.send(execute_tx_req).await.map_err(|e| {
+      GasStationRequestError::new(GasStationRequestErrorKind::HttpClient {
+        method: Method::Post,
+        url,
+      })
+      .with_source(e)
+    })?;
+
+    let ExecuteTxResponse { effects, error } = serde_json::from_slice(&response.payload)
+      .map_err(|e| GasStationRequestError::new(GasStationRequestErrorKind::BodyDeserialization).with_source(e))?;
 
     let Some(effects) = effects else {
-      return Err(GasStationError::new(
-        ErrorKind::TxExecution,
-        error.unwrap_or_else(|| "execute_tx produced no results".to_owned()),
+      return Err(GasStationRequestError::new(
+        GasStationRequestErrorKind::InvalidResponse { message: error },
       ));
     };
 
