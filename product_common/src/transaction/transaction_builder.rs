@@ -577,7 +577,7 @@ fn address_from_signature(signature: &Signature) -> IotaAddress {
 pub mod gas_station {
   use std::borrow::Cow;
   use std::error;
-  use std::fmt::Display;
+  use std::fmt::{Debug, Display};
   use std::time::Duration;
 
   use fastcrypto::encoding::{Base64, Encoding as _};
@@ -586,7 +586,7 @@ pub mod gas_station {
   use iota_interaction::types::base_types::IotaAddress;
   use iota_interaction::types::crypto::Signature;
   use iota_interaction::types::transaction::TransactionData;
-  use iota_interaction::{IotaKeySignature, OptionalSync};
+  use iota_interaction::{IotaKeySignature, OptionalSend, OptionalSync};
   use secret_storage::Signer;
   use serde::{Deserialize, Serialize};
 
@@ -659,7 +659,7 @@ pub mod gas_station {
 
   impl<Tx> TransactionBuilder<Tx>
   where
-    Tx: Transaction,
+    Tx: Transaction + OptionalSend,
   {
     /// Execute this transaction using an IOTA Gas Station.
     #[cfg(not(feature = "default-http-client"))]
@@ -667,7 +667,6 @@ pub mod gas_station {
       self,
       client: &C,
       gas_station_url: &str,
-      auth_token: impl AsRef<str>,
       http_client: &H,
       options: Option<GasStationOptions>,
     ) -> Result<Tx::Output, GasStationError>
@@ -678,15 +677,7 @@ pub mod gas_station {
       H::Error: Into<Box<dyn error::Error + Send + Sync>>,
     {
       let gas_station_url = Url::parse(gas_station_url).map_err(|e| GasStationError::new(ErrorKind::Url(e)))?;
-      execute_with_gas_station_impl(
-        self,
-        client,
-        &gas_station_url,
-        auth_token.as_ref(),
-        http_client,
-        options.unwrap_or_default(),
-      )
-      .await
+      execute_with_gas_station_impl(self, client, &gas_station_url, http_client, options.unwrap_or_default()).await
     }
 
     /// Execute this transaction using an IOTA Gas Station.
@@ -695,7 +686,6 @@ pub mod gas_station {
       self,
       client: &C,
       gas_station_url: &str,
-      auth_token: impl AsRef<str>,
       options: Option<GasStationOptions>,
     ) -> Result<Tx::Output, GasStationError>
     where
@@ -708,7 +698,6 @@ pub mod gas_station {
         self,
         client,
         &gas_station_url,
-        auth_token.as_ref(),
         &http_client,
         options.unwrap_or_default(),
       )
@@ -717,17 +706,28 @@ pub mod gas_station {
   }
   /// Optional configuration to be passed to the gas-station when sponsoring a transaction.
   #[non_exhaustive]
-  #[derive(Debug)]
   pub struct GasStationOptions {
     /// Duration of the gas allocation. Default value: `60` seconds.
     pub gas_reservation_duration: Duration,
+    /// Bearer token to be included in all requests' "Authentication" header.
+    pub bearer_auth: Option<String>,
   }
 
   impl Default for GasStationOptions {
     fn default() -> Self {
       Self {
         gas_reservation_duration: Duration::from_secs(DEFAULT_GAS_RESERVATION_DURATION),
+        bearer_auth: None,
       }
+    }
+  }
+
+  impl Debug for GasStationOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+      f.debug_struct("GasStationOptions")
+        .field("gas_reservation_duration", &self.gas_reservation_duration)
+        .field("bearer_auth", &self.bearer_auth.as_deref().and(Some("[REDACTED]")))
+        .finish_non_exhaustive()
     }
   }
 
@@ -736,19 +736,19 @@ pub mod gas_station {
     mut tx_builder: TransactionBuilder<Tx>,
     client: &C,
     gas_station_url: &Url,
-    auth_token: &str,
     http_client: &H,
     gas_station_options: GasStationOptions,
   ) -> Result<Tx::Output, GasStationError>
   where
     S: Signer<IotaKeySignature> + OptionalSync,
     C: CoreClient<S> + OptionalSync,
-    Tx: Transaction,
+    Tx: Transaction + OptionalSend,
     H: HttpClient<Error: Into<Box<dyn error::Error + Sync + Send>>>,
   {
     // Compute the arguments for gas reservation.
     let reserve_duration_secs = gas_station_options.gas_reservation_duration.as_secs();
     let gas_budget = tx_builder.gas.budget.unwrap_or(DEFAULT_GAS_BUDGET_RESERVATION);
+    let auth_token = gas_station_options.bearer_auth.as_deref();
 
     // Get a gas reservation.
     let ReserveGasResult {
@@ -895,7 +895,7 @@ pub mod gas_station {
     gas_station_url: &Url,
     gas_budget: u64,
     reserve_duration_secs: u64,
-    auth_token: &str,
+    auth_token: Option<&str>,
     http_client: &H,
   ) -> Result<ReserveGasResult, GasStationRequestError>
   where
@@ -906,15 +906,20 @@ pub mod gas_station {
     let url = gas_station_url
       .join("/v1/reserve_gas")
       .expect("a valid URL joined by another valid path is valid");
+    let headers = auth_token
+      .into_iter()
+      .map(|token| ("Authorization".to_owned(), format!("Bearer {token}")))
+      .collect();
     let body = serde_json::to_vec(&ReserveGasRequest {
       gas_budget,
       reserve_duration_secs,
     })
     .map_err(|e| GasStationRequestError::new(GasStationRequestErrorKind::BodySerialization).with_source(e))?;
+
     let reserve_gas_req = Request {
       method: Method::Post,
       url: url.clone(),
-      headers: std::iter::once(("Authorization".to_owned(), format!("Bearer {auth_token}"))).collect(),
+      headers,
       payload: body,
     };
 
@@ -956,7 +961,7 @@ pub mod gas_station {
     tx_data: TransactionData,
     sender_sig: Signature,
     reservation_id: u64,
-    auth_token: &str,
+    auth_token: Option<&str>,
     http_client: &H,
   ) -> Result<IotaTransactionBlockEffects, GasStationRequestError>
   where
@@ -967,6 +972,11 @@ pub mod gas_station {
     let url = gas_station_url
       .join("/v1/execute_tx")
       .expect("a valid URL joined by another valid path is valid");
+    let headers = auth_token
+      .into_iter()
+      .map(|token| ("Authorization".to_owned(), format!("Bearer {token}")))
+      .collect();
+
     let tx_bcs = bcs::to_bytes(&tx_data)
       .map_err(|e| GasStationRequestError::new(GasStationRequestErrorKind::BodySerialization).with_source(e))?;
     let body = serde_json::to_vec(&ExecuteTxRequest {
@@ -978,7 +988,7 @@ pub mod gas_station {
     let execute_tx_req = Request {
       method: Method::Post,
       url: url.clone(),
-      headers: std::iter::once(("Authorization".to_owned(), format!("Bearer {auth_token}"))).collect(),
+      headers,
       payload: body,
     };
 

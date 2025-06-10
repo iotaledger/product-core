@@ -60,8 +60,6 @@ bindings = [
   "dep:wasm-bindgen",
   "dep:wasm-bindgen-futures",
   "dep:js-sys",
-  "dep:bcs",
-  "dep:fastcrypto",
 ]
 test-utils = [
   "dep:identity_jose",
