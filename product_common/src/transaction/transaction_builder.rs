@@ -598,6 +598,10 @@ pub mod gas_station {
   const DEFAULT_GAS_RESERVATION_DURATION: u64 = 60; // 1 minute.
   const DEFAULT_GAS_BUDGET_RESERVATION: u64 = 1_000_000_000; // 1 IOTA.
 
+  fn default_gas_reservation() -> Duration {
+    Duration::from_secs(DEFAULT_GAS_RESERVATION_DURATION)
+  }
+
   /// Possible types of error that might occur when executing
   /// transactions through an IOTA Gas Station.
   #[derive(Debug)]
@@ -662,7 +666,7 @@ pub mod gas_station {
     Tx: Transaction + OptionalSend,
   {
     /// Execute this transaction using an IOTA Gas Station.
-    #[cfg(not(feature = "default-http-client"))]
+    #[cfg(any(not(feature = "default-http-client"), target_arch = "wasm32"))]
     pub async fn execute_with_gas_station<C, S, H>(
       self,
       client: &C,
@@ -681,7 +685,7 @@ pub mod gas_station {
     }
 
     /// Execute this transaction using an IOTA Gas Station.
-    #[cfg(feature = "default-http-client")]
+    #[cfg(all(feature = "default-http-client", not(target_arch = "wasm32")))]
     pub async fn execute_with_gas_station<C, S>(
       self,
       client: &C,
@@ -706,8 +710,11 @@ pub mod gas_station {
   }
   /// Optional configuration to be passed to the gas-station when sponsoring a transaction.
   #[non_exhaustive]
+  #[derive(Deserialize)]
+  #[serde(rename_all = "camelCase")]
   pub struct GasStationOptions {
     /// Duration of the gas allocation. Default value: `60` seconds.
+    #[serde(default = "default_gas_reservation")]
     pub gas_reservation_duration: Duration,
     /// Bearer token to be included in all requests' "Authentication" header.
     pub bearer_auth: Option<String>,

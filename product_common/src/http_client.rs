@@ -2,9 +2,11 @@ use std::collections::HashMap;
 use std::fmt::Display;
 
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 
 /// An URL.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct Url(url::Url);
 
 impl Display for Url {
@@ -55,7 +57,8 @@ pub struct UrlParsingError {
 }
 
 /// HTTP request method.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE", untagged)]
 pub enum Method {
   Get,
   Head,
@@ -94,7 +97,7 @@ impl Display for Method {
 }
 
 /// A basic HTTP request.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Request<T> {
   pub method: Method,
   pub url: Url,
@@ -103,7 +106,7 @@ pub struct Request<T> {
 }
 
 /// A basic HTTP response.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Response<T> {
   pub status_code: u16,
   pub headers: HashMap<String, String>,
@@ -111,8 +114,9 @@ pub struct Response<T> {
 }
 
 /// Abstract HTTP Client.
-#[async_trait]
-pub trait HttpClient: Sync {
+#[cfg_attr(feature = "send-sync", async_trait)]
+#[cfg_attr(not(feature = "send-sync"), async_trait(?Send))]
+pub trait HttpClient {
   /// Request execution error.
   type Error;
   /// Performs a request.
@@ -126,7 +130,8 @@ mod reqwest_impl {
 
   use super::{HttpClient, Method, Request, Response};
 
-  #[async_trait]
+  #[cfg_attr(feature = "send-sync", async_trait)]
+  #[cfg_attr(not(feature = "send-sync"), async_trait(?Send))]
   impl HttpClient for Client {
     type Error = reqwest::Error;
     async fn send(&self, request: Request<Vec<u8>>) -> Result<Response<Vec<u8>>, Self::Error> {
