@@ -47,8 +47,8 @@ iota_interaction = { version = "0.2.1", path = "../iota_interaction", default-fe
 iota_interaction_ts = { version = "0.2.1", path = "../bindings/wasm/iota_interaction_ts" }
 wasm-bindgen = { version = "0.2.100", optional = true }
 wasm-bindgen-futures = { version = "0.4", default-features = false, optional = true }
-js-sys = { version = "0.3", optional = true }
 serde-wasm-bindgen = { version = "0.6", optional = true }
+js-sys = { version = "0.3", optional = true }
 
 [dev-dependencies]
 iota_interaction = { version = "0.2.1", path = "../iota_interaction" }
