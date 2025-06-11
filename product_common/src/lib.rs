@@ -6,6 +6,10 @@ pub mod bindings;
 #[cfg(feature = "core-client")]
 pub mod core_client;
 pub mod error;
+#[cfg(feature = "gas-station")]
+pub mod gas_station;
+#[cfg(feature = "http-client")]
+pub mod http_client;
 pub mod network_name;
 pub mod object;
 pub mod package_registry;
