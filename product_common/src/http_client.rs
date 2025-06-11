@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 /// An URL.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
+#[repr(transparent)]
 pub struct Url(url::Url);
 
 impl Display for Url {
@@ -57,8 +58,7 @@ pub struct UrlParsingError {
 }
 
 /// HTTP request method.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE", untagged)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Method {
   Get,
   Head,
@@ -69,6 +69,15 @@ pub enum Method {
   Options,
   Trace,
   Patch,
+}
+
+impl Serialize for Method {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    serializer.serialize_str(self.as_str())
+  }
 }
 
 impl Method {
