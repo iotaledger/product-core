@@ -16,19 +16,19 @@ anyhow.workspace = true
 async-trait.workspace = true
 bcs = { workspace = true, optional = true }
 cfg-if.workspace = true
+fastcrypto = { workspace = true, optional = true }
 iota-keys = { git = "https://github.com/iotaledger/iota.git", package = "iota-keys", tag = "v0.12.0-rc", optional = true }
 itertools = { version = "0.13.0", optional = true }
 lazy_static = { version = "1.5.0", optional = true }
 phf.workspace = true
+reqwest = { version = "0.12", default-features = false, optional = true }
 secret-storage = { git = "https://github.com/iotaledger/secret-storage.git", tag = "v0.3.0", optional = true, default-features = false }
 serde.workspace = true
 serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
-fastcrypto = { workspace = true, optional = true }
-url = { version = "2", default-features = false, optional = true, features = ["serde"] }
-reqwest = { version = "0.12", default-features = false, optional = true }
 toml = "0.8"
+url = { version = "2", default-features = false, optional = true, features = ["serde"] }
 
 [dependencies.identity_jose]
 git = "https://github.com/iotaledger/identity.rs.git"
