@@ -5,8 +5,12 @@
 pub mod core_client;
 #[cfg(feature = "transaction")]
 pub mod transaction;
+pub mod macros;
 
 use iota_interaction_ts::error::WasmError;
+
+pub type WasmIotaAddress = String;
+pub type WasmObjectID = String;
 
 impl From<crate::Error> for WasmError<'static> {
   fn from(e: crate::Error) -> Self {

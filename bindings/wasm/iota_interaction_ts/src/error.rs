@@ -10,6 +10,7 @@ use iota_interaction::types::execution_status::{
 };
 use serde::de::DeserializeOwned;
 use thiserror::Error as ThisError;
+use tokio::sync::TryLockError;
 use wasm_bindgen::JsValue;
 
 use crate::common::into_sdk_type;
@@ -138,7 +139,7 @@ fn error_chain_fmt(e: &impl std::error::Error, f: &mut std::fmt::Formatter<'_>) 
   Ok(())
 }
 
-struct ErrorMessage<'a, E: std::error::Error>(&'a E);
+pub struct ErrorMessage<'a, E: std::error::Error>(pub &'a E);
 
 impl<E: std::error::Error> Display for ErrorMessage<'_, E> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -155,29 +156,38 @@ impl From<serde_json::Error> for WasmError<'_> {
   }
 }
 
-impl From<serde_wasm_bindgen::Error> for WasmError<'_> {
-  fn from(error: serde_wasm_bindgen::Error) -> Self {
-    Self {
-      name: Cow::Borrowed("serde_wasm_bindgen::Error"),
-      message: Cow::Owned(ErrorMessage(&error).to_string()),
-    }
-  }
-}
-
 impl From<anyhow::Error> for WasmError<'_> {
-  fn from(error: anyhow::Error) -> Self {
+  fn from(value: anyhow::Error) -> Self {
     Self {
-      name: Cow::Borrowed("anyhow::Error"),
-      message: Cow::Owned(error.to_string()),
+      name: Cow::Borrowed("Anyhow Error"),
+      message: Cow::Owned(value.to_string()),
     }
   }
 }
 
 impl From<bcs::Error> for WasmError<'_> {
-  fn from(error: bcs::Error) -> Self {
+  fn from(value: bcs::Error) -> Self {
     Self {
-      name: Cow::Borrowed("BCS"),
-      message: Cow::Owned(error.to_string()),
+      name: Cow::Borrowed("BCS Error"),
+      message: Cow::Owned(value.to_string()),
+    }
+  }
+}
+
+impl From<TryLockError> for WasmError<'_> {
+  fn from(error: TryLockError) -> Self {
+    Self {
+      name: Cow::Borrowed("TryLockError"),
+      message: Cow::Owned(ErrorMessage(&error).to_string()),
+    }
+  }
+}
+
+impl From<serde_wasm_bindgen::Error> for WasmError<'_> {
+  fn from(error: serde_wasm_bindgen::Error) -> Self {
+    Self {
+      name: Cow::Borrowed("serde_wasm_bindgen::Error"),
+      message: Cow::Owned(ErrorMessage(&error).to_string()),
     }
   }
 }
@@ -196,7 +206,7 @@ pub fn stringify_js_error<T>(result: Result<T>) -> StdResult<T, String> {
   })
 }
 
-#[derive(ThisError, Debug)]
+#[derive(ThisError, Debug, strum::IntoStaticStr)]
 pub enum TsSdkError {
   #[error("[TsSdkError] PackageUpgradeError: {0}")]
   PackageUpgradeError(#[from] PackageUpgradeError),
@@ -206,12 +216,16 @@ pub enum TsSdkError {
   ExecutionFailureStatus(#[from] ExecutionFailureStatus),
   #[error("[TsSdkError] TypeArgumentError: {0}")]
   TypeArgumentError(#[from] TypeArgumentError),
+  #[error("[TsSdkError] AnyError: {0}")]
+  AnyError(#[from] anyhow::Error),
   #[error("[TsSdkError] WasmError:{{\n   name: {0},\n   message: {1}\n}}")]
   WasmError(String, String),
   #[error("[TsSdkError] JsSysError: {0}")]
   JsSysError(String),
   #[error("[TsSdkError] TransactionSerializationError: {0}")]
   TransactionSerializationError(String),
+  #[error("[TsSdkError] InvalidArgument: {0}")]
+  InvalidArgument(String),
 }
 
 pub type TsSdkResult<T> = core::result::Result<T, TsSdkError>;
@@ -228,3 +242,5 @@ pub fn into_ts_sdk_result<T: DeserializeOwned>(result: Result<JsValue>) -> TsSdk
   let ret_val: T = into_sdk_type(js_value)?;
   Ok(ret_val)
 }
+
+impl_wasm_error_from!(TsSdkError);

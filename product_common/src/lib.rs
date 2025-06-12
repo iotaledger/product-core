@@ -18,7 +18,5 @@ pub mod transaction;
 
 #[cfg(feature = "test-utils")]
 pub mod test_utils;
-#[cfg(feature = "wasm-utils")]
-pub mod wasm_utils;
 
 pub use error::*;

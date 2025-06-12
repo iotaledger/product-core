@@ -100,7 +100,7 @@ extern "C" {
   #[derive(Clone)]
   #[wasm_bindgen(
     typescript_type = "IotaEvent[]",
-    extends = js_sys::Object,
+    extends = js_sys::Array,
   )]
   pub type WasmIotaTransactionBlockEvents;
 
@@ -218,7 +218,8 @@ impl From<&'_ IotaTransactionBlockEffects> for WasmIotaTransactionBlockEffects {
 
 impl From<WasmIotaTransactionBlockEvents> for IotaTransactionBlockEvents {
   fn from(value: WasmIotaTransactionBlockEvents) -> Self {
-    serde_wasm_bindgen::from_value(value.into()).expect("have the same repr")
+    let ret_val: IotaTransactionBlockEvents = serde_wasm_bindgen::from_value(value.into()).expect("have the same repr");
+    ret_val
   }
 }
 
