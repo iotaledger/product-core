@@ -98,7 +98,7 @@ pub struct GasStationOptions {
 impl Default for GasStationOptions {
   fn default() -> Self {
     Self {
-      gas_reservation_duration: Duration::from_secs(DEFAULT_GAS_RESERVATION_DURATION),
+      gas_reservation_duration: default_gas_reservation(),
       bearer_auth: None,
     }
   }
