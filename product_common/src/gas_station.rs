@@ -1,7 +1,7 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::borrow::Cow;
+use std::collections::HashMap;
 use std::error;
 use std::fmt::{Debug, Display};
 use std::time::Duration;
@@ -20,7 +20,7 @@ use crate::Error;
 pub(crate) const DEFAULT_GAS_RESERVATION_DURATION: u64 = 60; // 1 minute.
 pub(crate) const DEFAULT_GAS_BUDGET_RESERVATION: u64 = 1_000_000_000; // 1 IOTA.
 
-fn default_gas_reservation() -> Duration {
+const fn default_gas_reservation() -> Duration {
   Duration::from_secs(DEFAULT_GAS_RESERVATION_DURATION)
 }
 
@@ -30,8 +30,7 @@ fn default_gas_reservation() -> Duration {
 #[non_exhaustive]
 pub enum ErrorKind {
   Url(UrlParsingError),
-  GasReservation(GasStationRequestError),
-  TxExecution(GasStationRequestError),
+  GasStationRequest(Box<GasStationRequestError>),
   TxDataBuilding(Box<Error>),
   TxApplication(Box<Error>),
 }
@@ -48,18 +47,12 @@ impl GasStationError {
   pub(crate) fn new(kind: ErrorKind) -> Self {
     Self { kind }
   }
+}
 
-  #[inline(always)]
-  pub(crate) fn from_reservation_error(e: GasStationRequestError) -> Self {
+impl From<GasStationRequestError> for GasStationError {
+  fn from(value: GasStationRequestError) -> Self {
     Self {
-      kind: ErrorKind::GasReservation(e),
-    }
-  }
-
-  #[inline(always)]
-  pub(crate) fn from_tx_execution_error(e: GasStationRequestError) -> Self {
-    Self {
-      kind: ErrorKind::TxExecution(e),
+      kind: ErrorKind::GasStationRequest(Box::new(value)),
     }
   }
 }
@@ -75,8 +68,7 @@ impl error::Error for GasStationError {
     use ErrorKind::*;
     match &self.kind {
       Url(e) => Some(e),
-      GasReservation(e) => Some(e),
-      TxExecution(e) => Some(e),
+      GasStationRequest(e) => Some(e),
       TxDataBuilding(e) => Some(e),
       TxApplication(e) => Some(e),
     }
@@ -85,31 +77,33 @@ impl error::Error for GasStationError {
 
 /// Optional configuration to be passed to the gas-station when sponsoring a transaction.
 #[non_exhaustive]
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GasStationOptions {
   /// Duration of the gas allocation. Default value: `60` seconds.
   #[serde(default = "default_gas_reservation")]
   pub gas_reservation_duration: Duration,
-  /// Bearer token to be included in all requests' "Authentication" header.
-  pub bearer_auth: Option<String>,
+  /// Headers to be included in all requests to the gas station.
+  pub headers: HashMap<String, String>,
 }
 
 impl Default for GasStationOptions {
   fn default() -> Self {
     Self {
       gas_reservation_duration: default_gas_reservation(),
-      bearer_auth: None,
+      headers: HashMap::default(),
     }
   }
 }
 
-impl Debug for GasStationOptions {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("GasStationOptions")
-      .field("gas_reservation_duration", &self.gas_reservation_duration)
-      .field("bearer_auth", &self.bearer_auth.as_deref().and(Some("[REDACTED]")))
-      .finish_non_exhaustive()
+impl GasStationOptions {
+  /// Uses the given token to authenticate all gas station requests by including it
+  /// in [Self::headers] as `("Authorization", "Bearer <auth_token>")`.
+  pub fn with_auth_token(mut self, auth_token: impl AsRef<str>) -> Self {
+    let value = format!("Bearer {}", auth_token.as_ref());
+    self.headers.insert("Authorization".to_owned(), value);
+
+    self
   }
 }
 
@@ -132,68 +126,77 @@ pub(crate) struct ReserveGasResult {
   pub(crate) gas_coins: Vec<IotaObjectRef>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// Possible failures of a gas station request.
+#[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
-pub enum GasStationRequestErrorKind {
-  BodySerialization,
+enum GasStationRequestErrorKind {
+  /// Failed to serialize request's body.
+  #[error("failed to serialize request's body")]
+  #[non_exhaustive]
+  BodySerialization {
+    source: Box<dyn error::Error + Send + Sync>,
+  },
+  /// HTTP error.
+  #[error("HTTP request `{method} {url}` failed")]
   #[non_exhaustive]
   HttpClient {
     method: Method,
     url: Url,
+    source: Box<dyn error::Error + Send + Sync>,
   },
-  BodyDeserialization,
+  /// Failed to deserialize request's body.
+  #[error("failed to deserialize response's body")]
   #[non_exhaustive]
-  InvalidResponse {
-    message: Option<String>,
-  },
+  BodyDeserialization { source: serde_json::Error },
+  /// The request was successful but the received response is invalid.
+  #[error("received an invalid response{}", .message.as_deref().map(|msg| format!(": {}", msg)).unwrap_or_default())]
+  #[non_exhaustive]
+  InvalidResponse { message: Option<String> },
 }
 
-impl GasStationRequestErrorKind {
-  fn to_error_message(&self) -> Cow<'static, str> {
-    use GasStationRequestErrorKind::*;
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum GasStationRequestKind {
+  #[non_exhaustive]
+  ReserveGas,
+  #[non_exhaustive]
+  ExecuteTx,
+}
+
+impl GasStationRequestKind {
+  const fn as_path(&self) -> &str {
     match self {
-      BodySerialization => "failed to serialize request's body".into(),
-      HttpClient { method, url } => format!("HTTP request `{method} {url}` failed").into(),
-      BodyDeserialization => "failed to deserialize respose's body".into(),
-      InvalidResponse { message, .. } => {
-        let msg = Cow::Borrowed("invalid response");
-        let Some(response_error) = message else {
-          return msg;
-        };
-
-        format!("{msg}: {response_error}").into()
-      }
+      Self::ReserveGas => "/v1/reserve_gas",
+      Self::ExecuteTx => "/v1/execute_tx",
     }
-  }
-}
-
-impl Display for GasStationRequestErrorKind {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "{}", self.to_error_message())
   }
 }
 
 /// Gas station request error.
 #[derive(Debug, thiserror::Error)]
-#[error("{kind}")]
+#[error("request `{}` to gas station `{gas_station_url}` failed", .request_kind.as_path())]
 pub struct GasStationRequestError {
+  #[source]
   kind: GasStationRequestErrorKind,
-  source: Option<Box<dyn error::Error + Send + Sync>>,
+  pub request_kind: GasStationRequestKind,
+  pub gas_station_url: Url,
 }
 
 impl GasStationRequestError {
-  fn new(kind: GasStationRequestErrorKind) -> Self {
-    Self { kind, source: None }
+  fn new_reservation(kind: GasStationRequestErrorKind, gas_station_url: Url) -> Self {
+    Self {
+      kind,
+      request_kind: GasStationRequestKind::ReserveGas,
+      gas_station_url,
+    }
   }
 
-  fn with_source(mut self, e: impl Into<Box<dyn error::Error + Send + Sync>>) -> Self {
-    self.source = Some(e.into());
-    self
-  }
-
-  /// Returns a reference to this error's [ErrorKind].
-  pub fn kind(&self) -> &GasStationRequestErrorKind {
-    &self.kind
+  fn new_execution(kind: GasStationRequestErrorKind, gas_station_url: Url) -> Self {
+    Self {
+      kind,
+      request_kind: GasStationRequestKind::ExecuteTx,
+      gas_station_url,
+    }
   }
 }
 
@@ -201,7 +204,7 @@ pub(crate) async fn reserve_gas<H>(
   gas_station_url: &Url,
   gas_budget: u64,
   reserve_duration_secs: u64,
-  auth_token: Option<&str>,
+  headers: &HashMap<String, String>,
   http_client: &H,
 ) -> Result<ReserveGasResult, GasStationRequestError>
 where
@@ -210,39 +213,48 @@ where
 {
   // Prepare the request.
   let url = gas_station_url
-    .join("/v1/reserve_gas")
+    .join(GasStationRequestKind::ReserveGas.as_path())
     .expect("a valid URL joined by another valid path is valid");
-  let headers = auth_token
-    .into_iter()
-    .map(|token| ("Authorization".to_owned(), format!("Bearer {token}")))
-    .collect();
   let body = serde_json::to_vec(&ReserveGasRequest {
     gas_budget,
     reserve_duration_secs,
   })
-  .map_err(|e| GasStationRequestError::new(GasStationRequestErrorKind::BodySerialization).with_source(e))?;
+  .map_err(|e| {
+    GasStationRequestError::new_reservation(
+      GasStationRequestErrorKind::BodySerialization { source: e.into() },
+      gas_station_url.clone(),
+    )
+  })?;
 
   let reserve_gas_req = Request {
     method: Method::Post,
     url: url.clone(),
-    headers,
+    headers: headers.clone(),
     payload: body,
   };
 
   let response = http_client.send(reserve_gas_req).await.map_err(|e| {
-    GasStationRequestError::new(GasStationRequestErrorKind::HttpClient {
-      method: Method::Post,
-      url,
-    })
-    .with_source(e)
+    GasStationRequestError::new_reservation(
+      GasStationRequestErrorKind::HttpClient {
+        method: Method::Post,
+        url,
+        source: e.into(),
+      },
+      gas_station_url.clone(),
+    )
   })?;
 
-  let ReserveGasResponse { result, error } = serde_json::from_slice(&response.payload)
-    .map_err(|e| GasStationRequestError::new(GasStationRequestErrorKind::BodyDeserialization).with_source(e))?;
+  let ReserveGasResponse { result, error } = serde_json::from_slice(&response.payload).map_err(|e| {
+    GasStationRequestError::new_reservation(
+      GasStationRequestErrorKind::BodyDeserialization { source: e },
+      gas_station_url.clone(),
+    )
+  })?;
 
   let Some(reservation_result) = result else {
-    return Err(GasStationRequestError::new(
+    return Err(GasStationRequestError::new_reservation(
       GasStationRequestErrorKind::InvalidResponse { message: error },
+      gas_station_url.clone(),
     ));
   };
 
@@ -267,7 +279,7 @@ pub(crate) async fn execute_sponsored_tx<H>(
   tx_data: TransactionData,
   sender_sig: Signature,
   reservation_id: u64,
-  auth_token: Option<&str>,
+  headers: HashMap<String, String>,
   http_client: &H,
 ) -> Result<IotaTransactionBlockEffects, GasStationRequestError>
 where
@@ -276,21 +288,26 @@ where
 {
   // Prepare the request.
   let url = gas_station_url
-    .join("/v1/execute_tx")
+    .join(GasStationRequestKind::ExecuteTx.as_path())
     .expect("a valid URL joined by another valid path is valid");
-  let headers = auth_token
-    .into_iter()
-    .map(|token| ("Authorization".to_owned(), format!("Bearer {token}")))
-    .collect();
 
-  let tx_bcs = bcs::to_bytes(&tx_data)
-    .map_err(|e| GasStationRequestError::new(GasStationRequestErrorKind::BodySerialization).with_source(e))?;
+  let tx_bcs = bcs::to_bytes(&tx_data).map_err(|e| {
+    GasStationRequestError::new_execution(
+      GasStationRequestErrorKind::BodySerialization { source: e.into() },
+      gas_station_url.clone(),
+    )
+  })?;
   let body = serde_json::to_vec(&ExecuteTxRequest {
     reservation_id,
     tx_bytes: Base64::encode(&tx_bcs),
     user_sig: sender_sig.encode_base64(),
   })
-  .map_err(|e| GasStationRequestError::new(GasStationRequestErrorKind::BodySerialization).with_source(e))?;
+  .map_err(|e| {
+    GasStationRequestError::new_execution(
+      GasStationRequestErrorKind::BodySerialization { source: e.into() },
+      gas_station_url.clone(),
+    )
+  })?;
   let execute_tx_req = Request {
     method: Method::Post,
     url: url.clone(),
@@ -299,19 +316,27 @@ where
   };
 
   let response = http_client.send(execute_tx_req).await.map_err(|e| {
-    GasStationRequestError::new(GasStationRequestErrorKind::HttpClient {
-      method: Method::Post,
-      url,
-    })
-    .with_source(e)
+    GasStationRequestError::new_execution(
+      GasStationRequestErrorKind::HttpClient {
+        method: Method::Post,
+        url,
+        source: e.into(),
+      },
+      gas_station_url.clone(),
+    )
   })?;
 
-  let ExecuteTxResponse { effects, error } = serde_json::from_slice(&response.payload)
-    .map_err(|e| GasStationRequestError::new(GasStationRequestErrorKind::BodyDeserialization).with_source(e))?;
+  let ExecuteTxResponse { effects, error } = serde_json::from_slice(&response.payload).map_err(|e| {
+    GasStationRequestError::new_execution(
+      GasStationRequestErrorKind::BodyDeserialization { source: e },
+      gas_station_url.clone(),
+    )
+  })?;
 
   let Some(effects) = effects else {
-    return Err(GasStationRequestError::new(
+    return Err(GasStationRequestError::new_execution(
       GasStationRequestErrorKind::InvalidResponse { message: error },
+      gas_station_url.clone(),
     ));
   };
 

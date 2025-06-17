@@ -648,7 +648,7 @@ mod gas_station {
     // Compute the arguments for gas reservation.
     let reserve_duration_secs = gas_station_options.gas_reservation_duration.as_secs();
     let gas_budget = tx_builder.gas.budget.unwrap_or(DEFAULT_GAS_BUDGET_RESERVATION);
-    let auth_token = gas_station_options.bearer_auth.as_deref();
+    let headers = gas_station_options.headers;
 
     // Get a gas reservation.
     let ReserveGasResult {
@@ -659,11 +659,10 @@ mod gas_station {
       gas_station_url,
       gas_budget,
       reserve_duration_secs,
-      auth_token,
+      &headers,
       http_client,
     )
-    .await
-    .map_err(GasStationError::from_reservation_error)?;
+    .await?;
     // Map coins to known format.
     let gas_coins = gas_coins
       .into_iter()
@@ -694,11 +693,10 @@ mod gas_station {
       tx_data,
       sigs.pop().expect("signed by the sender"),
       reservation_id,
-      auth_token,
+      headers,
       http_client,
     )
-    .await
-    .map_err(GasStationError::from_tx_execution_error)?;
+    .await?;
 
     // Apply tx's side-effects.
     tx.apply(&mut effects, client)
