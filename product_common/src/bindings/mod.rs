@@ -5,6 +5,8 @@
 pub mod core_client;
 #[cfg(feature = "transaction")]
 pub mod transaction;
+#[cfg(feature = "binding-utils")]
+pub mod utils;
 pub mod macros;
 
 use iota_interaction_ts::error::WasmError;
