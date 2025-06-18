@@ -63,10 +63,12 @@ impl From<Method> for WasmMethod {
 
 #[wasm_bindgen(typescript_custom_section)]
 const _HTTP_CLIENT_INTERFACE: &str = r#"
+export type HeaderMap = Map<string, string[]>;
+
 /** HTTP Request. */
 export interface Request {
   method: Method,
-  headers: Map<string, string>,
+  headers: HeaderMap,
   url: string,
   payload: Uint8Array,
 }
@@ -74,7 +76,7 @@ export interface Request {
 /** HTTP Response. */
 export interface Response {
   statusCode: number,
-  headers: Map<string, string>,
+  headers: HeaderMap,
   payload: Uint8Array,
 }
 

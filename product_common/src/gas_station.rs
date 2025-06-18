@@ -1,7 +1,6 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::collections::HashMap;
 use std::error;
 use std::fmt::{Debug, Display};
 use std::time::Duration;
@@ -14,7 +13,7 @@ use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::transaction::TransactionData;
 use serde::{Deserialize, Serialize};
 
-use crate::http_client::{HttpClient, Method, Request, Url, UrlParsingError};
+use crate::http_client::{HeaderMap, HttpClient, Method, Request, Url, UrlParsingError};
 use crate::Error;
 
 pub(crate) const DEFAULT_GAS_RESERVATION_DURATION: u64 = 60; // 1 minute.
@@ -84,14 +83,14 @@ pub struct GasStationOptions {
   #[serde(default = "default_gas_reservation")]
   pub gas_reservation_duration: Duration,
   /// Headers to be included in all requests to the gas station.
-  pub headers: HashMap<String, String>,
+  pub headers: HeaderMap,
 }
 
 impl Default for GasStationOptions {
   fn default() -> Self {
     Self {
       gas_reservation_duration: default_gas_reservation(),
-      headers: HashMap::default(),
+      headers: HeaderMap::default(),
     }
   }
 }
@@ -101,7 +100,7 @@ impl GasStationOptions {
   /// in [Self::headers] as `("Authorization", "Bearer <auth_token>")`.
   pub fn with_auth_token(mut self, auth_token: impl AsRef<str>) -> Self {
     let value = format!("Bearer {}", auth_token.as_ref());
-    self.headers.insert("Authorization".to_owned(), value);
+    self.headers.entry("Authorization".to_owned()).or_default().push(value);
 
     self
   }
@@ -204,7 +203,7 @@ pub(crate) async fn reserve_gas<H>(
   gas_station_url: &Url,
   gas_budget: u64,
   reserve_duration_secs: u64,
-  headers: &HashMap<String, String>,
+  headers: &HeaderMap,
   http_client: &H,
 ) -> Result<ReserveGasResult, GasStationRequestError>
 where
@@ -279,7 +278,7 @@ pub(crate) async fn execute_sponsored_tx<H>(
   tx_data: TransactionData,
   sender_sig: Signature,
   reservation_id: u64,
-  headers: HashMap<String, String>,
+  headers: HeaderMap,
   http_client: &H,
 ) -> Result<IotaTransactionBlockEffects, GasStationRequestError>
 where

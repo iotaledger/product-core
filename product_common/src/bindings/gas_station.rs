@@ -17,16 +17,15 @@ export interface GasStationParams {
   */
   gasReservationDuration?: bigint,
   /**
-   * Bearer token to be included in the Authorization header in
-   * all requests to the gas station.
+   * HTTP headers to be passed to all gas station requests.
   */
-  bearerAuth?: string,
+  headers?: HeaderMap,
 }
 "#;
 
 #[wasm_bindgen]
 extern "C" {
-  #[wasm_bindgen(typescript_type = GasStationParams)]
+  #[wasm_bindgen(typescript_type = GasStationParams, extends = js_sys::Object)]
   pub type WasmGasStationParams;
 }
 

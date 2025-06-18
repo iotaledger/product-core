@@ -1,11 +1,14 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt::Display;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+
+/// A Map used to represent request's headers.
+pub type HeaderMap = BTreeMap<String, Vec<String>>;
 
 /// An URL.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -113,7 +116,7 @@ impl Display for Method {
 pub struct Request<T> {
   pub method: Method,
   pub url: Url,
-  pub headers: HashMap<String, String>,
+  pub headers: HeaderMap,
   pub payload: T,
 }
 
@@ -121,7 +124,7 @@ pub struct Request<T> {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Response<T> {
   pub status_code: u16,
-  pub headers: HashMap<String, String>,
+  pub headers: HeaderMap,
   pub payload: T,
 }
 
@@ -138,21 +141,22 @@ pub trait HttpClient {
 #[cfg(feature = "default-http-client")]
 mod reqwest_impl {
   use async_trait::async_trait;
+  use reqwest::header::{HeaderName, HeaderValue};
   use reqwest::Client;
 
-  use super::{HttpClient, Method, Request, Response};
+  use super::{HeaderMap, HttpClient, Method, Request, Response};
 
   #[cfg_attr(feature = "send-sync", async_trait)]
   #[cfg_attr(not(feature = "send-sync"), async_trait(?Send))]
   impl HttpClient for Client {
-    type Error = reqwest::Error;
+    type Error = anyhow::Error;
     async fn send(&self, request: Request<Vec<u8>>) -> Result<Response<Vec<u8>>, Self::Error> {
       // Convert to reqwest's Request type.
       let request = {
         let Request {
           method,
           url,
-          ref headers,
+          headers,
           payload,
         } = request;
         // Convert the method.
@@ -167,20 +171,17 @@ mod reqwest_impl {
           Method::Trace => reqwest::Method::TRACE,
           Method::Patch => reqwest::Method::PATCH,
         };
+
         self
           .request(method, url.0)
-          .headers(headers.try_into().expect("infallible"))
+          .headers(try_into_reqwest_headers(headers)?)
           .body(payload)
           .build()?
       };
 
-      let response = self.execute(request).await?;
+      let mut response = self.execute(request).await?;
       let status_code = response.status().as_u16();
-      let headers = response
-        .headers()
-        .into_iter()
-        .flat_map(|(key, value)| value.to_str().map(|value| (key.to_string(), value.to_owned())))
-        .collect();
+      let headers = try_from_reqwest_headers(std::mem::take(response.headers_mut()))?;
       let payload = response.bytes().await.unwrap_or_default().to_vec();
 
       Ok(Response {
@@ -189,5 +190,32 @@ mod reqwest_impl {
         payload,
       })
     }
+  }
+
+  fn try_into_reqwest_headers(headers: HeaderMap) -> anyhow::Result<reqwest::header::HeaderMap> {
+    let mut map = reqwest::header::HeaderMap::with_capacity(headers.len());
+    for (k, vs) in headers {
+      let header_name = HeaderName::try_from(k)?;
+      for v in vs {
+        map.append(&header_name, HeaderValue::try_from(v)?);
+      }
+    }
+
+    Ok(map)
+  }
+
+  fn try_from_reqwest_headers(headers: reqwest::header::HeaderMap) -> anyhow::Result<HeaderMap> {
+    let mut map = HeaderMap::default();
+    for k in headers.keys() {
+      let mut values = vec![];
+      for v in headers.get_all(k) {
+        let value_str = v.to_str()?.to_owned();
+        values.push(value_str);
+      }
+
+      map.insert(k.to_string(), values);
+    }
+
+    Ok(map)
   }
 }
