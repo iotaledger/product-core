@@ -45,4 +45,9 @@ pub enum Error {
   /// Transaction specific error.
   #[error("Transaction specific error: {0}")]
   Transaction(Box<dyn std::error::Error + Send + Sync + 'static>),
+
+  /// Gas Station specific error.
+  #[cfg(feature = "gas-station")]
+  #[error("gas-station sponsoring failed: {0}")]
+  GasStation(#[from] crate::gas_station::GasStationError),
 }
