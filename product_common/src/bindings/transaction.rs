@@ -10,8 +10,8 @@ use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBl
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::transaction::{ProgrammableTransaction, TransactionData, TransactionDataAPI as _};
 use iota_interaction_ts::bindings::{
-  WasmIotaTransactionBlockEffects, WasmIotaTransactionBlockResponse, WasmObjectRef, WasmTransactionDataBuilder,
-  WasmIotaTransactionBlockEvents
+  WasmIotaTransactionBlockEffects, WasmIotaTransactionBlockEvents, WasmIotaTransactionBlockResponse, WasmObjectRef,
+  WasmTransactionDataBuilder,
 };
 use iota_interaction_ts::core_client::{WasmCoreClient, WasmCoreClientReadOnly};
 use iota_interaction_ts::error::{Result, WasmResult as _};
@@ -94,7 +94,7 @@ impl Transaction for WasmTransaction {
     client: &C,
   ) -> StdResult<Self::Output, Self::Error>
   where
-      C: CoreClientReadOnly,
+    C: CoreClientReadOnly,
   {
     let managed_client = WasmManagedCoreClientReadOnly::from_rust(client);
     let core_client = managed_client.into_wasm();
@@ -102,8 +102,10 @@ impl Transaction for WasmTransaction {
     let wasm_events = WasmIotaTransactionBlockEvents::from(&*events);
 
     Self::apply_with_events(&self, &wasm_effects, &wasm_events, &core_client)
-        .await
-        .map_err(|e| crate::Error::Transaction(anyhow!("failed to apply effects and events from WASM Transaction: {e:?}").into()))
+      .await
+      .map_err(|e| {
+        crate::Error::Transaction(anyhow!("failed to apply effects and events from WASM Transaction: {e:?}").into())
+      })
   }
 }
 

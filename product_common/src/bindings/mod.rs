@@ -7,11 +7,11 @@ pub mod core_client;
 pub mod gas_station;
 #[cfg(feature = "http-client")]
 pub mod http_client;
+pub mod macros;
 #[cfg(feature = "transaction")]
 pub mod transaction;
 #[cfg(feature = "binding-utils")]
 pub mod utils;
-pub mod macros;
 
 use iota_interaction_ts::error::WasmError;
 
