@@ -100,7 +100,7 @@ extern "C" {
   #[derive(Clone)]
   #[wasm_bindgen(
     typescript_type = "IotaEvent[]",
-    extends = js_sys::Object,
+    extends = js_sys::Array,
   )]
   pub type WasmIotaTransactionBlockEvents;
 

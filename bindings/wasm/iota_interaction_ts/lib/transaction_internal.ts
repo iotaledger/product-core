@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { IotaObjectRef, IotaTransactionBlockResponse, TransactionEffects } from "@iota/iota-sdk/client";
+import { IotaEvent } from "@iota/iota-sdk/src/client/types/generated";
 import { TransactionDataBuilder } from "@iota/iota-sdk/transactions";
 import { TransactionSigner } from "~iota_interaction_ts";
 import { CoreClient, CoreClientReadOnly } from "./core_client";
@@ -14,6 +15,7 @@ export interface TransactionOutput<T extends Transaction<unknown>> {
 export interface Transaction<Output> {
     buildProgrammableTransaction(client: CoreClientReadOnly): Promise<Uint8Array>;
     apply(effects: TransactionEffects, client: CoreClientReadOnly): Promise<Output>;
+    applyWithEvents(effects: TransactionEffects, events: IotaEvent[], client: CoreClientReadOnly): Promise<Output>;
 }
 
 export type SponsorFn = (tx_data: TransactionDataBuilder) => Promise<string>;
