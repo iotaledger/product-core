@@ -218,8 +218,7 @@ impl From<&'_ IotaTransactionBlockEffects> for WasmIotaTransactionBlockEffects {
 
 impl From<WasmIotaTransactionBlockEvents> for IotaTransactionBlockEvents {
   fn from(value: WasmIotaTransactionBlockEvents) -> Self {
-    let ret_val: IotaTransactionBlockEvents = serde_wasm_bindgen::from_value(value.into()).expect("have the same repr");
-    ret_val
+    serde_wasm_bindgen::from_value(value.into()).expect("have the same repr")
   }
 }
 
