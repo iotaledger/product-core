@@ -3,6 +3,10 @@
 
 #[cfg(feature = "core-client")]
 pub mod core_client;
+#[cfg(feature = "gas-station")]
+pub mod gas_station;
+#[cfg(feature = "http-client")]
+pub mod http_client;
 #[cfg(feature = "transaction")]
 pub mod transaction;
 
