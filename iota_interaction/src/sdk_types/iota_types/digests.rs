@@ -13,7 +13,9 @@ use super::iota_serde::Readable;
 
 /// A representation of a 32 byte digest
 #[serde_as]
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema)]
+#[derive(
+    Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+)]
 pub struct Digest(
     #[schemars(with = "Base58")]
     #[serde_as(as = "Readable<Base58, Bytes>")]
