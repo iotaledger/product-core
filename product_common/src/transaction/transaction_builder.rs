@@ -572,3 +572,136 @@ fn address_from_signature(signature: &Signature) -> IotaAddress {
 
   IotaAddress::from(&pk)
 }
+
+#[cfg(feature = "gas-station")]
+mod gas_station {
+  use std::error;
+
+  use iota_interaction::rpc_types::IotaObjectRef;
+
+  use super::*;
+  use crate::gas_station::*;
+  use crate::http_client::{HttpClient, Url};
+
+  impl<Tx> TransactionBuilder<Tx>
+  where
+    Tx: Transaction + OptionalSend,
+  {
+    /// Execute this transaction using an IOTA Gas Station.
+    #[cfg(any(not(feature = "default-http-client"), target_arch = "wasm32"))]
+    pub async fn execute_with_gas_station<C, S, H>(
+      self,
+      client: &C,
+      gas_station_url: &str,
+      http_client: &H,
+      options: Option<GasStationOptions>,
+    ) -> Result<Tx::Output, GasStationError>
+    where
+      C: CoreClient<S> + OptionalSync,
+      S: Signer<IotaKeySignature> + OptionalSync,
+      H: HttpClient,
+      H::Error: Into<Box<dyn error::Error + Send + Sync>>,
+    {
+      let gas_station_url = Url::parse(gas_station_url).map_err(|e| GasStationError::new(ErrorKind::Url(e)))?;
+      execute_with_gas_station_impl(self, client, &gas_station_url, http_client, options.unwrap_or_default()).await
+    }
+
+    /// Execute this transaction using an IOTA Gas Station.
+    #[cfg(all(feature = "default-http-client", not(target_arch = "wasm32")))]
+    pub async fn execute_with_gas_station<C, S>(
+      self,
+      client: &C,
+      gas_station_url: &str,
+      options: Option<GasStationOptions>,
+    ) -> Result<Tx::Output, GasStationError>
+    where
+      C: CoreClient<S> + OptionalSync,
+      S: Signer<IotaKeySignature> + OptionalSync,
+    {
+      let gas_station_url = Url::parse(gas_station_url).map_err(|e| GasStationError::new(ErrorKind::Url(e)))?;
+      let http_client = reqwest::Client::new();
+      execute_with_gas_station_impl(
+        self,
+        client,
+        &gas_station_url,
+        &http_client,
+        options.unwrap_or_default(),
+      )
+      .await
+    }
+  }
+
+  #[inline(always)]
+  async fn execute_with_gas_station_impl<C, S, Tx, H>(
+    mut tx_builder: TransactionBuilder<Tx>,
+    client: &C,
+    gas_station_url: &Url,
+    http_client: &H,
+    gas_station_options: GasStationOptions,
+  ) -> Result<Tx::Output, GasStationError>
+  where
+    S: Signer<IotaKeySignature> + OptionalSync,
+    C: CoreClient<S> + OptionalSync,
+    Tx: Transaction + OptionalSend,
+    H: HttpClient<Error: Into<Box<dyn error::Error + Sync + Send>>>,
+  {
+    // Compute the arguments for gas reservation.
+    let reserve_duration_secs = gas_station_options.gas_reservation_duration.as_secs();
+    let gas_budget = tx_builder.gas.budget.unwrap_or(DEFAULT_GAS_BUDGET_RESERVATION);
+    let headers = gas_station_options.headers;
+
+    // Get a gas reservation.
+    let ReserveGasResult {
+      sponsor_address,
+      reservation_id,
+      gas_coins,
+    } = reserve_gas(
+      gas_station_url,
+      gas_budget,
+      reserve_duration_secs,
+      &headers,
+      http_client,
+    )
+    .await?;
+    // Map coins to known format.
+    let gas_coins = gas_coins
+      .into_iter()
+      .map(
+        |IotaObjectRef {
+           object_id,
+           version,
+           digest,
+         }| (object_id, version, digest),
+      )
+      .collect();
+
+    // Set sponsor information in tx's gas data.
+    // Note: gas' price can be set automatically.
+    tx_builder.gas.owner = Some(sponsor_address);
+    tx_builder.gas.payment = gas_coins;
+    tx_builder.gas.budget = Some(gas_budget);
+
+    // Consume the builder into its parts.
+    let (tx_data, mut sigs, tx) = tx_builder
+      .build(client)
+      .await
+      .map_err(|e| GasStationError::new(ErrorKind::TxDataBuilding(Box::new(e))))?;
+
+    // Let gas-station execute this transaction.
+    let mut effects = execute_sponsored_tx(
+      gas_station_url,
+      tx_data,
+      sigs.pop().expect("signed by the sender"),
+      reservation_id,
+      headers,
+      http_client,
+    )
+    .await?;
+
+    // Apply tx's side-effects.
+    tx.apply(&mut effects, client)
+      .await
+      .map_err(|e| Error::Transaction(e.into()))
+      .map_err(|e| GasStationError::new(ErrorKind::TxApplication(Box::new(e))))
+  }
+}
