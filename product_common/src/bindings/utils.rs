@@ -1,16 +1,14 @@
 // Copyright 2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use anyhow::anyhow;
-use js_sys::Object;
 use std::str::FromStr;
 
-use iota_interaction::types::base_types::IotaAddress;
-use iota_interaction::types::base_types::ObjectID;
-use iota_interaction_ts::bindings::WasmIotaTransactionBlockEffects;
-use iota_interaction_ts::bindings::WasmIotaTransactionBlockEvents;
+use anyhow::anyhow;
+use iota_interaction::types::base_types::{IotaAddress, ObjectID};
+use iota_interaction_ts::bindings::{WasmIotaTransactionBlockEffects, WasmIotaTransactionBlockEvents};
 use iota_interaction_ts::core_client::WasmCoreClientReadOnly;
 use iota_interaction_ts::error::{Result, WasmResult};
+use js_sys::Object;
 use wasm_bindgen::{JsCast, JsValue};
 
 use super::core_client::WasmManagedCoreClientReadOnly;
@@ -123,7 +121,8 @@ where
   bcs::to_bytes(&pt).wasm_result()
 }
 
-/// Converts a wasm transaction (example WasmUpdateState in the notarization repository) into a `WasmTransactionBuilder`.
+/// Converts a wasm transaction (example WasmUpdateState in the notarization repository) into a
+/// `WasmTransactionBuilder`.
 pub fn into_transaction_builder<T>(tx: T) -> WasmTransactionBuilder
 where
   wasm_bindgen::JsValue: From<T>,
