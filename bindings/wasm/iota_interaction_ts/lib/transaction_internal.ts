@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { IotaObjectRef, IotaTransactionBlockResponse, TransactionEffects } from "@iota/iota-sdk/client";
+import { IotaEvent } from "@iota/iota-sdk/src/client/types/generated";
 import { TransactionDataBuilder } from "@iota/iota-sdk/transactions";
 import { TransactionSigner } from "~iota_interaction_ts";
 import { CoreClient, CoreClientReadOnly } from "./core_client";
-import { IotaEvent } from "@iota/iota-sdk/src/client/types/generated";
 
 export interface TransactionOutput<T extends Transaction<unknown>> {
     response: IotaTransactionBlockResponse;

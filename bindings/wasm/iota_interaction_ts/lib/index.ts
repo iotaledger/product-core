@@ -7,5 +7,5 @@ export * from "~iota_interaction_ts";
 //       We should change our exported module names accordingly.
 export * as core_client from "./core_client";
 export * as iota_client_helpers from "./iota_client_helpers";
-export * as transaction_internal from "./transaction_internal";
 export * as test_utils from "./test_utils";
+export * as transaction_internal from "./transaction_internal";

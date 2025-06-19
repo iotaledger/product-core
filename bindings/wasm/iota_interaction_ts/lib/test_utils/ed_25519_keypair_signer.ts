@@ -1,8 +1,8 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-import { Ed25519Keypair } from "@iota/iota-sdk/keypairs/ed25519"
-import {PublicKey} from "@iota/iota-sdk/dist/esm/cryptography";
+import { PublicKey } from "@iota/iota-sdk/dist/esm/cryptography";
+import { Ed25519Keypair } from "@iota/iota-sdk/keypairs/ed25519";
 import { TransactionSigner } from "~iota_interaction_ts";
 
 /// Simple signer useful to test IOTA products.
@@ -22,7 +22,7 @@ export class Ed25519KeypairSigner implements TransactionSigner {
         return Promise.resolve(this.signer.getPublicKey());
     }
     iotaPublicKeyBytes(): Promise<Uint8Array> {
-        return Promise.resolve(this.signer.getPublicKey().toIotaBytes())
+        return Promise.resolve(this.signer.getPublicKey().toIotaBytes());
     }
     keyId(): string {
         const base64 = this.signer.getPublicKey().toBase64().toString();
