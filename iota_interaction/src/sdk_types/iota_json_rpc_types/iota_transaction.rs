@@ -41,7 +41,7 @@ pub type IotaTransactionBlockKindBcs = Vec<u8>;
 
 pub type CheckpointSequenceNumber = u64;
 
-#[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema, Eq, PartialEq, Default)]
 #[serde(
     rename_all = "camelCase",
     rename = "TransactionBlockResponseOptions",
@@ -356,7 +356,7 @@ pub struct IotaTransactionBlockEvents {
 // TODO: this file might not be the best place for this struct.
 /// Additional arguments supplied to dev inspect beyond what is allowed in
 /// today's API.
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename = "DevInspectArgs", rename_all = "camelCase")]
 pub struct DevInspectArgs {
     /// The sponsor of the gas for the transaction, might be different from the
@@ -431,7 +431,7 @@ impl Display for IotaExecutionStatus {
 
 impl IotaExecutionStatus {
     pub fn is_ok(&self) -> bool {
-        matches!(self, IotaExecutionStatus::Success)
+        matches!(self, IotaExecutionStatus::Success { .. })
     }
     pub fn is_err(&self) -> bool {
         matches!(self, IotaExecutionStatus::Failure { .. })
@@ -484,6 +484,29 @@ impl Display for IotaArgument {
             Self::Result(i) => write!(f, "Result({i})"),
             Self::NestedResult(i, j) => write!(f, "NestedResult({i},{j})"),
         }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]
+#[serde(rename = "TypeTag", rename_all = "camelCase")]
+pub struct IotaTypeTag(String);
+
+impl IotaTypeTag {
+    pub fn new(tag: String) -> Self {
+        Self(tag)
+    }
+}
+
+impl TryInto<TypeTag> for IotaTypeTag {
+    type Error = anyhow::Error;
+    fn try_into(self) -> Result<TypeTag, Self::Error> {
+        parse_iota_type_tag(&self.0)
+    }
+}
+
+impl From<TypeTag> for IotaTypeTag {
+    fn from(tag: TypeTag) -> Self {
+        Self(format!("{tag}"))
     }
 }
 
