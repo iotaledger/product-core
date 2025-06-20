@@ -63,6 +63,7 @@ bindings = [
   "dep:js-sys",
   "dep:serde-wasm-bindgen",
 ]
+binding-utils = ["bindings", "transaction", "core-client"]
 test-utils = [
   "dep:identity_jose",
   "dep:lazy_static",

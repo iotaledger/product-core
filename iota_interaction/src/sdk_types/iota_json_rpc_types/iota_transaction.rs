@@ -15,11 +15,13 @@ use crate::iota_types::base_types::EpochId;
 use crate::iota_types::digests::{TransactionDigest, TransactionEventsDigest};
 use crate::iota_types::gas::GasCostSummary;
 use crate::iota_types::storage::{DeleteKind, WriteKind};
+use crate::move_core_types::language_storage::TypeTag;
 use crate::rpc_types::IotaEvent;
 use crate::types::base_types::{IotaAddress, ObjectID, ObjectRef, SequenceNumber};
 use crate::types::execution_status::ExecutionStatus;
-use crate::types::iota_serde::{BigInt, IotaTypeTag, SequenceNumber as AsSequenceNumber};
+use crate::types::iota_serde::{BigInt, SequenceNumber as AsSequenceNumber};
 use crate::types::object::Owner;
+use crate::types::parse_iota_type_tag;
 use crate::types::quorum_driver_types::ExecuteTransactionRequestType;
 
 /// BCS serialized IotaTransactionBlockEffects
