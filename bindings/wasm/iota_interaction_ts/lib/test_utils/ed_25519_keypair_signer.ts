@@ -25,7 +25,6 @@ export class Ed25519KeypairSigner implements TransactionSigner {
         return Promise.resolve(this.signer.getPublicKey().toIotaBytes());
     }
     keyId(): string {
-        const base64 = this.signer.getPublicKey().toBase64().toString();
-        return base64.substring(0, 16);
+        return this.signer.getPublicKey().toIotaAddress();
     }
 }
