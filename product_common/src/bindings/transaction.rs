@@ -6,6 +6,8 @@ use std::result::Result as StdResult;
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
 use fastcrypto::traits::EncodeDecodeBase64;
+use js_sys::Reflect;
+
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEvents};
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::transaction::{ProgrammableTransaction, TransactionData, TransactionDataAPI as _};
@@ -14,12 +16,12 @@ use iota_interaction_ts::bindings::{
   WasmTransactionDataBuilder,
 };
 use iota_interaction_ts::core_client::{WasmCoreClient, WasmCoreClientReadOnly};
-use iota_interaction_ts::error::{Result, WasmResult as _};
 use js_sys::JsString;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsCast as _, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
+use crate::bindings::wasm_error::{Result, WasmResult as _};
 use crate::bindings::core_client::{WasmManagedCoreClient, WasmManagedCoreClientReadOnly};
 use crate::core_client::CoreClientReadOnly;
 use crate::transaction::transaction_builder::{MutGasDataRef, Transaction, TransactionBuilder};
@@ -96,6 +98,11 @@ impl Transaction for WasmTransaction {
   where
     C: CoreClientReadOnly,
   {
+    let has_js_fn = Reflect::has(&self, &JsValue::from_str("applyWithEvents")).unwrap_or(false);
+    if !has_js_fn  {  
+      return self.apply(effects, client).await;
+    }
+    
     let managed_client = WasmManagedCoreClientReadOnly::from_rust(client);
     let core_client = managed_client.into_wasm();
     let wasm_effects = WasmIotaTransactionBlockEffects::from(&*effects);
