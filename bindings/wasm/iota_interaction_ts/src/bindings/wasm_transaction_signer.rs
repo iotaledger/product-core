@@ -10,7 +10,7 @@ use js_sys::{JsString, Uint8Array};
 use secret_storage::{Error as SecretStorageError, Signer};
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::error::Result;
+use crate::wasm_error::Result;
 
 #[wasm_bindgen(typescript_custom_section)]
 const I_TX_SIGNER: &str = r#"

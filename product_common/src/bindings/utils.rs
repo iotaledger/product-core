@@ -7,7 +7,7 @@ use anyhow::anyhow;
 use iota_interaction::types::base_types::{IotaAddress, ObjectID};
 use iota_interaction_ts::bindings::{WasmIotaTransactionBlockEffects, WasmIotaTransactionBlockEvents};
 use iota_interaction_ts::core_client::WasmCoreClientReadOnly;
-use iota_interaction_ts::error::{Result, WasmResult};
+use iota_interaction_ts::wasm_error::{Result, WasmResult};
 use js_sys::Object;
 use wasm_bindgen::{JsCast, JsValue};
 
@@ -69,7 +69,7 @@ pub async fn apply_with_events<T, O>(
 ) -> Result<O>
 where
   T: Transaction,
-  <T as Transaction>::Error: for<'a> Into<iota_interaction_ts::error::WasmError<'a>>,
+  <T as Transaction>::Error: for<'a> Into<iota_interaction_ts::wasm_error::WasmError<'a>>,
   O: From<<T as Transaction>::Output>,
 {
   let managed_client = WasmManagedCoreClientReadOnly::from_wasm(client)?;
@@ -114,7 +114,7 @@ where
 pub async fn build_programmable_transaction<T>(tx: &T, client: &WasmCoreClientReadOnly) -> Result<Vec<u8>>
 where
   T: Transaction,
-  <T as Transaction>::Error: for<'a> Into<iota_interaction_ts::error::WasmError<'a>>,
+  <T as Transaction>::Error: for<'a> Into<iota_interaction_ts::wasm_error::WasmError<'a>>,
 {
   let managed_client = WasmManagedCoreClientReadOnly::from_wasm(client)?;
   let pt = tx.build_programmable_transaction(&managed_client).await.wasm_result()?;

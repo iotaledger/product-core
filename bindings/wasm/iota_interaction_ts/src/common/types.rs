@@ -9,7 +9,8 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 use super::object::Object;
-use crate::error::{TsSdkError, TsSdkResult, WasmError, WasmResult};
+use crate::error::{TsSdkError, TsSdkResult};
+use crate::wasm_error::{WasmError, WasmResult};
 
 #[wasm_bindgen]
 extern "C" {

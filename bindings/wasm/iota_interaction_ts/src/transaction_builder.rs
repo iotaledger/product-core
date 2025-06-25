@@ -6,7 +6,8 @@ use std::ops::{Deref, DerefMut};
 use iota_interaction::{ProgrammableTransactionBcs, TransactionBuilderT};
 
 use crate::bindings::WasmTransactionBuilder;
-use crate::error::{TsSdkError, WasmError};
+use crate::error::TsSdkError;
+use crate::wasm_error::WasmError;
 
 pub type NativeTsTransactionBuilderBindingWrapper = WasmTransactionBuilder;
 

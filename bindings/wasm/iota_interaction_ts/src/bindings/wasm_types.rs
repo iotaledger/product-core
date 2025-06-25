@@ -20,7 +20,8 @@ use wasm_bindgen_futures::JsFuture;
 
 use crate::bindings::WasmIotaClient;
 use crate::console_log;
-use crate::error::{TsSdkError, WasmError};
+use crate::error::TsSdkError;
+use crate::wasm_error::{WasmError};
 
 // TODO: fix/add signer or remove functions relying on it
 type WasmStorageSigner = ();

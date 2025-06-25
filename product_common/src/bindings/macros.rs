@@ -21,7 +21,7 @@ extern "C" {
 #[macro_export]
 macro_rules! console_log {
   ($($tt:tt)*) => {
-    $crate::macros::console_log((format!($($tt)*)).as_str())
+    $crate::bindings::macros::console_log((format!($($tt)*)).as_str())
   }
 }
 
@@ -59,4 +59,36 @@ macro_rules! impl_wasm_json {
       }
     }
   };
+}
+
+/// Implement WasmError for each type individually rather than a trait due to Rust's orphan rules.
+/// Each type must implement `Into<&'static str> + Display`. The `Into<&'static str>` trait can be
+/// derived using `strum::IntoStaticStr`.
+#[macro_export]
+macro_rules! impl_wasm_error_from {
+  ( $($t:ty),* ) => {
+  $(impl From<$t> for $crate::bindings::wasm_error::WasmError<'_> {
+    fn from(error: $t) -> Self {
+      Self {
+        message: std::borrow::Cow::Owned($crate::bindings::wasm_error::ErrorMessage(&error).to_string()),
+        name: std::borrow::Cow::Borrowed(error.into()),
+      }
+    }
+  })*
+  }
+}
+
+// Similar to `impl_wasm_error_from`, but uses the types name instead of requiring/calling Into &'static str
+#[macro_export]
+macro_rules! impl_wasm_error_from_with_struct_name {
+  ( $($t:ty),* ) => {
+  $(impl From<$t> for $crate::bindings::wasm_error::WasmError<'_> {
+    fn from(error: $t) -> Self {
+      Self {
+        message: std::borrow::Cow::Owned(error.to_string()),
+        name: std::borrow::Cow::Borrowed(stringify!($t)),
+      }
+    }
+  })*
+  }
 }

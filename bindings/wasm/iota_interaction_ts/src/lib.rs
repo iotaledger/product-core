@@ -16,6 +16,8 @@ pub mod transaction_builder;
 
 #[cfg(all(target_arch = "wasm32", feature = "keypair-signer"))]
 mod keypair_signer;
+#[cfg(target_arch = "wasm32")]
+pub mod wasm_error;
 
 cfg_if::cfg_if! {
     if #[cfg(target_arch = "wasm32")] {

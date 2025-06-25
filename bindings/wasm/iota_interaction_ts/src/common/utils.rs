@@ -4,7 +4,7 @@
 use serde::de::DeserializeOwned;
 use wasm_bindgen::prelude::*;
 
-use crate::error::WasmError;
+use crate::wasm_error::WasmError;
 
 pub fn into_sdk_type<'a, T: DeserializeOwned, W: Into<JsValue>>(
   wasm_type_instance: W,

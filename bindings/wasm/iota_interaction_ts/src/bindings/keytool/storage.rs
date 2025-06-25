@@ -10,7 +10,7 @@ use js_sys::{Array, JsString};
 use wasm_bindgen::prelude::*;
 
 use super::signer::WasmKeytoolSigner;
-use crate::error::{Result, WasmResult};
+use crate::wasm_error::{Result, WasmResult};
 use crate::WasmPublicKey;
 
 const __TS_IMPORTS: &str = r#"

@@ -13,13 +13,7 @@ pub mod transaction;
 #[cfg(feature = "binding-utils")]
 pub mod utils;
 
-use iota_interaction_ts::error::WasmError;
+pub use iota_interaction_ts::wasm_error as wasm_error;
 
 pub type WasmIotaAddress = String;
 pub type WasmObjectID = String;
-
-impl From<crate::Error> for WasmError<'static> {
-  fn from(e: crate::Error) -> Self {
-    WasmError::new("product-common".into(), e.to_string().into())
-  }
-}
