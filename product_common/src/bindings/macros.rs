@@ -48,6 +48,7 @@ macro_rules! impl_wasm_json {
       #[wasm_bindgen(js_name = toJSON)]
       pub fn to_json(&self) -> $crate::bindings::wasm_error::Result<wasm_bindgen::JsValue> {
         use $crate::bindings::wasm_error::WasmResult;
+        #[allow(deprecated)] // see https://github.com/iotaledger/product-core/issues/37
         wasm_bindgen::JsValue::from_serde(&self.0).wasm_result()
       }
 

@@ -76,7 +76,7 @@ impl TryFrom<&Object> for MapStringAny {
     for (key, value) in properties.iter() {
       map.set(
         &JsValue::from_str(key.as_str()),
-        #[allow(deprecated)] // will be refactored
+        #[allow(deprecated)] // see https://github.com/iotaledger/product-core/issues/37
         &JsValue::from_serde(&value).wasm_result()?,
       );
     }
