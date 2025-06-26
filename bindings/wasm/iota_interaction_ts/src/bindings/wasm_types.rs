@@ -19,7 +19,7 @@ use wasm_bindgen::{JsCast, JsError, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
 use crate::bindings::WasmIotaClient;
-use crate::console_log;
+use crate::common::macros::console_log;
 use crate::error::TsSdkError;
 use crate::wasm_error::{WasmError};
 

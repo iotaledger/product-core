@@ -38,7 +38,7 @@ use crate::bindings::{
 };
 use crate::common::types::PromiseString;
 use crate::common::PromiseBigint;
-use crate::console_log;
+use crate::common::macros::console_log;
 use crate::error::{into_ts_sdk_result, TsSdkError};
 
 // This file contains the wasm-bindgen 'glue code' providing
