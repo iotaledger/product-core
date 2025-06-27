@@ -13,7 +13,7 @@ pub mod transaction;
 #[cfg(feature = "binding-utils")]
 pub mod utils;
 
-pub use iota_interaction_ts::wasm_error as wasm_error;
+pub use iota_interaction_ts::wasm_error;
 
 pub type WasmIotaAddress = String;
 pub type WasmObjectID = String;

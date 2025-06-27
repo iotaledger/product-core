@@ -21,8 +21,8 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsCast as _, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
-use crate::bindings::wasm_error::{Result, WasmResult as _};
 use crate::bindings::core_client::{WasmManagedCoreClient, WasmManagedCoreClientReadOnly};
+use crate::bindings::wasm_error::{Result, WasmResult as _};
 use crate::core_client::CoreClientReadOnly;
 use crate::transaction::transaction_builder::{MutGasDataRef, Transaction, TransactionBuilder};
 use crate::transaction::TransactionOutputInternal;
@@ -99,10 +99,10 @@ impl Transaction for WasmTransaction {
     C: CoreClientReadOnly,
   {
     let has_js_fn = Reflect::has(&self, &JsValue::from_str("applyWithEvents")).unwrap_or(false);
-    if !has_js_fn  {  
+    if !has_js_fn {
       return self.apply(effects, client).await;
     }
-    
+
     let managed_client = WasmManagedCoreClientReadOnly::from_rust(client);
     let core_client = managed_client.into_wasm();
     let wasm_effects = WasmIotaTransactionBlockEffects::from(&*effects);

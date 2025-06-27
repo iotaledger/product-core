@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::borrow::Cow;
-use std::fmt::{Debug};
+use std::fmt::Debug;
 
 use iota_interaction::types::execution_status::{
   CommandArgumentError, ExecutionFailureStatus, PackageUpgradeError, TypeArgumentError,
@@ -12,7 +12,7 @@ use thiserror::Error as ThisError;
 use wasm_bindgen::JsValue;
 
 use crate::common::into_sdk_type;
-use crate::wasm_error::{stringify_js_error, WasmError, ErrorMessage, Result};
+use crate::wasm_error::{stringify_js_error, ErrorMessage, Result, WasmError};
 
 #[derive(ThisError, Debug, strum::IntoStaticStr)]
 pub enum TsSdkError {
