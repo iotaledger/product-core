@@ -6,8 +6,6 @@ use std::result::Result as StdResult;
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
 use fastcrypto::traits::EncodeDecodeBase64;
-use js_sys::Reflect;
-
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEvents};
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::transaction::{ProgrammableTransaction, TransactionData, TransactionDataAPI as _};
@@ -16,7 +14,7 @@ use iota_interaction_ts::bindings::{
   WasmTransactionDataBuilder,
 };
 use iota_interaction_ts::core_client::{WasmCoreClient, WasmCoreClientReadOnly};
-use js_sys::JsString;
+use js_sys::{JsString, Reflect};
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsCast as _, JsValue};
 use wasm_bindgen_futures::JsFuture;
