@@ -22,7 +22,7 @@ export interface TransactionOutput<T extends Transaction<unknown>> {
 // A `TransactionBuilder` used by the user will call the `applyWithEvents`
 // method of the product-specific Transaction implementation only in case it exists.
 // If the product-specific Transaction implementation doesn't provide an `applyWithEvents` method,
-// The product-specific Transaction implementation must provide either an `applyWithEvents` 
+// The product-specific Transaction implementation must provide either an `applyWithEvents`
 // or an `apply` method, but not both. See the `apply` and `applyWithEvents` method documentation for more details.
 export interface Transaction<Output> {
     /// IOTA products Implement this method to provide programmable transaction blocks performing the necessary
