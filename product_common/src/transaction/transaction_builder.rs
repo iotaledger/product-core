@@ -414,8 +414,7 @@ where
     let tx_status = tx_effects.status();
     if tx_status.is_err() {
       return Err(Error::TransactionUnexpectedResponse(format!(
-        "errors in transaction's effects: {}",
-        tx_status
+        "errors in transaction's effects: {tx_status}"
       )));
     }
 

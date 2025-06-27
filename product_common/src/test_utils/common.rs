@@ -172,7 +172,7 @@ pub async fn publish_package(
   std::env::set_var("PRODUCT_IOTA_PKG_ID", package_id_str.as_str());
   std::fs::File::create(cached_pkg_file)
     .context("failed to create cached pkg file")?
-    .write_all(format!("{};{}", package_id_str, active_address).as_bytes())
+    .write_all(format!("{package_id_str};{active_address}").as_bytes())
     .context("failed to write cached pkg file")?;
 
   Ok(package_id)
