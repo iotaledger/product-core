@@ -148,7 +148,7 @@ enum GasStationRequestErrorKind {
   #[non_exhaustive]
   BodyDeserialization { source: serde_json::Error },
   /// The request was successful but the received response is invalid.
-  #[error("received an invalid response{}", .message.as_deref().map(|msg| format!(": {}", msg)).unwrap_or_default())]
+  #[error("received an invalid response{}", .message.as_deref().map(|msg| format!(": {msg}")).unwrap_or_default())]
   #[non_exhaustive]
   InvalidResponse { message: Option<String> },
 }
