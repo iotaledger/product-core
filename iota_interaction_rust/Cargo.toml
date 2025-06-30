@@ -26,7 +26,7 @@ thiserror.workspace = true
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iota_interaction = { version = "0.2.1", path = "../iota_interaction" }
 iota-sdk.workspace = true
-tokio = { version = "1.44.2", optional = true, default-features = false, features = ["process"] }
+tokio = { workspace = true, optional = true}
 
 [package.metadata.docs.rs]
 # To build locally:
