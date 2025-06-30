@@ -36,9 +36,9 @@ use crate::bindings::{
   PromisePaginatedObjectsResponse, WasmGetCoinsParams, WasmGetDynamicFieldObjectParams, WasmGetObjectParams,
   WasmGetOwnedObjectsParams, WasmGetTransactionBlockParams, WasmQueryEventsParams, WasmTryGetPastObjectParams,
 };
+use crate::common::macros::console_log;
 use crate::common::types::PromiseString;
 use crate::common::PromiseBigint;
-use crate::console_log;
 use crate::error::{into_ts_sdk_result, TsSdkError};
 
 // This file contains the wasm-bindgen 'glue code' providing
@@ -150,7 +150,7 @@ impl ManagedWasmIotaClient {
     let promise: Promise = Promise::resolve(&WasmIotaClient::execute_transaction_block(&self.0, &wasm_params));
     let result: JsValue = JsFuture::from(promise).await.map_err(|e| {
       console_log!("Error executing JsFuture::from(promise): {:?}", e);
-      IotaRpcError::FfiError(format!("{:?}", e))
+      IotaRpcError::FfiError(format!("{e:?}"))
     })?;
     Ok(WasmIotaTransactionBlockResponseWrapper::new(result.into()))
   }
@@ -180,8 +180,7 @@ impl ManagedWasmIotaClient {
         js_error_value
       );
       IotaRpcError::FfiError(format!(
-        "devInspectTransactionBlock JS Promise rejected: {:?}",
-        js_error_value
+        "devInspectTransactionBlock JS Promise rejected: {js_error_value:?}"
       ))
     })?;
 
@@ -204,14 +203,14 @@ impl ManagedWasmIotaClient {
             "Error executing serde_wasm_bindgen::to_value(WasmGetDynamicFieldObjectParams): {:?}",
             e
           );
-          IotaRpcError::FfiError(format!("{:?}", e))
+          IotaRpcError::FfiError(format!("{e:?}"))
         })?
         .into();
 
     let promise: Promise = Promise::resolve(&WasmIotaClient::get_dynamic_field_object(&self.0, &params));
     let result: JsValue = JsFuture::from(promise).await.map_err(|e| {
       console_log!("Error executing JsFuture::from(promise): {:?}", e);
-      IotaRpcError::FfiError(format!("{:?}", e))
+      IotaRpcError::FfiError(format!("{e:?}"))
     })?;
 
     #[allow(deprecated)] // will be refactored
@@ -230,14 +229,14 @@ impl ManagedWasmIotaClient {
             "Error executing serde_wasm_bindgen::to_value(WasmIotaObjectDataOptions): {:?}",
             e
           );
-          IotaRpcError::FfiError(format!("{:?}", e))
+          IotaRpcError::FfiError(format!("{e:?}"))
         })?
         .into();
 
     let promise: Promise = Promise::resolve(&WasmIotaClient::get_object(&self.0, &params));
     let result: JsValue = JsFuture::from(promise).await.map_err(|e| {
       console_log!("Error executing JsFuture::from(promise): {:?}", e);
-      IotaRpcError::FfiError(format!("{:?}", e))
+      IotaRpcError::FfiError(format!("{e:?}"))
     })?;
 
     #[allow(deprecated)] // will be refactored
@@ -263,14 +262,14 @@ impl ManagedWasmIotaClient {
         "Error executing serde_wasm_bindgen::to_value(WasmIotaObjectDataOptions): {:?}",
         e
       );
-      IotaRpcError::FfiError(format!("{:?}", e))
+      IotaRpcError::FfiError(format!("{e:?}"))
     })?
     .into();
 
     let promise: Promise = Promise::resolve(&WasmIotaClient::get_owned_objects(&self.0, &params));
     let result: JsValue = JsFuture::from(promise).await.map_err(|e| {
       console_log!("Error executing JsFuture::from(promise): {:?}", e);
-      IotaRpcError::FfiError(format!("{:?}", e))
+      IotaRpcError::FfiError(format!("{e:?}"))
     })?;
 
     #[allow(deprecated)] // will be refactored
@@ -289,7 +288,7 @@ impl ManagedWasmIotaClient {
             "Error executing serde_wasm_bindgen::to_value(WasmIotaObjectDataOptions): {:?}",
             e
           );
-          IotaRpcError::FfiError(format!("{:?}", e))
+          IotaRpcError::FfiError(format!("{e:?}"))
         })?
         .into();
 
@@ -298,7 +297,7 @@ impl ManagedWasmIotaClient {
     let promise: Promise = Promise::resolve(&WasmIotaClient::get_transaction_block(&self.0, &params));
     let result: JsValue = JsFuture::from(promise).await.map_err(|e| {
       console_log!("Error executing JsFuture::from(promise): {:?}", e);
-      IotaRpcError::FfiError(format!("{:?}", e))
+      IotaRpcError::FfiError(format!("{e:?}"))
     })?;
 
     Ok(WasmIotaTransactionBlockResponseWrapper::new(result.into()))
@@ -308,7 +307,7 @@ impl ManagedWasmIotaClient {
     let promise: Promise = Promise::resolve(&WasmIotaClient::get_reference_gas_price(&self.0));
     let result: JsValue = JsFuture::from(promise).await.map_err(|e| {
       console_log!("Error executing JsFuture::from(promise): {:?}", e);
-      IotaRpcError::FfiError(format!("{:?}", e))
+      IotaRpcError::FfiError(format!("{e:?}"))
     })?;
 
     serde_wasm_bindgen::from_value(result)
@@ -333,14 +332,14 @@ impl ManagedWasmIotaClient {
     //     "Error executing serde_wasm_bindgen::to_value(WasmIotaObjectDataOptions): {:?}",
     //     e
     //   );
-    //   IotaRpcError::FfiError(format!("{:?}", e))
+    //   IotaRpcError::FfiError(format!("{e:?}"))
     // })?
     // .into();
 
     // let promise: Promise = Promise::resolve(&WasmIotaClient::try_get_past_object(&self.0, &params));
     // let result: JsValue = JsFuture::from(promise).await.map_err(|e| {
     //   console_log!("Error executing JsFuture::from(promise): {:?}", e);
-    //   IotaRpcError::FfiError(format!("{:?}", e))
+    //   IotaRpcError::FfiError(format!("{e:?}"))
     // })?;
 
     // Ok(result.into_serde()?)
@@ -364,14 +363,14 @@ impl ManagedWasmIotaClient {
         "Error executing serde_wasm_bindgen::to_value(WasmIotaObjectDataOptions): {:?}",
         e
       );
-      IotaRpcError::FfiError(format!("{:?}", e))
+      IotaRpcError::FfiError(format!("{e:?}"))
     })?
     .into();
 
     let promise: Promise = Promise::resolve(&WasmIotaClient::query_events(&self.0, &params));
     let result: JsValue = JsFuture::from(promise).await.map_err(|e| {
       console_log!("Error executing JsFuture::from(promise): {:?}", e);
-      IotaRpcError::FfiError(format!("{:?}", e))
+      IotaRpcError::FfiError(format!("{e:?}"))
     })?;
 
     #[allow(deprecated)] // will be refactored
@@ -396,14 +395,14 @@ impl ManagedWasmIotaClient {
         "Error executing serde_wasm_bindgen::to_value(WasmIotaObjectDataOptions): {:?}",
         e
       );
-      IotaRpcError::FfiError(format!("{:?}", e))
+      IotaRpcError::FfiError(format!("{e:?}"))
     })?
     .into();
 
     let promise: Promise = Promise::resolve(&WasmIotaClient::get_coins(&self.0, &params));
     let result: JsValue = JsFuture::from(promise).await.map_err(|e| {
       console_log!("Error executing JsFuture::from(promise): {:?}", e);
-      IotaRpcError::FfiError(format!("{:?}", e))
+      IotaRpcError::FfiError(format!("{e:?}"))
     })?;
 
     #[allow(deprecated)] // will be refactored
@@ -432,13 +431,13 @@ impl ManagedWasmIotaClient {
     let params: WasmWaitForTransactionParams = serde_json::to_value(&params_object)
       .map_err(|e| {
         console_log!("Error serializing WaitForTransactionParams to Value: {:?}", e);
-        IotaRpcError::FfiError(format!("{:?}", e))
+        IotaRpcError::FfiError(format!("{e:?}"))
       })
       .and_then(|v| {
         v.serialize(&serde_wasm_bindgen::Serializer::json_compatible())
           .map_err(|e| {
             console_log!("Error serializing Value to WasmWaitForTransactionParams: {:?}", e);
-            IotaRpcError::FfiError(format!("{:?}", e))
+            IotaRpcError::FfiError(format!("{e:?}"))
           })
       })?
       .into();
@@ -446,7 +445,7 @@ impl ManagedWasmIotaClient {
     let promise: Promise = Promise::resolve(&WasmIotaClient::wait_for_transaction(&self.0, &params));
     let result: JsValue = JsFuture::from(promise).await.map_err(|e| {
       console_log!("Error executing JsFuture::from(promise): {:?}", e);
-      IotaRpcError::FfiError(format!("{:?}", e))
+      IotaRpcError::FfiError(format!("{e:?}"))
     })?;
 
     Ok(WasmIotaTransactionBlockResponseWrapper::new(result.into()))

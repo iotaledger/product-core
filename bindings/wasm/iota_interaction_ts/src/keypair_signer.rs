@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsError;
 
 use crate::bindings::WasmKeyPair;
-use crate::error::Result;
+use crate::wasm_error::Result;
 use crate::WasmPublicKey;
 
 /// A wrapper over an {@link @iota/iota-sdk/cryptography/KeyPair | IOTA KeyPair}

@@ -6,20 +6,21 @@ use std::result::Result as StdResult;
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
 use fastcrypto::traits::EncodeDecodeBase64;
-use iota_interaction::rpc_types::IotaTransactionBlockEffects;
+use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEvents};
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::transaction::{ProgrammableTransaction, TransactionData, TransactionDataAPI as _};
 use iota_interaction_ts::bindings::{
-  WasmIotaTransactionBlockEffects, WasmIotaTransactionBlockResponse, WasmObjectRef, WasmTransactionDataBuilder,
+  WasmIotaTransactionBlockEffects, WasmIotaTransactionBlockEvents, WasmIotaTransactionBlockResponse, WasmObjectRef,
+  WasmTransactionDataBuilder,
 };
 use iota_interaction_ts::core_client::{WasmCoreClient, WasmCoreClientReadOnly};
-use iota_interaction_ts::error::{Result, WasmResult as _};
-use js_sys::JsString;
+use js_sys::{JsString, Reflect};
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsCast as _, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
 use crate::bindings::core_client::{WasmManagedCoreClient, WasmManagedCoreClientReadOnly};
+use crate::bindings::wasm_error::{Result, WasmResult as _};
 use crate::core_client::CoreClientReadOnly;
 use crate::transaction::transaction_builder::{MutGasDataRef, Transaction, TransactionBuilder};
 use crate::transaction::TransactionOutputInternal;
@@ -35,10 +36,19 @@ extern "C" {
     this: &WasmTransaction,
     client: &WasmCoreClientReadOnly,
   ) -> Result<js_sys::Uint8Array>;
+
   #[wasm_bindgen(method, catch)]
   pub async fn apply(
     this: &WasmTransaction,
     effects: &WasmIotaTransactionBlockEffects,
+    client: &WasmCoreClientReadOnly,
+  ) -> Result<JsValue>;
+
+  #[wasm_bindgen(method, catch, js_name = applyWithEvents)]
+  pub async fn apply_with_events(
+    this: &WasmTransaction,
+    effects: &WasmIotaTransactionBlockEffects,
+    events: &WasmIotaTransactionBlockEvents,
     client: &WasmCoreClientReadOnly,
   ) -> Result<JsValue>;
 }
@@ -75,6 +85,32 @@ impl Transaction for WasmTransaction {
     Self::apply(&self, &wasm_effects, &core_client)
       .await
       .map_err(|e| crate::Error::Transaction(anyhow!("failed to apply effects from WASM Transaction: {e:?}").into()))
+  }
+
+  async fn apply_with_events<C>(
+    self,
+    effects: &mut IotaTransactionBlockEffects,
+    events: &mut IotaTransactionBlockEvents,
+    client: &C,
+  ) -> StdResult<Self::Output, Self::Error>
+  where
+    C: CoreClientReadOnly,
+  {
+    let has_js_fn = Reflect::has(&self, &JsValue::from_str("applyWithEvents")).unwrap_or(false);
+    if !has_js_fn {
+      return self.apply(effects, client).await;
+    }
+
+    let managed_client = WasmManagedCoreClientReadOnly::from_rust(client);
+    let core_client = managed_client.into_wasm();
+    let wasm_effects = WasmIotaTransactionBlockEffects::from(&*effects);
+    let wasm_events = WasmIotaTransactionBlockEvents::from(&*events);
+
+    Self::apply_with_events(&self, &wasm_effects, &wasm_events, &core_client)
+      .await
+      .map_err(|e| {
+        crate::Error::Transaction(anyhow!("failed to apply effects and events from WASM Transaction: {e:?}").into())
+      })
   }
 }
 

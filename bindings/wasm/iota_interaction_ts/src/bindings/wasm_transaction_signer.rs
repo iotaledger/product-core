@@ -10,7 +10,7 @@ use js_sys::{JsString, Uint8Array};
 use secret_storage::{Error as SecretStorageError, Signer};
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::error::Result;
+use crate::wasm_error::Result;
 
 #[wasm_bindgen(typescript_custom_section)]
 const I_TX_SIGNER: &str = r#"
@@ -52,7 +52,7 @@ impl Signer<IotaKeySignature> for WasmTransactionSigner {
       .await
       .map(|js_str| js_str.into())
       .map_err(|err| {
-        let details = err.as_string().map(|v| format!("; {}", v)).unwrap_or_default();
+        let details = err.as_string().map(|v| format!("; {v}")).unwrap_or_default();
         let message = format!("could not sign data{details}");
         SecretStorageError::Other(anyhow::anyhow!(message))
       })?;
@@ -61,20 +61,20 @@ impl Signer<IotaKeySignature> for WasmTransactionSigner {
 
   async fn public_key(&self) -> std::result::Result<PublicKey, SecretStorageError> {
     let uint8_array = self.iota_public_key_bytes().await.map_err(|err| {
-      let details = err.as_string().map(|v| format!("; {}", v)).unwrap_or_default();
+      let details = err.as_string().map(|v| format!("; {v}")).unwrap_or_default();
       let message = format!("could not get public key{details}");
       SecretStorageError::KeyNotFound(message)
     })?;
 
     let raw_bytes = uint8_array.to_vec();
     let signature_scheme = SignatureScheme::from_flag_byte(&raw_bytes[0]).map_err(|err| {
-      let details = format!("; {}", err);
+      let details = format!("; {err}");
       let message = format!("could parse scheme flag of public key, {details}");
       SecretStorageError::Other(anyhow::anyhow!(message))
     })?;
 
     PublicKey::try_from_bytes(signature_scheme, &raw_bytes[1..]).map_err(|err| {
-      let details = format!("; {}", err);
+      let details = format!("; {err}");
       let message = format!("could parse public key from bytes, {details}");
       SecretStorageError::Other(anyhow::anyhow!(message))
     })

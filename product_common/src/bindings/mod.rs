@@ -7,13 +7,13 @@ pub mod core_client;
 pub mod gas_station;
 #[cfg(feature = "http-client")]
 pub mod http_client;
+pub mod macros;
 #[cfg(feature = "transaction")]
 pub mod transaction;
+#[cfg(feature = "binding-utils")]
+pub mod utils;
 
-use iota_interaction_ts::error::WasmError;
+pub use iota_interaction_ts::wasm_error;
 
-impl From<crate::Error> for WasmError<'static> {
-  fn from(e: crate::Error) -> Self {
-    WasmError::new("product-common".into(), e.to_string().into())
-  }
-}
+pub type WasmIotaAddress = String;
+pub type WasmObjectID = String;

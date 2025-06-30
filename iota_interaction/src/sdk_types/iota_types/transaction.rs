@@ -16,8 +16,8 @@ use super::super::move_core_types::language_storage::TypeTag;
 use super::base_types::{EpochId, IotaAddress, ObjectID, ObjectRef, SequenceNumber};
 use super::error::UserInputError;
 use super::{
-  IOTA_AUTHENTICATOR_STATE_OBJECT_ID, IOTA_AUTHENTICATOR_STATE_OBJECT_SHARED_VERSION, IOTA_CLOCK_OBJECT_ID,
-  IOTA_CLOCK_OBJECT_SHARED_VERSION, IOTA_SYSTEM_STATE_OBJECT_ID, IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION,
+    IOTA_AUTHENTICATOR_STATE_OBJECT_ID, IOTA_AUTHENTICATOR_STATE_OBJECT_SHARED_VERSION, IOTA_CLOCK_OBJECT_ID,
+    IOTA_CLOCK_OBJECT_SHARED_VERSION, IOTA_SYSTEM_STATE_OBJECT_ID, IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION,
 };
 
 pub const TEST_ONLY_GAS_UNIT_FOR_TRANSFER: u64 = 10_000;
@@ -79,6 +79,13 @@ pub enum ObjectArg {
     Receiving(ObjectRef),
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize, IntoStaticStr)]
+pub enum TransactionKind {
+    /// A transaction that allows the interleaving of native commands and Move
+    /// calls
+    ProgrammableTransaction(ProgrammableTransaction),
+}
+
 impl ObjectArg {
     pub const IOTA_SYSTEM_MUT: Self = Self::SharedObject {
         id: IOTA_SYSTEM_STATE_OBJECT_ID,
@@ -88,9 +95,9 @@ impl ObjectArg {
 
     pub fn id(&self) -> ObjectID {
         match self {
-            Self::ImmOrOwnedObject((id, _, _)) => *id,
-            Self::SharedObject { id, .. } => *id,
-            Self::Receiving((id, _, _)) => *id,
+            ObjectArg::Receiving((id, _, _))
+            | ObjectArg::ImmOrOwnedObject((id, _, _))
+            | ObjectArg::SharedObject { id, .. } => *id,
         }
     }
 }
@@ -140,24 +147,6 @@ pub enum Command {
     Upgrade(Vec<Vec<u8>>, Vec<ObjectID>, ObjectID, Argument),
 }
 
-impl Command {
-    pub fn move_call(
-        package: ObjectID,
-        module: Identifier,
-        function: Identifier,
-        type_arguments: Vec<TypeTag>,
-        arguments: Vec<Argument>,
-    ) -> Self {
-        Self::MoveCall(Box::new(ProgrammableMoveCall {
-           package,
-           module,
-           function,
-           type_arguments,
-           arguments,
-        }))
-    }
-}
-
 /// An argument to a programmable transaction command
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Serialize, Deserialize)]
 pub enum Argument {
@@ -191,6 +180,25 @@ pub struct ProgrammableMoveCall {
     pub arguments: Vec<Argument>,
 }
 
+impl Command {
+    pub fn move_call(
+        package: ObjectID,
+        module: Identifier,
+        function: Identifier,
+        type_arguments: Vec<TypeTag>,
+        arguments: Vec<Argument>,
+    ) -> Self {
+        Command::MoveCall(Box::new(ProgrammableMoveCall {
+            package,
+            module,
+            function,
+            type_arguments,
+            arguments,
+        }))
+    }
+}
+
+
 impl Display for Argument {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -200,13 +208,6 @@ impl Display for Argument {
             Argument::NestedResult(i, j) => write!(f, "NestedResult({i},{j})"),
         }
     }
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize, IntoStaticStr)]
-pub enum TransactionKind {
-    /// A transaction that allows the interleaving of native commands and Move
-    /// calls
-    ProgrammableTransaction(ProgrammableTransaction),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -366,8 +367,6 @@ pub trait TransactionDataAPI {
 
     fn gas_data(&self) -> &GasData;
 
-    fn gas_data_mut(&mut self) -> &mut GasData;
-
     fn gas_owner(&self) -> IotaAddress;
 
     fn gas(&self) -> &[ObjectRef];
@@ -378,6 +377,7 @@ pub trait TransactionDataAPI {
 
     fn expiration(&self) -> &TransactionExpiration;
 
+    fn gas_data_mut(&mut self) -> &mut GasData;
 }
 
 impl TransactionDataAPI for TransactionDataV1 {

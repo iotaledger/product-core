@@ -9,7 +9,8 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 use super::object::Object;
-use crate::error::{TsSdkError, TsSdkResult, WasmError, WasmResult};
+use crate::error::{TsSdkError, TsSdkResult};
+use crate::wasm_error::{WasmError, WasmResult};
 
 #[wasm_bindgen]
 extern "C" {
@@ -75,7 +76,7 @@ impl TryFrom<&Object> for MapStringAny {
     for (key, value) in properties.iter() {
       map.set(
         &JsValue::from_str(key.as_str()),
-        #[allow(deprecated)] // will be refactored
+        #[allow(deprecated)] // see https://github.com/iotaledger/product-core/issues/37
         &JsValue::from_serde(&value).wasm_result()?,
       );
     }

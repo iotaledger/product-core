@@ -19,8 +19,9 @@ use wasm_bindgen::{JsCast, JsError, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
 use crate::bindings::WasmIotaClient;
-use crate::console_log;
-use crate::error::{TsSdkError, WasmError};
+use crate::common::macros::console_log;
+use crate::error::TsSdkError;
+use crate::wasm_error::WasmError;
 
 // TODO: fix/add signer or remove functions relying on it
 type WasmStorageSigner = ();
@@ -100,7 +101,7 @@ extern "C" {
   #[derive(Clone)]
   #[wasm_bindgen(
     typescript_type = "IotaEvent[]",
-    extends = js_sys::Object,
+    extends = js_sys::Array,
   )]
   pub type WasmIotaTransactionBlockEvents;
 

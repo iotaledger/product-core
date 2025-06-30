@@ -11,7 +11,7 @@ use serde_json::Value;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsError;
 
-use crate::error::{Result, WasmResult};
+use crate::wasm_error::{Result, WasmResult};
 use crate::WasmPublicKey;
 
 #[wasm_bindgen(module = buffer)]

@@ -105,13 +105,13 @@ impl IotaCliWrapper {
 
   /// Returns the public key of a given address, if any.
   pub fn get_key(&self, address: IotaAddress) -> anyhow::Result<Option<(PublicKey, String)>> {
-    let query = format!("$[?(@.iotaAddress==\"{}\")]", address);
+    let query = format!("$[?(@.iotaAddress==\"{address}\")]");
     self.get_key_impl(&query)
   }
 
   /// Returns the public key with the given alias, if any.
   pub fn get_key_by_alias(&self, alias: &str) -> anyhow::Result<Option<PublicKey>> {
-    let query = format!("$[?(@.alias==\"{}\")]", alias);
+    let query = format!("$[?(@.alias==\"{alias}\")]");
     Ok(self.get_key_impl(&query)?.map(|(pk, _)| pk))
   }
 }

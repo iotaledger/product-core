@@ -507,8 +507,7 @@ impl IotaClientRustSdk {
 
       let Some(coin) = coins.data.into_iter().max_by_key(|coin| coin.balance) else {
         return Err(Error::GasIssue(format!(
-          "no coin found with minimum required balance of {} for address {}",
-          MINIMUM_BALANCE, sender_address
+          "no coin found with minimum required balance of {MINIMUM_BALANCE} for address {sender_address}"
         )));
       };
 
@@ -524,8 +523,7 @@ impl IotaClientRustSdk {
     }
 
     Err(Error::GasIssue(format!(
-      "no coin found with minimum required balance of {} for address {}",
-      MINIMUM_BALANCE, sender_address
+      "no coin found with minimum required balance of {MINIMUM_BALANCE} for address {sender_address}"
     )))
   }
 }

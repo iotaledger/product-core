@@ -15,11 +15,13 @@ use crate::iota_types::base_types::EpochId;
 use crate::iota_types::digests::{TransactionDigest, TransactionEventsDigest};
 use crate::iota_types::gas::GasCostSummary;
 use crate::iota_types::storage::{DeleteKind, WriteKind};
+use crate::move_core_types::language_storage::TypeTag;
 use crate::rpc_types::IotaEvent;
 use crate::types::base_types::{IotaAddress, ObjectID, ObjectRef, SequenceNumber};
 use crate::types::execution_status::ExecutionStatus;
-use crate::types::iota_serde::{BigInt, IotaTypeTag, SequenceNumber as AsSequenceNumber};
+use crate::types::iota_serde::{BigInt, SequenceNumber as AsSequenceNumber};
 use crate::types::object::Owner;
+use crate::types::parse_iota_type_tag;
 use crate::types::quorum_driver_types::ExecuteTransactionRequestType;
 
 /// BCS serialized IotaTransactionBlockEffects
@@ -39,48 +41,7 @@ pub type IotaTransactionBlockKindBcs = Vec<u8>;
 
 pub type CheckpointSequenceNumber = u64;
 
-/// An argument to a transaction in a programmable transaction block
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
-pub enum IotaArgument {
-  /// The gas coin. The gas coin can only be used by-ref, except for with
-  /// `TransferObjects`, which can use it by-value.
-  GasCoin,
-  /// One of the input objects or primitive values (from
-  /// `ProgrammableTransactionBlock` inputs)
-  Input(u16),
-  /// The result of another transaction (from `ProgrammableTransactionBlock`
-  /// transactions)
-  Result(u16),
-  /// Like a `Result` but it accesses a nested result. Currently, the only
-  /// usage of this is to access a value from a Move call with multiple
-  /// return values.
-  NestedResult(u16, u16),
-}
-
-impl Display for IotaArgument {
-  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Self::GasCoin => write!(f, "GasCoin"),
-      Self::Input(i) => write!(f, "Input({i})"),
-      Self::Result(i) => write!(f, "Result({i})"),
-      Self::NestedResult(i, j) => write!(f, "NestedResult({i},{j})"),
-    }
-  }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(rename = "IotaExecutionResult", rename_all = "camelCase")]
-pub struct IotaExecutionResult {
-  /// The value of any arguments that were mutably borrowed.
-  /// Non-mut borrowed values are not included
-  #[serde(default, skip_serializing_if = "Vec::is_empty")]
-  pub mutable_reference_outputs: Vec<(/* argument */ IotaArgument, Vec<u8>, IotaTypeTag)>,
-  /// The return values from the transaction
-  #[serde(default, skip_serializing_if = "Vec::is_empty")]
-  pub return_values: Vec<(Vec<u8>, IotaTypeTag)>,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema, Eq, PartialEq, Default)]
 #[serde(
     rename_all = "camelCase",
     rename = "TransactionBlockResponseOptions",
@@ -183,69 +144,6 @@ impl IotaTransactionBlockResponseOptions {
 
     pub fn only_digest(&self) -> bool {
         self == &Self::default()
-    }
-}
-
-#[derive(Eq, PartialEq, Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename = "ExecutionStatus", rename_all = "camelCase", tag = "status")]
-pub enum IotaExecutionStatus {
-    // Gas used in the success case.
-    Success,
-    // Gas used in the failed case, and the error.
-    Failure { error: String },
-}
-
-impl Display for IotaExecutionStatus {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Success => write!(f, "success"),
-            Self::Failure { error } => write!(f, "failure due to {error}"),
-        }
-    }
-}
-
-impl IotaExecutionStatus {
-    pub fn is_ok(&self) -> bool {
-        matches!(self, IotaExecutionStatus::Success { .. })
-    }
-    pub fn is_err(&self) -> bool {
-        matches!(self, IotaExecutionStatus::Failure { .. })
-    }
-}
-
-impl From<ExecutionStatus> for IotaExecutionStatus {
-    fn from(status: ExecutionStatus) -> Self {
-        match status {
-            ExecutionStatus::Success => Self::Success,
-            ExecutionStatus::Failure {
-                error,
-                command: None,
-            } => Self::Failure {
-                error: format!("{error:?}"),
-            },
-            ExecutionStatus::Failure {
-                error,
-                command: Some(idx),
-            } => Self::Failure {
-                error: format!("{error:?} in command {idx}"),
-            },
-        }
-    }
-}
-
-#[derive(Eq, PartialEq, Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename = "OwnedObjectRef")]
-pub struct OwnedObjectRef {
-    pub owner: Owner,
-    pub reference: IotaObjectRef,
-}
-
-impl OwnedObjectRef {
-    pub fn object_id(&self) -> ObjectID {
-        self.reference.object_id
-    }
-    pub fn version(&self) -> SequenceNumber {
-        self.reference.version
     }
 }
 
@@ -452,51 +350,178 @@ impl IotaTransactionBlockEffectsAPI for IotaTransactionBlockEffectsV1 {
 #[derive(Eq, PartialEq, Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename = "TransactionBlockEvents", transparent)]
 pub struct IotaTransactionBlockEvents {
-  pub data: Vec<IotaEvent>,
+    pub data: Vec<IotaEvent>,
+}
+
+// TODO: this file might not be the best place for this struct.
+/// Additional arguments supplied to dev inspect beyond what is allowed in
+/// today's API.
+#[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename = "DevInspectArgs", rename_all = "camelCase")]
+pub struct DevInspectArgs {
+    /// The sponsor of the gas for the transaction, might be different from the
+    /// sender.
+    pub gas_sponsor: Option<IotaAddress>,
+    /// The gas budget for the transaction.
+    pub gas_budget: Option<BigInt<u64>>,
+    /// The gas objects used to pay for the transaction.
+    pub gas_objects: Option<Vec<ObjectRef>>,
+    /// Whether to skip transaction checks for the transaction.
+    pub skip_checks: Option<bool>,
+    /// Whether to return the raw transaction data and effects.
+    pub show_raw_txn_data_and_effects: Option<bool>,
 }
 
 /// The response from processing a dev inspect transaction
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename = "DevInspectResults", rename_all = "camelCase")]
 pub struct DevInspectResults {
-  /// Summary of effects that likely would be generated if the transaction is
-  /// actually run. Note however, that not all dev-inspect transactions
-  /// are actually usable as transactions, so it might not be possible
-  /// actually generate these effects from a normal transaction.
-  pub effects: IotaTransactionBlockEffects,
-  /// Events that likely would be generated if the transaction is actually
-  /// run.
-  pub events: IotaTransactionBlockEvents,
-  /// Execution results (including return values) from executing the
-  /// transactions
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub results: Option<Vec<IotaExecutionResult>>,
-  /// Execution error from executing the transactions
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub error: Option<String>,
-  /// The raw transaction data that was dev inspected.
-  #[serde(skip_serializing_if = "Vec::is_empty", default)]
-  pub raw_txn_data: Vec<u8>,
-  /// The raw effects of the transaction that was dev inspected.
-  #[serde(skip_serializing_if = "Vec::is_empty", default)]
-  pub raw_effects: Vec<u8>,
+    /// Summary of effects that likely would be generated if the transaction is
+    /// actually run. Note however, that not all dev-inspect transactions
+    /// are actually usable as transactions so it might not be possible
+    /// actually generate these effects from a normal transaction.
+    pub effects: IotaTransactionBlockEffects,
+    /// Events that likely would be generated if the transaction is actually
+    /// run.
+    pub events: IotaTransactionBlockEvents,
+    /// Execution results (including return values) from executing the
+    /// transactions
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub results: Option<Vec<IotaExecutionResult>>,
+    /// Execution error from executing the transactions
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// The raw transaction data that was dev inspected.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub raw_txn_data: Vec<u8>,
+    /// The raw effects of the transaction that was dev inspected.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub raw_effects: Vec<u8>,
 }
 
-// TODO: this file might not be the best place for this struct.
-/// Additional arguments supplied to dev inspect beyond what is allowed in
-/// today's API.
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
-#[serde(rename = "DevInspectArgs", rename_all = "camelCase")]
-pub struct DevInspectArgs {
-  /// The sponsor of the gas for the transaction might be different from the
-  /// sender.
-  pub gas_sponsor: Option<IotaAddress>,
-  /// The gas budget for the transaction.
-  pub gas_budget: Option<BigInt<u64>>,
-  /// The gas objects used to pay for the transaction.
-  pub gas_objects: Option<Vec<ObjectRef>>,
-  /// Whether to skip transaction checks for the transaction.
-  pub skip_checks: Option<bool>,
-  /// Whether to return the raw transaction data and effects.
-  pub show_raw_txn_data_and_effects: Option<bool>,
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename = "IotaExecutionResult", rename_all = "camelCase")]
+pub struct IotaExecutionResult {
+    /// The value of any arguments that were mutably borrowed.
+    /// Non-mut borrowed values are not included
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mutable_reference_outputs: Vec<(/* argument */ IotaArgument, Vec<u8>, IotaTypeTag)>,
+    /// The return values from the transaction
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub return_values: Vec<(Vec<u8>, IotaTypeTag)>,
+}
+
+#[derive(Eq, PartialEq, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename = "ExecutionStatus", rename_all = "camelCase", tag = "status")]
+pub enum IotaExecutionStatus {
+    // Gas used in the success case.
+    Success,
+    // Gas used in the failed case, and the error.
+    Failure { error: String },
+}
+
+impl Display for IotaExecutionStatus {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Success => write!(f, "success"),
+            Self::Failure { error } => write!(f, "failure due to {error}"),
+        }
+    }
+}
+
+impl IotaExecutionStatus {
+    pub fn is_ok(&self) -> bool {
+        matches!(self, IotaExecutionStatus::Success { .. })
+    }
+    pub fn is_err(&self) -> bool {
+        matches!(self, IotaExecutionStatus::Failure { .. })
+    }
+}
+
+impl From<ExecutionStatus> for IotaExecutionStatus {
+    fn from(status: ExecutionStatus) -> Self {
+        match status {
+            ExecutionStatus::Success => Self::Success,
+            ExecutionStatus::Failure {
+                error,
+                command: None,
+            } => Self::Failure {
+                error: format!("{error:?}"),
+            },
+            ExecutionStatus::Failure {
+                error,
+                command: Some(idx),
+            } => Self::Failure {
+                error: format!("{error:?} in command {idx}"),
+            },
+        }
+    }
+}
+
+/// An argument to a transaction in a programmable transaction block
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub enum IotaArgument {
+    /// The gas coin. The gas coin can only be used by-ref, except for with
+    /// `TransferObjects`, which can use it by-value.
+    GasCoin,
+    /// One of the input objects or primitive values (from
+    /// `ProgrammableTransactionBlock` inputs)
+    Input(u16),
+    /// The result of another transaction (from `ProgrammableTransactionBlock`
+    /// transactions)
+    Result(u16),
+    /// Like a `Result` but it accesses a nested result. Currently, the only
+    /// usage of this is to access a value from a Move call with multiple
+    /// return values.
+    NestedResult(u16, u16),
+}
+
+impl Display for IotaArgument {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::GasCoin => write!(f, "GasCoin"),
+            Self::Input(i) => write!(f, "Input({i})"),
+            Self::Result(i) => write!(f, "Result({i})"),
+            Self::NestedResult(i, j) => write!(f, "NestedResult({i},{j})"),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]
+#[serde(rename = "TypeTag", rename_all = "camelCase")]
+pub struct IotaTypeTag(String);
+
+impl IotaTypeTag {
+    pub fn new(tag: String) -> Self {
+        Self(tag)
+    }
+}
+
+impl TryInto<TypeTag> for IotaTypeTag {
+    type Error = anyhow::Error;
+    fn try_into(self) -> Result<TypeTag, Self::Error> {
+        parse_iota_type_tag(&self.0)
+    }
+}
+
+impl From<TypeTag> for IotaTypeTag {
+    fn from(tag: TypeTag) -> Self {
+        Self(format!("{tag}"))
+    }
+}
+
+#[derive(Eq, PartialEq, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename = "OwnedObjectRef")]
+pub struct OwnedObjectRef {
+    pub owner: Owner,
+    pub reference: IotaObjectRef,
+}
+
+impl OwnedObjectRef {
+    pub fn object_id(&self) -> ObjectID {
+        self.reference.object_id
+    }
+    pub fn version(&self) -> SequenceNumber {
+        self.reference.version
+    }
 }

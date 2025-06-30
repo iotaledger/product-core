@@ -1,6 +1,9 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(all(target_arch = "wasm32", feature = "bindings"))]
+use crate::impl_wasm_error_from;
+
 /// Alias for a `Result` with the error type [`Error`].
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
@@ -51,3 +54,6 @@ pub enum Error {
   #[error("gas-station sponsoring failed: {0}")]
   GasStation(#[from] crate::gas_station::GasStationError),
 }
+
+#[cfg(all(target_arch = "wasm32", feature = "bindings"))]
+impl_wasm_error_from!(Error);
