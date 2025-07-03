@@ -88,9 +88,11 @@ pub struct GasStationOptions {
 
 impl Default for GasStationOptions {
   fn default() -> Self {
+    let mut headers = HeaderMap::default();
+    headers.insert("Content-Type".to_owned(), vec!["application/json".to_owned()]);
     Self {
       gas_reservation_duration: default_gas_reservation(),
-      headers: HeaderMap::default(),
+      headers,
     }
   }
 }
@@ -147,10 +149,13 @@ enum GasStationRequestErrorKind {
   #[error("failed to deserialize response's body")]
   #[non_exhaustive]
   BodyDeserialization { source: serde_json::Error },
-  /// The request was successful but the received response is invalid.
-  #[error("received an invalid response{}", .message.as_deref().map(|msg| format!(": {msg}")).unwrap_or_default())]
+  /// Invalid or unsuccessful response.
+  #[error(
+    "received an invalid response with status code `{status_code}`{}",
+    .message.as_deref().map(|msg| format!("and message \"{msg}\"")).unwrap_or_default()
+  )]
   #[non_exhaustive]
-  InvalidResponse { message: Option<String> },
+  InvalidResponse { message: Option<String>, status_code: u16 },
 }
 
 #[derive(Debug)]
@@ -242,6 +247,22 @@ where
       gas_station_url.clone(),
     )
   })?;
+  let status_code = response.status_code;
+  if status_code >= 400 {
+    let is_text_body = response
+      .headers
+      .get("content-type")
+      .is_some_and(|types| types.iter().any(|type_| type_ == "text/plain; charset=utf-8"));
+    let maybe_err_msg = is_text_body.then(|| String::from_utf8(response.payload).ok()).flatten();
+
+    return Err(GasStationRequestError::new_reservation(
+      GasStationRequestErrorKind::InvalidResponse {
+        message: maybe_err_msg,
+        status_code,
+      },
+      gas_station_url.clone(),
+    ));
+  }
 
   let ReserveGasResponse { result, error } = serde_json::from_slice(&response.payload).map_err(|e| {
     GasStationRequestError::new_reservation(
@@ -252,7 +273,10 @@ where
 
   let Some(reservation_result) = result else {
     return Err(GasStationRequestError::new_reservation(
-      GasStationRequestErrorKind::InvalidResponse { message: error },
+      GasStationRequestErrorKind::InvalidResponse {
+        message: error,
+        status_code,
+      },
       gas_station_url.clone(),
     ));
   };
@@ -324,6 +348,22 @@ where
       gas_station_url.clone(),
     )
   })?;
+  let status_code = response.status_code;
+  if status_code >= 400 {
+    let is_text_body = response
+      .headers
+      .get("content-type")
+      .is_some_and(|types| types.iter().any(|type_| type_ == "text/plain; charset=utf-8"));
+    let maybe_err_msg = is_text_body.then(|| String::from_utf8(response.payload).ok()).flatten();
+
+    return Err(GasStationRequestError::new_execution(
+      GasStationRequestErrorKind::InvalidResponse {
+        message: maybe_err_msg,
+        status_code,
+      },
+      gas_station_url.clone(),
+    ));
+  }
 
   let ExecuteTxResponse { effects, error } = serde_json::from_slice(&response.payload).map_err(|e| {
     GasStationRequestError::new_execution(
@@ -334,7 +374,10 @@ where
 
   let Some(effects) = effects else {
     return Err(GasStationRequestError::new_execution(
-      GasStationRequestErrorKind::InvalidResponse { message: error },
+      GasStationRequestErrorKind::InvalidResponse {
+        message: error,
+        status_code,
+      },
       gas_station_url.clone(),
     ));
   };

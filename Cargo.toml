@@ -4,7 +4,7 @@ edition = "2021"
 homepage = "https://www.iota.org"
 license = "Apache-2.0"
 repository = "https://github.com/iotaledger/product-core.rs"
-rust-version = "1.65"
+rust-version = "1.70"
 
 [workspace]
 resolver = "2"

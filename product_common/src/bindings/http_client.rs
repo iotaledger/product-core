@@ -126,6 +126,7 @@ pub mod default_http_client {
   use std::ops::Deref;
 
   use reqwest::Client;
+  use wasm_bindgen::prelude::wasm_bindgen;
 
   /// A default implementation for {@link HttpClient}.
   #[wasm_bindgen(js_name = DefaultHttpClient)]
