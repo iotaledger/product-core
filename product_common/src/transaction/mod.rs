@@ -75,3 +75,26 @@ where
     self
   }
 }
+
+/// Types that can be turned into a [Transaction].
+pub trait IntoTransaction {
+  /// The transaction this type can be turned into.
+  type Tx: Transaction;
+
+  /// Consume this type into [IntoTransaction::Tx].
+  fn into_transaction(self) -> Self::Tx;
+}
+
+impl<T: Transaction> IntoTransaction for T {
+  type Tx = T;
+  fn into_transaction(self) -> Self::Tx {
+    self
+  }
+}
+
+impl<T: Transaction> IntoTransaction for TransactionBuilder<T> {
+  type Tx = T;
+  fn into_transaction(self) -> Self::Tx {
+    self.into_inner()
+  }
+}

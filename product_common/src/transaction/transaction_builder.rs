@@ -178,18 +178,6 @@ impl<Tx> TransactionBuilder<Tx>
 where
   Tx: Transaction + OptionalSend,
 {
-  /// Starts the creation of an executable transaction by supplying
-  /// a type implementing [Transaction].
-  pub fn new(effect: Tx) -> Self {
-    Self {
-      tx: effect,
-      gas: PartialGasData::default(),
-      signatures: vec![],
-      sender: None,
-      programmable_tx: None,
-    }
-  }
-
   async fn transaction_data<C>(&mut self, client: &C) -> anyhow::Result<TransactionData>
   where
     C: CoreClientReadOnly + OptionalSync,
@@ -456,6 +444,17 @@ where
 }
 
 impl<Tx> TransactionBuilder<Tx> {
+  /// Returns a new [TransactionBuilder], wrapping the provided `tx`.
+  pub fn new(tx: Tx) -> Self {
+    Self {
+      tx,
+      gas: PartialGasData::default(),
+      signatures: vec![],
+      sender: None,
+      programmable_tx: None,
+    }
+  }
+
   /// Returns the partial [Transaction] wrapped by this builder, consuming it.
   pub fn into_inner(self) -> Tx {
     self.tx
