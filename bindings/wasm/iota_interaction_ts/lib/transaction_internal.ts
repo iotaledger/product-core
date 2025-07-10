@@ -43,7 +43,7 @@ export interface Transaction<Output> {
 export type SponsorFn = (tx_data: TransactionDataBuilder) => Promise<string>;
 
 export interface TransactionBuilder<T extends Transaction<unknown>> {
-    get transaction(): Readonly<Transaction<T>>;
+    get transaction(): Readonly<T>;
     withGasPrice(price: bigint): TransactionBuilder<T>;
     withGasBudget(budget: bigint): TransactionBuilder<T>;
     withGasOwner(owner: string): TransactionBuilder<T>;
