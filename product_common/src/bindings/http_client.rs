@@ -8,27 +8,24 @@ use wasm_bindgen::{JsCast, JsError, JsValue};
 
 use crate::http_client::{HttpClient, Method, Request, Response};
 
-#[wasm_bindgen(typescript_custom_section)]
-const _WASM_METHOD: &str = r#"
-/** HTTP Request's method. */
-export const enum Method {
-  Get = "GET",
-  Head = "HEAD",
-  Post = "POST",
-  Put = "PUT",
-  Delete = "DELETE",
-  Connect = "CONNECT",
-  Options = "OPTIONS",
-  Trace = "TRACE",
-  Patch = "PATCH",
-}
-"#;
-
-#[wasm_bindgen]
+#[wasm_bindgen(module = "@iota/iota_interaction_ts/http_client")]
 extern "C" {
   #[derive(Clone)]
   #[wasm_bindgen(typescript_type = Method)]
   pub type WasmMethod;
+
+  #[derive(Clone)]
+  #[wasm_bindgen(typescript_type = HttpClient)]
+  pub type WasmHttpClient;
+
+  #[wasm_bindgen(js_name = send, method, catch)]
+  pub async fn send_impl(this: &WasmHttpClient, request: WasmRequest) -> Result<WasmResponse, JsValue>;
+
+  #[wasm_bindgen(typescript_type = Request, extends = js_sys::Object)]
+  pub type WasmRequest;
+
+  #[wasm_bindgen(typescript_type = Response, extends = js_sys::Object)]
+  pub type WasmResponse;
 }
 
 impl TryFrom<WasmMethod> for Method {
@@ -59,48 +56,6 @@ impl From<Method> for WasmMethod {
   fn from(value: Method) -> Self {
     JsValue::from_str(&value.as_str()).unchecked_into()
   }
-}
-
-#[wasm_bindgen(typescript_custom_section)]
-const _HTTP_CLIENT_INTERFACE: &str = r#"
-export type HeaderMap = Map<string, string[]>;
-
-/** HTTP Request. */
-export interface Request {
-  method: Method,
-  headers: HeaderMap,
-  url: string,
-  payload: Uint8Array,
-}
-
-/** HTTP Response. */
-export interface Response {
-  statusCode: number,
-  headers: HeaderMap,
-  payload: Uint8Array,
-}
-
-/** HTTP Client abstract interface. */
-export interface HttpClient {
-  /** Execute the given HTTP request, returning an HTTP response. */
-  send(request: Request): Promise<Response>;
-}
-"#;
-
-#[wasm_bindgen]
-extern "C" {
-  #[derive(Clone)]
-  #[wasm_bindgen(typescript_type = HttpClient)]
-  pub type WasmHttpClient;
-
-  #[wasm_bindgen(js_name = send, method, catch)]
-  pub async fn send_impl(this: &WasmHttpClient, request: WasmRequest) -> Result<WasmResponse, JsValue>;
-
-  #[wasm_bindgen(typescript_type = Request, extends = js_sys::Object)]
-  pub type WasmRequest;
-
-  #[wasm_bindgen(typescript_type = Response, extends = js_sys::Object)]
-  pub type WasmResponse;
 }
 
 #[async_trait(?Send)]

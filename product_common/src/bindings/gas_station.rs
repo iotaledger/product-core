@@ -9,21 +9,7 @@ use super::http_client::WasmHttpClient;
 use super::transaction::WasmTransactionBuilder;
 use crate::bindings::core_client::WasmManagedCoreClient;
 
-const _GAS_STATION_OPTIONAL_PARAMS: &str = r#"
-export interface GasStationParams {
-  /** 
-   * Duration of the gas reservation in seconds.
-   * Defaults to 60.
-  */
-  gasReservationDuration?: bigint,
-  /**
-   * HTTP headers to be passed to all gas station requests.
-  */
-  headers?: HeaderMap,
-}
-"#;
-
-#[wasm_bindgen]
+#[wasm_bindgen(module = "@iota/iota_interaction_ts/gas_station")]
 extern "C" {
   #[wasm_bindgen(typescript_type = GasStationParams, extends = js_sys::Object)]
   pub type WasmGasStationParams;
@@ -32,26 +18,26 @@ extern "C" {
 #[wasm_bindgen(js_class = TransactionBuilder)]
 impl WasmTransactionBuilder {
   /// Execute this transaction using an IOTA Gas Station.
-  #[wasm_bindgen(js_name = executeWithGasStation)]
+  #[wasm_bindgen(js_name = executeWithGasStation, skip_typescript)]
   pub async fn execute_with_gas_station(
     self,
     client: &WasmCoreClient,
     gas_station_url: &str,
     http_client: &WasmHttpClient,
     options: Option<WasmGasStationParams>,
-  ) -> Result<JsValue, JsValue> {
+  ) -> Result<WasmTransactionOutput, JsValue> {
     let managed_client = WasmManagedCoreClient::from_wasm(client)?;
     let options = options
       .map(|wasm_options| serde_wasm_bindgen::from_value(wasm_options.into()))
       .transpose()?
       .unwrap_or_default();
 
-    let apply_result = self
+    let tx_output = self
       .0
       .execute_with_gas_station(&managed_client, gas_station_url, http_client, options)
       .await
       .map_err(|e| JsError::from(e))?;
 
-    Ok(apply_result)
+    Ok(tx_output.into())
   }
 }

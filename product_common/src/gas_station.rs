@@ -14,7 +14,6 @@ use iota_interaction::types::transaction::TransactionData;
 use serde::{Deserialize, Serialize};
 
 use crate::http_client::{HeaderMap, HttpClient, Method, Request, Url, UrlParsingError};
-use crate::Error;
 
 pub(crate) const DEFAULT_GAS_RESERVATION_DURATION: u64 = 60; // 1 minute.
 pub(crate) const DEFAULT_GAS_BUDGET_RESERVATION: u64 = 1_000_000_000; // 1 IOTA.
@@ -29,10 +28,16 @@ const fn default_gas_reservation() -> Duration {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum ErrorKind {
+  /// Failed to parse the received string gas station URL
+  /// as a valid URL.
   Url(UrlParsingError),
+  /// A request to the gas-station failed.
   GasStationRequest(Box<GasStationRequestError>),
-  TxDataBuilding(Box<Error>),
-  TxApplication(Box<Error>),
+  // TODO: after refactoring product-core's error handling, change this opaque type.
+  /// Failed to build transaction.
+  TxDataBuilding(Box<dyn std::error::Error + Send + Sync>),
+  /// Transaction was executed successfully but its effects couldn't be applied off-chain.
+  TxApplication(Box<dyn std::error::Error + Send + Sync>),
 }
 
 /// Failure for the execution of a transaction through an IOTA Gas Station.
@@ -68,9 +73,9 @@ impl error::Error for GasStationError {
     use ErrorKind::*;
     match &self.kind {
       Url(e) => Some(e),
-      GasStationRequest(e) => Some(e),
-      TxDataBuilding(e) => Some(e),
-      TxApplication(e) => Some(e),
+      GasStationRequest(e) => Some(e.as_ref()),
+      TxDataBuilding(e) => Some(e.as_ref()),
+      TxApplication(e) => Some(e.as_ref()),
     }
   }
 }
