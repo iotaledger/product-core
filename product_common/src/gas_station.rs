@@ -18,6 +18,7 @@ use crate::Error;
 
 pub(crate) const DEFAULT_GAS_RESERVATION_DURATION: u64 = 60; // 1 minute.
 pub(crate) const DEFAULT_GAS_BUDGET_RESERVATION: u64 = 1_000_000_000; // 1 IOTA.
+const WAIT_FOR_LOCAL_EXECUTION: &str = "waitForLocalExecution";
 
 const fn default_gas_reservation() -> Duration {
   Duration::from_secs(DEFAULT_GAS_RESERVATION_DURATION)
@@ -289,6 +290,7 @@ struct ExecuteTxRequest {
   reservation_id: u64,
   tx_bytes: String,
   user_sig: String,
+  request_type: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -324,6 +326,7 @@ where
     reservation_id,
     tx_bytes: Base64::encode(&tx_bcs),
     user_sig: sender_sig.encode_base64(),
+    request_type: WAIT_FOR_LOCAL_EXECUTION.to_owned(),
   })
   .map_err(|e| {
     GasStationRequestError::new_execution(
