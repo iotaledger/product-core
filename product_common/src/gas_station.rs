@@ -11,7 +11,7 @@ use iota_interaction::rpc_types::{IotaObjectRef, IotaTransactionBlockEffects};
 use iota_interaction::types::base_types::IotaAddress;
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::transaction::TransactionData;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::http_client::{HeaderMap, HttpClient, Method, Request, Url, UrlParsingError};
 
@@ -86,10 +86,14 @@ impl error::Error for GasStationError {
 #[serde(rename_all = "camelCase")]
 pub struct GasStationOptions {
   /// Duration of the gas allocation. Default value: `60` seconds.
-  #[serde(default = "default_gas_reservation")]
+  #[serde(default = "default_gas_reservation", deserialize_with = "deserialize_duration_secs")]
   pub gas_reservation_duration: Duration,
   /// Headers to be included in all requests to the gas station.
   pub headers: HeaderMap,
+}
+
+fn deserialize_duration_secs<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Duration, D::Error> {
+  u64::deserialize(deserializer).map(Duration::from_secs)
 }
 
 impl Default for GasStationOptions {
@@ -158,7 +162,7 @@ enum GasStationRequestErrorKind {
   /// Invalid or unsuccessful response.
   #[error(
     "received an invalid response with status code `{status_code}`{}",
-    .message.as_deref().map(|msg| format!("and message \"{msg}\"")).unwrap_or_default()
+    .message.as_deref().map(|msg| format!(" and message \"{msg}\"")).unwrap_or_default()
   )]
   #[non_exhaustive]
   InvalidResponse { message: Option<String>, status_code: u16 },

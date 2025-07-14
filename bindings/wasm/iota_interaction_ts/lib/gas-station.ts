@@ -4,10 +4,10 @@
 import { HeaderMap } from "./http-client";
 
 /** IOTA gas-station options. */
-export interface GasStationParams {
+export interface GasStationParamsI {
   /** 
    * Duration of the gas reservation in seconds.
-   * Defaults to 59.
+   * Defaults to 60.
   */
   gasReservationDuration?: bigint,
   /**

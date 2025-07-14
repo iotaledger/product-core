@@ -8,6 +8,11 @@ use wasm_bindgen::{JsCast, JsError, JsValue};
 
 use crate::http_client::{HttpClient, Method, Request, Response};
 
+#[wasm_bindgen(typescript_custom_section)]
+const _IMPORTS: &str = r#"
+import { Request, Response } from "@iota/iota_interaction_ts/http_client";
+"#;
+
 #[wasm_bindgen(module = "@iota/iota_interaction_ts/http_client")]
 extern "C" {
   #[derive(Clone)]
@@ -26,6 +31,9 @@ extern "C" {
 
   #[wasm_bindgen(typescript_type = Response, extends = js_sys::Object)]
   pub type WasmResponse;
+
+  #[wasm_bindgen(typescript_type = HeaderMap)]
+  pub type WasmHeaderMap;
 }
 
 impl TryFrom<WasmMethod> for Method {
@@ -82,6 +90,10 @@ pub mod default_http_client {
 
   use reqwest::Client;
   use wasm_bindgen::prelude::wasm_bindgen;
+  use wasm_bindgen::{JsCast, JsError};
+
+  use super::{WasmRequest, WasmResponse};
+  use crate::http_client::HttpClient;
 
   /// A default implementation for {@link HttpClient}.
   #[wasm_bindgen(js_name = DefaultHttpClient)]
@@ -99,6 +111,19 @@ pub mod default_http_client {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
       Self(Client::default())
+    }
+
+    pub async fn send(&self, request: WasmRequest) -> Result<WasmResponse, JsError> {
+      let request = serde_wasm_bindgen::from_value(request.into())?;
+      let response = self
+        .0
+        .send(request)
+        .await
+        .map_err(|e| JsError::new(&format!("{e:#}")))?;
+
+      serde_wasm_bindgen::to_value(&response)
+        .map(JsCast::unchecked_into)
+        .map_err(JsError::from)
     }
   }
 }
