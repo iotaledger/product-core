@@ -6,8 +6,8 @@ import { IotaEvent } from "@iota/iota-sdk/src/client/types/generated";
 import { TransactionDataBuilder } from "@iota/iota-sdk/transactions";
 import { TransactionSigner } from "~iota_interaction_ts";
 import { CoreClient, CoreClientReadOnly } from "./core_client";
-import { HttpClient } from "./http-client";
 import { GasStationParamsI } from "./gas-station";
+import { HttpClient } from "./http-client";
 
 export interface TransactionOutput<T extends Transaction<unknown>> {
     response: IotaTransactionBlockResponse;
