@@ -75,7 +75,7 @@ impl From<InvalidGasStationVersion> for GasStationError {
 
 impl Display for GasStationError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "failed to execute transaction with gas station")
+    write!(f, "failed to execute transaction with gas-station")
   }
 }
 
