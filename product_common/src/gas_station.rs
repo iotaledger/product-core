@@ -18,6 +18,7 @@ use crate::http_client::{HeaderMap, HttpClient, Method, Request, Url, UrlParsing
 pub(crate) const DEFAULT_GAS_RESERVATION_DURATION: u64 = 60; // 1 minute.
 pub(crate) const DEFAULT_GAS_BUDGET_RESERVATION: u64 = 1_000_000_000; // 1 IOTA.
 const WAIT_FOR_LOCAL_EXECUTION: &str = "waitForLocalExecution";
+const MIN_GAS_STATION_VERSION: &str = "0.3.0";
 
 const fn default_gas_reservation() -> Duration {
   Duration::from_secs(DEFAULT_GAS_RESERVATION_DURATION)
@@ -38,6 +39,8 @@ pub enum ErrorKind {
   TxDataBuilding(Box<dyn std::error::Error + Send + Sync>),
   /// Transaction was executed successfully but its effects couldn't be applied off-chain.
   TxApplication(Box<dyn std::error::Error + Send + Sync>),
+  /// The contacted gas-station has a version that doesn't match the version requirements.
+  InvalidGasStationVersion(InvalidGasStationVersion),
 }
 
 /// Failure for the execution of a transaction through an IOTA Gas Station.
@@ -62,6 +65,14 @@ impl From<GasStationRequestError> for GasStationError {
   }
 }
 
+impl From<InvalidGasStationVersion> for GasStationError {
+  fn from(value: InvalidGasStationVersion) -> Self {
+    Self {
+      kind: ErrorKind::InvalidGasStationVersion(value),
+    }
+  }
+}
+
 impl Display for GasStationError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "failed to execute transaction with gas station")
@@ -76,6 +87,7 @@ impl error::Error for GasStationError {
       GasStationRequest(e) => Some(e.as_ref()),
       TxDataBuilding(e) => Some(e.as_ref()),
       TxApplication(e) => Some(e.as_ref()),
+      InvalidGasStationVersion(e) => Some(e),
     }
   }
 }
@@ -115,6 +127,90 @@ impl GasStationOptions {
     self.headers.entry("Authorization".to_owned()).or_default().push(value);
 
     self
+  }
+}
+
+async fn gas_station_version<H>(
+  gas_station_url: &Url,
+  headers: &HeaderMap,
+  http_client: &H,
+) -> Result<String, GasStationRequestError>
+where
+  H: HttpClient,
+  H::Error: Into<Box<dyn error::Error + Send + Sync>>,
+{
+  // GET /version.
+  let url = gas_station_url
+    .join(GasStationRequestKind::Version.as_path())
+    .expect("valid URL");
+  let request = Request {
+    method: Method::Get,
+    payload: vec![],
+    url: url.clone(),
+    headers: headers.clone(),
+  };
+
+  let response = http_client.send(request).await.map_err(|e| GasStationRequestError {
+    kind: GasStationRequestErrorKind::HttpClient {
+      method: Method::Get,
+      url,
+      source: e.into(),
+    },
+    request_kind: GasStationRequestKind::Version,
+    gas_station_url: gas_station_url.clone(),
+  })?;
+
+  // A string in the format <PKG VERSION>-<GIT REVISION>.
+  let mut version_info = String::from_utf8(response.payload).map_err(|e| GasStationRequestError {
+    request_kind: GasStationRequestKind::Version,
+    gas_station_url: gas_station_url.clone(),
+    kind: GasStationRequestErrorKind::BodyDeserialization { source: e.into() },
+  })?;
+  // We only care about the version.
+  let separator_idx = version_info
+    .find('-')
+    .expect("always return a response in the format `<PKG VERSION>-<REVISION>`");
+  version_info.truncate(separator_idx);
+
+  Ok(version_info)
+}
+
+/// Unsupported IOTA gas-station version.
+#[derive(Debug, thiserror::Error)]
+#[error(
+  "invalid gas-station version: got version `{version}`, but at least version `{min_required_version}` is required"
+)]
+#[non_exhaustive]
+pub struct InvalidGasStationVersion {
+  /// The minimum IOTA gas-station version needed for this operation.
+  pub min_required_version: String,
+  /// The actual IOTA gas-station's version.
+  pub version: String,
+}
+
+impl InvalidGasStationVersion {
+  pub(crate) fn new(version: String) -> Self {
+    Self {
+      min_required_version: MIN_GAS_STATION_VERSION.to_owned(),
+      version,
+    }
+  }
+}
+
+pub(crate) async fn check_version<H>(
+  gas_station_url: &Url,
+  headers: &HeaderMap,
+  http_client: &H,
+) -> Result<(), GasStationError>
+where
+  H: HttpClient,
+  H::Error: Into<Box<dyn error::Error + Send + Sync>>,
+{
+  let version = gas_station_version(gas_station_url, headers, http_client).await?;
+  if version.as_str() < MIN_GAS_STATION_VERSION {
+    Err(InvalidGasStationVersion::new(version).into())
+  } else {
+    Ok(())
   }
 }
 
@@ -158,7 +254,9 @@ enum GasStationRequestErrorKind {
   /// Failed to deserialize request's body.
   #[error("failed to deserialize response's body")]
   #[non_exhaustive]
-  BodyDeserialization { source: serde_json::Error },
+  BodyDeserialization {
+    source: Box<dyn error::Error + Send + Sync>,
+  },
   /// Invalid or unsuccessful response.
   #[error(
     "received an invalid response with status code `{status_code}`{}",
@@ -175,6 +273,7 @@ pub enum GasStationRequestKind {
   ReserveGas,
   #[non_exhaustive]
   ExecuteTx,
+  Version,
 }
 
 impl GasStationRequestKind {
@@ -182,6 +281,7 @@ impl GasStationRequestKind {
     match self {
       Self::ReserveGas => "/v1/reserve_gas",
       Self::ExecuteTx => "/v1/execute_tx",
+      Self::Version => "/version",
     }
   }
 }
@@ -276,7 +376,7 @@ where
 
   let ReserveGasResponse { result, error } = serde_json::from_slice(&response.payload).map_err(|e| {
     GasStationRequestError::new_reservation(
-      GasStationRequestErrorKind::BodyDeserialization { source: e },
+      GasStationRequestErrorKind::BodyDeserialization { source: e.into() },
       gas_station_url.clone(),
     )
   })?;
@@ -379,7 +479,7 @@ where
 
   let ExecuteTxResponse { effects, error } = serde_json::from_slice(&response.payload).map_err(|e| {
     GasStationRequestError::new_execution(
-      GasStationRequestErrorKind::BodyDeserialization { source: e },
+      GasStationRequestErrorKind::BodyDeserialization { source: e.into() },
       gas_station_url.clone(),
     )
   })?;

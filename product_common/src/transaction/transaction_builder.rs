@@ -647,13 +647,17 @@ mod gas_station {
     // Compute the arguments for gas reservation.
     let reserve_duration_secs = gas_station_options.gas_reservation_duration.as_secs();
     let gas_budget = tx_builder.gas.budget.unwrap_or(DEFAULT_GAS_BUDGET_RESERVATION);
-    let mut headers = gas_station_options.headers;
+
     // Ensure content-type is set.
+    let mut headers = gas_station_options.headers;
     let json_content_type = "application/json".to_owned();
     let entry = headers.entry("Content-Type".to_owned()).or_default();
     if !entry.contains(&json_content_type) {
       entry.push(json_content_type);
     }
+
+    // Make sure the gas-station at `gas_station_url` satisfies the version requirement.
+    check_version(gas_station_url, &headers, http_client).await?;
 
     // Get a gas reservation.
     let ReserveGasResult {
