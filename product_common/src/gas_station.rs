@@ -3,6 +3,8 @@
 
 use std::error;
 use std::fmt::{Debug, Display};
+use std::num::ParseIntError;
+use std::str::FromStr;
 use std::time::Duration;
 
 use fastcrypto::encoding::{Base64, Encoding as _};
@@ -18,10 +20,135 @@ use crate::http_client::{HeaderMap, HttpClient, Method, Request, Url, UrlParsing
 pub(crate) const DEFAULT_GAS_RESERVATION_DURATION: u64 = 60; // 1 minute.
 pub(crate) const DEFAULT_GAS_BUDGET_RESERVATION: u64 = 1_000_000_000; // 1 IOTA.
 const WAIT_FOR_LOCAL_EXECUTION: &str = "waitForLocalExecution";
-const MIN_GAS_STATION_VERSION: &str = "0.3.0";
+const MIN_GAS_STATION_VERSION: Version = Version::new(0, 3, 0);
 
 const fn default_gas_reservation() -> Duration {
   Duration::from_secs(DEFAULT_GAS_RESERVATION_DURATION)
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub(crate) struct Version {
+  version_core: [u8; 3],
+  // Suffix without leading '-'.
+  suffix: Option<String>,
+}
+
+impl Version {
+  const fn new(major: u8, minor: u8, patch: u8) -> Self {
+    Self {
+      version_core: [major, minor, patch],
+      suffix: None,
+    }
+  }
+
+  #[cfg(test)]
+  fn new_with_suffix(major: u8, minor: u8, patch: u8, suffix: &str) -> Self {
+    let mut version = Self::new(major, minor, patch);
+    version.suffix = Some(suffix.to_owned());
+
+    version
+  }
+}
+
+impl Display for Version {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let v = self.version_core;
+    write!(f, "{}.{}.{}", v[0], v[1], v[2])?;
+    if let Some(suffix) = self.suffix.as_deref() {
+      write!(f, "-{suffix}")?;
+    }
+
+    Ok(())
+  }
+}
+
+impl PartialOrd for Version {
+  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl Ord for Version {
+  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    self.version_core.cmp(&other.version_core)
+  }
+}
+
+impl FromStr for Version {
+  type Err = VersionParsingError;
+
+  // Disable this lint as looping over a range allows for checking that we have at least 3 segments.
+  #[allow(clippy::needless_range_loop)]
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    if s.is_empty() {
+      return Err(VersionParsingError {
+        input: String::default(),
+        kind: VersionParsingErrorKind::Empty,
+      });
+    }
+
+    let (version_core_str, maybe_suffix) = if let Some((version, suffix)) = s.split_once('-') {
+      (version, Some(suffix))
+    } else {
+      (s, None)
+    };
+
+    let mut segments = version_core_str.split('.');
+    let mut version_core = [0; 3];
+    for i in 0..3 {
+      let segment = segments.next().ok_or_else(|| VersionParsingError {
+        input: s.to_owned(),
+        kind: VersionParsingErrorKind::InvalidNumberOfSegments,
+      })?;
+      let parsed_segment = segment.parse().map_err(|parse_int_e| VersionParsingError {
+        input: s.to_owned(),
+        kind: VersionParsingErrorKind::InvalidVersionSegment {
+          segment_idx: i,
+          source: parse_int_e,
+        },
+      })?;
+      version_core[i] = parsed_segment;
+    }
+    // Check if there would be more segments than 3.
+    if segments.next().is_some() {
+      return Err(VersionParsingError {
+        input: s.to_owned(),
+        kind: VersionParsingErrorKind::InvalidNumberOfSegments,
+      });
+    }
+
+    Ok(Self {
+      version_core,
+      suffix: maybe_suffix.map(String::from),
+    })
+  }
+}
+
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+enum VersionParsingErrorKind {
+  #[error("failed to parse {} version into a number", idx_to_segment_name(*segment_idx))]
+  InvalidVersionSegment { segment_idx: usize, source: ParseIntError },
+  #[error("invalid amount of version segments. A valid SemVer has exactly three: \"<major>.<minor>.<patch>\"")]
+  InvalidNumberOfSegments,
+  #[error("an empty string cannot be a valid SemVer")]
+  Empty,
+}
+
+fn idx_to_segment_name(idx: usize) -> &'static str {
+  assert!(idx < 3);
+
+  ["major", "minor", "patch"][idx]
+}
+
+/// Parsing a [Version] out of a string failed.
+#[derive(Debug, thiserror::Error)]
+#[error("failed to parse a valid SemVer out of `{input}`")]
+pub(crate) struct VersionParsingError {
+  /// The input string.
+  input: String,
+  #[source]
+  kind: VersionParsingErrorKind,
 }
 
 /// Possible types of error that might occur when executing
@@ -134,7 +261,7 @@ async fn gas_station_version<H>(
   gas_station_url: &Url,
   headers: &HeaderMap,
   http_client: &H,
-) -> Result<String, GasStationRequestError>
+) -> Result<Version, GasStationRequestError>
 where
   H: HttpClient,
   H::Error: Into<Box<dyn error::Error + Send + Sync>>,
@@ -168,11 +295,19 @@ where
   })?;
   // We only care about the version.
   let separator_idx = version_info
-    .find('-')
-    .expect("always return a response in the format `<PKG VERSION>-<REVISION>`");
+    .rfind('-') // Using `rfind` instead of `find` cuz the pkg's version might have a suffix like "-alpha".
+    .expect("always returns a response in the format `<PKG VERSION>-<REVISION>`");
   version_info.truncate(separator_idx);
 
-  Ok(version_info)
+  let version = version_info
+    .parse()
+    .map_err(|e: VersionParsingError| GasStationRequestError {
+      request_kind: GasStationRequestKind::Version,
+      gas_station_url: gas_station_url.clone(),
+      kind: GasStationRequestErrorKind::BodyDeserialization { source: e.into() },
+    })?;
+
+  Ok(version)
 }
 
 /// Unsupported IOTA gas-station version.
@@ -191,7 +326,7 @@ pub struct InvalidGasStationVersion {
 impl InvalidGasStationVersion {
   pub(crate) fn new(version: String) -> Self {
     Self {
-      min_required_version: MIN_GAS_STATION_VERSION.to_owned(),
+      min_required_version: MIN_GAS_STATION_VERSION.to_string(),
       version,
     }
   }
@@ -207,8 +342,8 @@ where
   H::Error: Into<Box<dyn error::Error + Send + Sync>>,
 {
   let version = gas_station_version(gas_station_url, headers, http_client).await?;
-  if version.as_str() < MIN_GAS_STATION_VERSION {
-    Err(InvalidGasStationVersion::new(version).into())
+  if version < MIN_GAS_STATION_VERSION {
+    Err(InvalidGasStationVersion::new(version.to_string()).into())
   } else {
     Ok(())
   }
@@ -495,4 +630,53 @@ where
   };
 
   Ok(effects)
+}
+
+#[cfg(test)]
+mod tests {
+  use std::num::IntErrorKind;
+
+  use super::Version;
+  use crate::gas_station::VersionParsingErrorKind;
+
+  #[test]
+  fn test_valid_semvers() {
+    let inputs = [
+      ("1.2.3", Version::new(1, 2, 3)),
+      ("0.0.1", Version::new(0, 0, 1)),
+      ("0.0.1-rc", Version::new_with_suffix(0, 0, 1, "rc")),
+      ("0.0.1-alpha.3", Version::new_with_suffix(0, 0, 1, "alpha.3")),
+    ];
+
+    for (version, expected) in inputs {
+      let parsed: Version = version.parse().unwrap();
+      assert_eq!(parsed, expected);
+    }
+  }
+
+  #[test]
+  fn test_invalid_semvers() {
+    let err = "".parse::<Version>().unwrap_err().kind;
+    assert!(matches!(err, VersionParsingErrorKind::Empty));
+
+    let err = "1.0".parse::<Version>().unwrap_err().kind;
+    assert!(matches!(err, VersionParsingErrorKind::InvalidNumberOfSegments));
+
+    let err = "0.0.0.1".parse::<Version>().unwrap_err().kind;
+    assert!(matches!(err, VersionParsingErrorKind::InvalidNumberOfSegments));
+
+    let err = "1.o.2".parse::<Version>().unwrap_err().kind;
+    let VersionParsingErrorKind::InvalidVersionSegment { segment_idx, source } = err else {
+      unreachable!()
+    };
+    assert_eq!(segment_idx, 1);
+    assert!(matches!(source.kind(), &IntErrorKind::InvalidDigit));
+  }
+
+  #[test]
+  fn test_version_ordering() {
+    assert!(Version::new(0, 0, 1) < Version::new(0, 0, 2));
+    assert!(Version::new(0, 0, 1) < Version::new(0, 1, 0));
+    assert!(Version::new(0, 0, 1) < Version::new(1, 0, 0));
+  }
 }
