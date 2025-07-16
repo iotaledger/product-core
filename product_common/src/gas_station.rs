@@ -26,7 +26,7 @@ const fn default_gas_reservation() -> Duration {
   Duration::from_secs(DEFAULT_GAS_RESERVATION_DURATION)
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub(crate) struct Version {
   version_core: [u8; 3],
   // Suffix without leading '-'.
@@ -64,7 +64,13 @@ impl Display for Version {
 
 impl PartialOrd for Version {
   fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-    self.version_core.partial_cmp(&other.version_core)
+    Some(self.cmp(other))
+  }
+}
+
+impl Ord for Version {
+  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    self.version_core.cmp(&other.version_core)
   }
 }
 
