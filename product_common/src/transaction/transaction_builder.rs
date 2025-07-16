@@ -593,7 +593,7 @@ mod gas_station {
       gas_station_url: &str,
       http_client: &H,
       options: Option<GasStationOptions>,
-    ) -> Result<Tx::Output, GasStationError>
+    ) -> Result<TransactionOutput<Tx::Output>, GasStationError>
     where
       C: CoreClient<S> + OptionalSync,
       S: Signer<IotaKeySignature> + OptionalSync,
@@ -611,7 +611,7 @@ mod gas_station {
       client: &C,
       gas_station_url: &str,
       options: Option<GasStationOptions>,
-    ) -> Result<Tx::Output, GasStationError>
+    ) -> Result<TransactionOutput<Tx::Output>, GasStationError>
     where
       C: CoreClient<S> + OptionalSync,
       S: Signer<IotaKeySignature> + OptionalSync,
@@ -636,7 +636,7 @@ mod gas_station {
     gas_station_url: &Url,
     http_client: &H,
     gas_station_options: GasStationOptions,
-  ) -> Result<Tx::Output, GasStationError>
+  ) -> Result<TransactionOutput<Tx::Output>, GasStationError>
   where
     S: Signer<IotaKeySignature> + OptionalSync,
     C: CoreClient<S> + OptionalSync,
@@ -646,7 +646,17 @@ mod gas_station {
     // Compute the arguments for gas reservation.
     let reserve_duration_secs = gas_station_options.gas_reservation_duration.as_secs();
     let gas_budget = tx_builder.gas.budget.unwrap_or(DEFAULT_GAS_BUDGET_RESERVATION);
-    let headers = gas_station_options.headers;
+
+    // Ensure content-type is set.
+    let mut headers = gas_station_options.headers;
+    let json_content_type = "application/json".to_owned();
+    let entry = headers.entry("Content-Type".to_owned()).or_default();
+    if !entry.contains(&json_content_type) {
+      entry.push(json_content_type);
+    }
+
+    // Make sure the gas-station at `gas_station_url` satisfies the version requirement.
+    check_version(gas_station_url, &headers, http_client).await?;
 
     // Get a gas reservation.
     let ReserveGasResult {
@@ -696,10 +706,38 @@ mod gas_station {
     )
     .await?;
 
+    // Fetch Tx response (we only have the effects..);
+    let response = client
+      .client_adapter()
+      .read_api()
+      .get_transaction_with_options(
+        *effects.transaction_digest(),
+        IotaTransactionBlockResponseOptions::full_content(),
+      )
+      .await
+      .map_err(|e| GasStationError::new(ErrorKind::TxApplication(e.into())))?;
+
     // Apply tx's side-effects.
-    tx.apply(&mut effects, client)
+    let output = tx
+      .apply_with_events(
+        &mut effects,
+        &mut response.events().cloned().unwrap_or_default(),
+        client,
+      )
       .await
       .map_err(|e| Error::Transaction(e.into()))
-      .map_err(|e| GasStationError::new(ErrorKind::TxApplication(Box::new(e))))
+      .map_err(|e| GasStationError::new(ErrorKind::TxApplication(Box::new(e))))?;
+
+    let response = {
+      cfg_if! {
+        if #[cfg(target_arch = "wasm32")] {
+          response
+        } else {
+          response.clone_native_response()
+        }
+      }
+    };
+
+    Ok(TransactionOutput { output, response })
   }
 }

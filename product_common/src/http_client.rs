@@ -3,6 +3,7 @@
 
 use std::collections::BTreeMap;
 use std::fmt::Display;
+use std::str::FromStr;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -77,12 +78,55 @@ pub enum Method {
   Patch,
 }
 
+#[derive(Debug, Clone, thiserror::Error)]
+#[non_exhaustive]
+#[error("invalid HTTP method `{input}`")]
+pub struct InvalidHttpMethod {
+  pub input: String,
+}
+
 impl Serialize for Method {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where
     S: serde::Serializer,
   {
     serializer.serialize_str(self.as_str())
+  }
+}
+
+impl<'de> Deserialize<'de> for Method {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: serde::Deserializer<'de>,
+  {
+    let input = String::deserialize(deserializer)?;
+    input.parse().map_err(serde::de::Error::custom)
+  }
+}
+
+impl FromStr for Method {
+  type Err = InvalidHttpMethod;
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    use Method::*;
+
+    let parsed = match s {
+      "GET" => Get,
+      "HEAD" => Head,
+      "POST" => Post,
+      "PUT" => Put,
+      "DELETE" => Delete,
+      "CONNECT" => Connect,
+      "OPTIONS" => Options,
+      "TRACE" => Trace,
+      "PATCH" => Patch,
+      invalid => {
+        return Err(InvalidHttpMethod {
+          input: invalid.to_owned(),
+        })
+      }
+    };
+
+    Ok(parsed)
   }
 }
 
@@ -112,7 +156,7 @@ impl Display for Method {
 }
 
 /// A basic HTTP request.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Request<T> {
   pub method: Method,
   pub url: Url,
@@ -121,7 +165,7 @@ pub struct Request<T> {
 }
 
 /// A basic HTTP response.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Response<T> {
   pub status_code: u16,
   pub headers: HeaderMap,
