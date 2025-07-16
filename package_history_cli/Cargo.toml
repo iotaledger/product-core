@@ -1,0 +1,18 @@
+[package]
+name = "package_history_cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package-history"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive"] }
+anyhow = "1.0"
+toml = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+product_common = { path = "../product_common" }
+
+[dev-dependencies]
+tempfile = "3.0"

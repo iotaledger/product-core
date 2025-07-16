@@ -13,6 +13,7 @@ members = [
   "iota_interaction",
   "bindings/wasm/iota_interaction_ts",
   "iota_interaction_rust",
+  "package_history_cli",
 ]
 
 [workspace.dependencies]
