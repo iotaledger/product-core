@@ -1,6 +1,6 @@
 [package]
 name = "iota_interaction_ts"
-version = "0.6.1"
+version = "0.7.0"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
@@ -26,7 +26,7 @@ eyre = "0.6.12"
 fastcrypto.workspace = true
 futures = { version = "0.3" }
 iota-sdk = { version = "1.1.5", default-features = false, features = ["serde", "std"] }
-iota_interaction = { version = "0.6.1", path = "../../../iota_interaction", default-features = false }
+iota_interaction = { version = "0.7.0", path = "../../../iota_interaction", default-features = false }
 js-sys = { version = "0.3.61" }
 json-proof-token = { version = "0.3.5", optional = true }
 sd-jwt-payload = { version = "0.2.1", default-features = false, features = ["sha"], optional = true }
