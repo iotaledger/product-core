@@ -665,4 +665,11 @@ mod tests {
     assert_eq!(segment_idx, 1);
     assert!(matches!(source.kind(), &IntErrorKind::InvalidDigit));
   }
+
+  #[test]
+  fn test_version_ordering() {
+    assert!(Version::new(0, 0, 1) < Version::new(0, 0, 2));
+    assert!(Version::new(0, 0, 1) < Version::new(0, 1, 0));
+    assert!(Version::new(0, 0, 1) < Version::new(1, 0, 0));
+  }
 }
