@@ -147,6 +147,7 @@ fn idx_to_segment_name(idx: usize) -> &'static str {
 pub(crate) struct VersionParsingError {
   /// The input string.
   input: String,
+  #[source]
   kind: VersionParsingErrorKind,
 }
 
