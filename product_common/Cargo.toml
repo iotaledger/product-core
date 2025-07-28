@@ -27,7 +27,7 @@ serde.workspace = true
 serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
-toml = "0.8"
+toml = { workspace = true, optional = true }
 url = { version = "2", default-features = false, optional = true, features = ["serde"] }
 
 [dependencies.identity_jose]
@@ -87,6 +87,9 @@ gas-station = ["transaction", "http-client"]
 # APIs that rely on an HTTP Client won't require the user to provide an HttpClient instance but will
 # instead use reqwest::Client.
 default-http-client = ["http-client", "dep:reqwest"]
+
+# PackageRegistry with Move.lock reading capabilities.
+package-reg-move-lock = ["dep:toml"]
 
 [package.metadata.docs.rs]
 # To build locally:

@@ -8,11 +8,11 @@ name = "package-history"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4.0", features = ["derive"] }
 anyhow = "1.0"
-toml = "0.8"
 chrono = { version = "0.4", features = ["serde"] }
-product_common = { path = "../product_common" }
+clap = { version = "4.0", features = ["derive"] }
+product_common = { path = "../product_common", features = ["package-reg-move-lock"] }
+serde_json.workspace = true
 
 [dev-dependencies]
 tempfile = "3.0"
