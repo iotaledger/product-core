@@ -15,18 +15,11 @@ description = "iota_interaction Adapters for non wasm platforms."
 anyhow.workspace = true
 async-trait.workspace = true
 bcs.workspace = true
-cfg-if.workspace = true
-fastcrypto.workspace = true
 secret-storage.workspace = true
 serde.workspace = true
-serde_json.workspace = true
-strum.workspace = true
-thiserror.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iota_interaction = { version = "0.7.0", path = "../iota_interaction" }
-iota-sdk.workspace = true
-tokio = { workspace = true, optional = true }
 
 [package.metadata.docs.rs]
 # To build locally:

@@ -34,13 +34,10 @@ tokio = { workspace = true, optional = true }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 eyre = { version = "0.6" }
 fastcrypto-zkp = { git = "https://github.com/MystenLabs/fastcrypto", rev = "2f502fd8570fe4e9cff36eea5bbd6fef22002898", package = "fastcrypto-zkp" }
-getrandom = { version = "0.3", default-features = false, features = ["wasm_js"] }
-getrandom_old = { package = "getrandom", version = "0.2", default-features = false, features = ["js"] }
 hex = { version = "0.4" }
 itertools = "0.13"
 jsonrpsee = { version = "0.24", default-features = false, features = ["wasm-client"] }
 leb128 = { version = "0.2" }
-num-bigint = { version = "0.4" }
 primitive-types = { version = "0.12", features = ["impl-serde"] }
 rand = "0.8.5"
 ref-cast = { version = "1.0" }
@@ -53,8 +50,7 @@ uint = { version = "0.9" }
 derive_more = "0.99.18"
 enum_dispatch = "0.3.13"
 schemars = "0.8.21"
-tap = "1"
-nonempty = "0.11"
+nonempty = "0.1.3"
 
 [package.metadata.docs.rs]
 # To build locally:
