@@ -156,23 +156,28 @@ mod tests {
 [env.mainnet]
 chain-id = "6364aad5"
 original-published-id = "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+latest-published-id = "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
 
 [env.testnet]
 chain-id = "2304aa97"
 original-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
+latest-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
 "#
     .to_string()
   }
 
   fn create_test_package_history() -> String {
     r#"
-[aliases]
-mainnet = "6364aad5"
-testnet = "2304aa97"
-
-[envs]
-6364aad5 = ["0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"]
-2304aa97 = ["0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"]
+{
+  "aliases": {
+    "testnet": "2304aa97",
+    "mainnet": "6364aad5"
+  },
+  "envs": {
+    "6364aad5": ["0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"],
+    "2304aa97": ["0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"]
+  }
+}
 "#
     .to_string()
   }
@@ -189,8 +194,15 @@ testnet = "2304aa97"
 
     assert!(output_path.exists());
     let content = fs::read_to_string(&output_path).unwrap();
-    assert!(content.contains("[aliases]"));
-    assert!(content.contains("[envs]"));
+    assert!(content.contains("\"aliases\": {"));
+    assert!(content.contains("\"mainnet\": \"6364aad5\""));
+    assert!(content.contains("\"testnet\": \"2304aa97\""));
+
+    assert!(content.contains("\"envs\": {"));
+    assert!(content.contains("\"2304aa97\": ["));
+    assert!(content.contains("\"0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555\""));
+    assert!(content.contains("\"6364aad5\": ["));
+    assert!(content.contains("\"0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08\""));
   }
 
   #[test]
@@ -214,11 +226,13 @@ testnet = "2304aa97"
     let updated_move_lock = r#"
 [env.mainnet]
 chain-id = "6364aad5"
-original-published-id = "0x94cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de09"
+latest-published-id = "0x94cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de09"
+original-published-id = "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
 
 [env.testnet]
 chain-id = "2304aa97"
-original-published-id = "0x332741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc666"
+latest-published-id = "0x332741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc666"
+original-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
 "#;
     fs::write(&move_lock_path, updated_move_lock).unwrap();
 
