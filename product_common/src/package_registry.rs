@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use anyhow::Context;
 use iota_interaction::types::base_types::ObjectID;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub const MAINNET_CHAIN_ID: &str = "6364aad5";
@@ -33,15 +33,6 @@ impl Env {
       alias: Some(alias.into()),
     }
   }
-}
-
-fn deserialize_u64_from_str<'de, D>(deserializer: D) -> Result<u64, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  use serde::de::Error;
-
-  String::deserialize(deserializer)?.parse().map_err(D::Error::custom)
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
