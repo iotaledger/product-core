@@ -20,19 +20,19 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-  /// Create an initial Move.package-history.json file from a Move.lock file
+  /// Create an initial Move.history.json file from a Move.lock file
   Init {
     /// Path to the Move.lock file
     #[arg(short, long, default_value = "Move.lock")]
     move_lock: PathBuf,
-    /// Output path for the Move.package-history.json file
-    #[arg(short, long, default_value = "Move.package-history.json")]
+    /// Output path for the Move.history.json file
+    #[arg(short, long, default_value = "Move.history.json")]
     output: PathBuf,
   },
-  /// Add a new package version to an existing Move.package-history.json file
+  /// Add a new package version to an existing Move.history.json file
   Update {
-    /// Path to the existing Move.package-history.json file
-    #[arg(short('f'), long, default_value = "Move.package-history.json")]
+    /// Path to the existing Move.history.json file
+    #[arg(short('f'), long, default_value = "Move.history.json")]
     history_file: PathBuf,
     /// Path to the Move.lock file containing the new version
     #[arg(short, long)]
@@ -60,7 +60,7 @@ fn main() -> Result<()> {
   Ok(())
 }
 
-/// Creates an initial Move.package-history.json file from a Move.lock file
+/// Creates an initial Move.history.json file from a Move.lock file
 fn init_package_history(move_lock_path: &Path, output_path: &Path) -> Result<()> {
   let move_lock_content = fs::read_to_string(move_lock_path)
     .with_context(|| format!("Failed to read Move.lock file: {}", move_lock_path.display()))?;
@@ -74,7 +74,7 @@ fn init_package_history(move_lock_path: &Path, output_path: &Path) -> Result<()>
     .with_context(|| format!("Failed to write to output file: {}", output_path.display()))?;
 
   println!(
-    "Successfully created Move.package-history.json from {}",
+    "Successfully created Move.history.json from {}",
     move_lock_path.display()
   );
 
@@ -86,18 +86,18 @@ fn to_prettified_string(registry: &PackageRegistry) -> Result<String> {
   Ok(format!("{json_value:#}"))
 }
 
-/// Updates an existing Move.package-history.json file with new package versions from a Move.lock file
+/// Updates an existing Move.history.json file with new package versions from a Move.lock file
 fn update_package_history(history_file_path: &Path, move_lock_path: &Path) -> Result<()> {
   // Read and deserialize existing package history
   let history_content = fs::read_to_string(history_file_path).with_context(|| {
     format!(
-      "Failed to read Move.package-history.json file: {}",
+      "Failed to read Move.history.json file: {}",
       history_file_path.display()
     )
   })?;
 
   let mut registry = PackageRegistry::from_package_history_json_str(&history_content)
-    .context("Failed to parse existing Move.package-history.json file")?;
+    .context("Failed to parse existing Move.history.json file")?;
 
   // Create backup file
   create_backup_file(history_file_path)?;
@@ -186,7 +186,7 @@ latest-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864a
   fn init_creates_package_history_from_move_lock() {
     let temp_dir = TempDir::new().unwrap();
     let move_lock_path = temp_dir.path().join("Move.lock");
-    let output_path = temp_dir.path().join("Move.package-history.json");
+    let output_path = temp_dir.path().join("../../Move.history.json");
 
     fs::write(&move_lock_path, create_test_move_lock()).unwrap();
 
@@ -218,7 +218,7 @@ latest-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864a
   #[test]
   fn update_adds_new_package_versions() {
     let temp_dir = TempDir::new().unwrap();
-    let history_path = temp_dir.path().join("Move.package-history.json");
+    let history_path = temp_dir.path().join("../../Move.history.json");
     let move_lock_path = temp_dir.path().join("Move.lock");
 
     fs::write(&history_path, create_test_package_history()).unwrap();
@@ -248,7 +248,7 @@ original-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac86
   #[test]
   fn update_creates_backup_file() {
     let temp_dir = TempDir::new().unwrap();
-    let history_path = temp_dir.path().join("Move.package-history.json");
+    let history_path = temp_dir.path().join("../../Move.history.json");
     let move_lock_path = temp_dir.path().join("Move.lock");
 
     fs::write(&history_path, create_test_package_history()).unwrap();
@@ -263,7 +263,7 @@ original-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac86
         entry
           .file_name()
           .to_string_lossy()
-          .starts_with("Move.package-history.json.bak-")
+          .starts_with("Move.history.json.bak-")
       })
       .collect();
 
@@ -285,7 +285,7 @@ original-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac86
   #[test]
   fn update_does_not_duplicate_same_package_version() {
     let temp_dir = TempDir::new().unwrap();
-    let history_path = temp_dir.path().join("Move.package-history.json");
+    let history_path = temp_dir.path().join("../../Move.history.json");
     let move_lock_path = temp_dir.path().join("Move.lock");
 
     fs::write(&history_path, create_test_package_history()).unwrap();

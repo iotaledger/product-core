@@ -94,21 +94,21 @@ impl PackageRegistry {
     self.envs.extend(other.envs);
   }
 
-  /// Creates a [PackageRegistry] from a Move.package-history.json file.
+  /// Creates a [PackageRegistry] from a Move.history.json file.
   pub fn from_package_history_json_str(package_history: &str) -> anyhow::Result<Self> {
     let package_history: Value = serde_json::from_str(package_history)?;
 
     let ret_val = package_history
       .get("aliases")
-      .context("invalid Move.package-history.json file: missing `aliases` object")?
+      .context("invalid Move.history.json file: missing `aliases` object")?
       .as_object()
-      .context("invalid Move.package-history.json file: `aliases` is not a JSON object literal")?
+      .context("invalid Move.history.json file: `aliases` is not a JSON object literal")?
       .into_iter()
       .try_fold(Self::default(), |mut registry, (alias, chain_id)| {
         let chain_id: String = chain_id
           .as_str()
           .context(format!(
-            "invalid Move.package-history.json file: invalid `chain-id` '{chain_id}' for alias {alias}"
+            "invalid Move.history.json file: invalid `chain-id` '{chain_id}' for alias {alias}"
           ))?
           .to_string();
         registry.aliases.insert(alias.clone(), chain_id);
@@ -117,19 +117,19 @@ impl PackageRegistry {
 
     package_history
       .get("envs")
-      .context("invalid Move.package-history.json file: missing `envs` object")?
+      .context("invalid Move.history.json file: missing `envs` object")?
       .as_object()
-      .context("invalid Move.package-history.json file: `envs` is not a JSON object literal")?
+      .context("invalid Move.history.json file: `envs` is not a JSON object literal")?
       .into_iter()
       .try_fold(ret_val, |mut registry, (chain_id, versions)| {
         let versions: Vec<ObjectID> = versions
           .as_array()
-          .context(format!("invalid Move.package-history.json file: invalid versions for {chain_id}. versions is not an array"))?
+          .context(format!("invalid Move.history.json file: invalid versions for {chain_id}. versions is not an array"))?
           .iter()
           .try_fold(Vec::<ObjectID>::new(), |mut arr, v| {
             let obj_id = ObjectID::from_hex_literal(
               v.as_str()
-                  .context(format!("invalid Move.package-history.json file: invalid versions array element for {chain_id}. Elements need to be strings"))?
+                  .context(format!("invalid Move.history.json file: invalid versions array element for {chain_id}. Elements need to be strings"))?
             )?;
             arr.push(obj_id);
             Ok::<Vec<ObjectID>, anyhow::Error>(arr)
