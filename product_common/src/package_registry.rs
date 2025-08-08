@@ -138,66 +138,6 @@ impl PackageRegistry {
         Ok(registry)
       })
   }
-
-  #[cfg(feature = "package-reg-move-lock")]
-  /// Creates a [PackageRegistry] from a Move.lock file.
-  pub fn from_move_lock_content(move_lock: &str) -> anyhow::Result<Self> {
-    let mut move_lock: toml::Table = move_lock.parse()?;
-
-    let mut move_lock_iter = move_lock
-      .remove("env")
-      .context("invalid Move.lock file: missing `env` table")?
-      .as_table_mut()
-      .map(std::mem::take)
-      .context("invalid Move.lock file: `env` is not a table")?
-      .into_iter();
-
-    move_lock_iter.try_fold(Self::default(), |mut registry, (alias, table)| {
-      let toml::Value::Table(mut table) = table else {
-        anyhow::bail!("invalid Move.lock file: invalid `env` table");
-      };
-      let chain_id: String = table
-        .remove("chain-id")
-        .context(format!("invalid Move.lock file: missing `chain-id` for env {alias}"))?
-        .try_into()
-        .context("invalid Move.lock file: invalid `chain-id`")?;
-
-      let original_published_id: String = remove_first_and_last_char_from_string(
-        table
-          .get("original-published-id")
-          .context(format!(
-            "invalid Move.lock file: missing `original-published-id` for env {alias}"
-          ))?
-          .to_string(),
-      );
-      let latest_published_id: String = remove_first_and_last_char_from_string(
-        table
-          .get("latest-published-id")
-          .context(format!(
-            "invalid Move.lock file: missing `latest-published-id` for env {alias}"
-          ))?
-          .to_string(),
-      );
-
-      let mut metadata = vec![ObjectID::from_hex_literal(original_published_id.as_str())?];
-      if original_published_id != latest_published_id {
-        metadata.push(ObjectID::from_hex_literal(latest_published_id.as_str())?);
-      }
-
-      let env = Env::new_with_alias(chain_id, alias.clone());
-      registry.insert_env(env, metadata);
-
-      Ok(registry)
-    })
-  }
-}
-
-#[cfg(feature = "package-reg-move-lock")]
-fn remove_first_and_last_char_from_string(value: String) -> String {
-  let mut chars = value.chars();
-  chars.next();
-  chars.next_back();
-  chars.as_str().to_string()
 }
 
 #[cfg(test)]

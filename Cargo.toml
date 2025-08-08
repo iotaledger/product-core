@@ -13,7 +13,6 @@ members = [
   "iota_interaction",
   "bindings/wasm/iota_interaction_ts",
   "iota_interaction_rust",
-  "package_history_cli",
 ]
 
 [workspace.dependencies]
@@ -30,6 +29,7 @@ serde_json = { version = "1.0", default-features = false }
 strum = { version = "0.25", default-features = false, features = ["std", "derive"] }
 thiserror = { version = "1.0", default-features = false }
 tokio = { version = "1.44.2", default-features = false, features = ["process"] }
+tempfile = "3.20.0"
 toml = "0.8"
 
 [workspace.lints.clippy]

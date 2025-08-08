@@ -53,6 +53,7 @@ js-sys = { version = "0.3", optional = true }
 [dev-dependencies]
 iota_interaction = { version = "0.7.0", path = "../iota_interaction" }
 iota_interaction_rust = { version = "0.7.0", path = "../iota_interaction_rust" }
+tempfile.workspace = true
 
 [features]
 default = []
@@ -88,8 +89,8 @@ gas-station = ["transaction", "http-client"]
 # instead use reqwest::Client.
 default-http-client = ["http-client", "dep:reqwest"]
 
-# PackageRegistry with Move.lock reading capabilities.
-package-reg-move-lock = ["dep:toml"]
+# Management functions to read Move.lock files and create/update Move.history.json files
+move-history-manager = ["dep:toml"]
 
 [package.metadata.docs.rs]
 # To build locally:
