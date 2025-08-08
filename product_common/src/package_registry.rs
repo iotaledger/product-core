@@ -64,6 +64,16 @@ impl PackageRegistry {
       .iter()
       .find_map(|(alias, chain)| (chain == chain_id).then_some(alias.as_str()))
   }
+  
+  /// Removes the environment specified by the alias from the registry.
+  /// Returns the removed environment's versions if it existed, or `None` if the alias was not found.
+  pub fn remove_env_by_alias(&mut self, alias: &str) -> Option<Vec<ObjectID>> {
+    if let Some(chain_id) = self.aliases.remove(alias) {
+      self.envs.remove(&chain_id)
+    } else {
+      None
+    }
+  }
 
   /// Returns the envs of this package registry.
   pub fn envs(&self) -> &HashMap<String, Vec<ObjectID>> {
