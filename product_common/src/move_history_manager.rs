@@ -118,6 +118,16 @@ impl PackageRegistry {
 ///     // Tell Cargo to rerun this build script if the Move.lock file changes.
 ///     println!("cargo::rerun-if-changed={move_lock_path}");
 /// }
+/// ```
+///
+/// To use the `MoveHistoryManager` in a `build.rs` script in an IOTA product repository, you need
+/// to add the following build dependency in the `cargo.toml` of the crate containing the `build.rs`
+///  file:
+///
+/// ``` toml
+/// [build-dependencies]
+/// product_common = { workspace = true, features = ["move-history-manager"] }
+/// ```
 pub struct MoveHistoryManager {
   move_lock_path: PathBuf,
   history_file_path: PathBuf,
