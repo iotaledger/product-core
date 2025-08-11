@@ -161,7 +161,7 @@ impl MoveHistoryManager {
   /// if there are issues reading or writing files.
   pub fn manage_history_file(&self, console_out: impl Fn(String)) -> anyhow::Result<()> {
     let move_history_path = self.history_file_path.to_string_lossy();
-    let move_lock_path = self.history_file_path.to_string_lossy();
+    let move_lock_path = self.move_lock_path.to_string_lossy();
     if self.move_lock_file_exists() {
       if self.history_file_exists() {
         // If the output file already exists, update it.
