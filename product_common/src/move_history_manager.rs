@@ -5,7 +5,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
-
 use iota_interaction::types::base_types::ObjectID;
 
 use super::package_registry::{Env, PackageRegistry};
@@ -97,8 +96,8 @@ impl MoveHistoryManager {
   /// # Arguments
   /// * `move_lock_path` - Path to the `Move.lock` file.
   /// * `history_file_path` - Path to the `M̀ove.history.toml` file.
-  /// * `aliases_to_ignore` - Optional list of environment aliases to ignore.
-  ///    If `aliases_to_ignore` is not provided, it defaults to `["localnet"]`.
+  /// * `aliases_to_ignore` - Optional list of environment aliases to ignore. If `aliases_to_ignore` is not provided, it
+  ///   defaults to `["localnet"]`.
   ///
   /// # Returns
   /// A new `MoveHistoryManager` instance.
@@ -106,8 +105,7 @@ impl MoveHistoryManager {
   /// Doesn't check if any of the provided paths are invalid or if the `Move.lock` file cannot be parsed.
   /// Functions `init` and `update` will handle those checks.
   pub fn new(move_lock_path: &Path, history_file_path: &Path, aliases_to_ignore: Option<Vec<String>>) -> Self {
-    let aliases_to_ignore = aliases_to_ignore
-        .unwrap_or(vec!["localnet".to_string()]);
+    let aliases_to_ignore = aliases_to_ignore.unwrap_or(vec!["localnet".to_string()]);
     Self {
       move_lock_path: move_lock_path.to_owned(),
       history_file_path: history_file_path.to_owned(),
@@ -140,6 +138,56 @@ impl MoveHistoryManager {
     &self.history_file_path
   }
 
+  /// Manages the Move history file by either initializing a new one or updating an existing one
+  /// based on the current Move.lock file.
+  ///
+  /// This method checks for the existence of both the Move.lock and Move history files,
+  /// and performs the appropriate action:
+  /// - If Move.lock exists and the history file exists: Updates the history file
+  /// - If Move.lock exists but the history file doesn't: Creates a new history file
+  /// - If Move.lock doesn't exist: Skips any action
+  ///
+  /// Progress messages can be printed to the app console during the operation via the callback function
+  /// provided using the `console_out` argument.
+  ///
+  /// # Arguments
+  /// * `console_out` - Can be used to output status messages in the app console. It should be a closure that takes a
+  ///   `String` as an argument. Example: `|message| { println!("{}", message); }`
+  /// # Returns
+  /// A `Result` that indicates success or contains an error if something went wrong during the process.
+  ///
+  /// # Errors
+  /// This method may return errors from the underlying `init()` or `update()` functions
+  /// if there are issues reading or writing files.
+  pub fn manage_history_file(&self, console_out: impl Fn(String)) -> anyhow::Result<()> {
+    let move_history_path = self.history_file_path.to_string_lossy();
+    let move_lock_path = self.history_file_path.to_string_lossy();
+    if self.move_lock_file_exists() {
+      if self.history_file_exists() {
+        // If the output file already exists, update it.
+        console_out(format!("File `{move_history_path}` already exists, updating..."));
+        self
+          .update()
+          .expect("Successfully updating `Move.history.json` file with `Move.lock` content");
+        console_out(format!(
+          "Successfully updated`{move_history_path}` with content of `{move_lock_path}`"
+        ));
+      } else {
+        // If the output file does not exist, create it.
+        console_out(format!("File `{move_history_path}` does not exist, creating..."));
+        self
+          .init()
+          .expect("Successfully creating a `Move.history.json` file with `Move.lock` content");
+        console_out(format!(
+          "Successfully created file `{move_history_path}` with content of `{move_lock_path}` content"
+        ));
+      }
+    } else {
+      console_out(format!("File `{move_history_path}` does not exist, skipping..."));
+    }
+    Ok(())
+  }
+
   /// Creates an initial Move.history.json file from a Move.lock file
   /// Will ignore any environment aliases specified in `aliases_to_ignore`.
   pub fn init(&self) -> anyhow::Result<()> {
@@ -164,8 +212,12 @@ impl MoveHistoryManager {
   /// Updates an existing Move.history.json file with new package versions from a Move.lock file
   pub fn update(&self) -> anyhow::Result<()> {
     // Read and deserialize existing package history
-    let history_content = fs::read_to_string(&self.history_file_path)
-      .with_context(|| format!("Failed to read Move.history.json file: {}", self.history_file_path.display()))?;
+    let history_content = fs::read_to_string(&self.history_file_path).with_context(|| {
+      format!(
+        "Failed to read Move.history.json file: {}",
+        self.history_file_path.display()
+      )
+    })?;
 
     let mut registry = PackageRegistry::from_package_history_json_str(&history_content)
       .context("Failed to parse existing Move.history.json file")?;
@@ -191,8 +243,12 @@ impl MoveHistoryManager {
     // Serialize and write updated registry
     let updated_json_content = to_prettified_string(&registry)?;
 
-    fs::write(&self.history_file_path, updated_json_content)
-      .with_context(|| format!("Failed to write updated content to: {}", self.history_file_path.display()))?;
+    fs::write(&self.history_file_path, updated_json_content).with_context(|| {
+      format!(
+        "Failed to write updated content to: {}",
+        self.history_file_path.display()
+      )
+    })?;
 
     Ok(())
   }
@@ -242,15 +298,100 @@ latest-published-id = "0xfbddb4631d027b2c4f0b4b90c020713d258ed32bdb342b5397f4da7
     .to_string()
   }
 
+  enum InitialTestFile {
+    None,
+    MoveLock,
+    HistoryFile,
+  }
+
+  fn setup_missing_history_file_test(
+    history_path: &str,
+    move_lock_path: &str,
+    initial_file: InitialTestFile,
+  ) -> (TempDir, PathBuf, PathBuf, MoveHistoryManager) {
+    let temp_dir = TempDir::new().unwrap();
+    let history_path = temp_dir.path().join(history_path);
+    let move_lock_path = temp_dir.path().join(move_lock_path);
+
+    match initial_file {
+      InitialTestFile::None => {
+        // Do not create any initial files
+      }
+      InitialTestFile::MoveLock => {
+        fs::write(&move_lock_path, create_test_move_lock()).unwrap();
+      }
+      InitialTestFile::HistoryFile => {
+        fs::write(&history_path, create_test_package_history()).unwrap();
+      }
+    }
+
+    let history_manager = MoveHistoryManager::new(&move_lock_path, &history_path, None);
+    (temp_dir, history_path, move_lock_path, history_manager)
+  }
+
+  #[test]
+  fn manage_history_file_creates_new_file_when_move_lock_exists_and_history_file_does_not() {
+    let (_temp_dir, history_path, _move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::MoveLock);
+
+    history_manager
+      .manage_history_file(|message| {
+        println!("{}", message);
+      })
+      .unwrap();
+
+    assert!(history_path.exists());
+    let content = fs::read_to_string(&history_path).unwrap();
+    assert!(content.contains("\"aliases\": {"));
+    assert!(content.contains("\"mainnet\": \"6364aad5\""));
+    assert!(content.contains("\"testnet\": \"2304aa97\""));
+  }
+
+  #[test]
+  fn manage_history_file_updates_existing_file_when_both_files_exist() {
+    let (_temp_dir, history_path, move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::HistoryFile);
+
+    let updated_move_lock = r#"
+[env.mainnet]
+chain-id = "6364aad5"
+latest-published-id = "0x94cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de09"
+original-published-id = "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+"#;
+    fs::write(&move_lock_path, updated_move_lock).unwrap();
+
+    history_manager
+      .manage_history_file(|message| {
+        println!("{}", message);
+      })
+      .unwrap();
+
+    let updated_content = fs::read_to_string(&history_path).unwrap();
+    let registry = PackageRegistry::from_package_history_json_str(&updated_content).unwrap();
+
+    assert_eq!(registry.history("6364aad5").unwrap().len(), 2);
+  }
+
+  #[test]
+  fn manage_history_file_skips_action_when_move_lock_does_not_exist() {
+    let (_temp_dir, history_path, _move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "nonexistent.lock", InitialTestFile::None);
+
+    history_manager
+      .manage_history_file(|message| {
+        println!("{}", message);
+      })
+      .unwrap();
+
+    assert!(!history_path.exists());
+  }
+
   #[test]
   fn init_creates_package_history_from_move_lock() {
-    let temp_dir = TempDir::new().unwrap();
-    let move_lock_path = temp_dir.path().join("Move.lock");
-    let output_path = temp_dir.path().join("Move.history.json");
+    let (_temp_dir, output_path, _move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::MoveLock);
 
-    fs::write(&move_lock_path, create_test_move_lock()).unwrap();
-
-    MoveHistoryManager::new(&move_lock_path, &output_path, None).init().unwrap();
+    history_manager.init().unwrap();
 
     assert!(output_path.exists());
     let content = fs::read_to_string(&output_path).unwrap();
@@ -270,21 +411,17 @@ latest-published-id = "0xfbddb4631d027b2c4f0b4b90c020713d258ed32bdb342b5397f4da7
 
   #[test]
   fn init_fails_with_nonexistent_move_lock() {
-    let temp_dir = TempDir::new().unwrap();
-    let move_lock_path = temp_dir.path().join("nonexistent.lock");
-    let output_path = temp_dir.path().join("output.json");
+    let (_temp_dir, _history_path, _move_lock_path, history_manager) =
+      setup_missing_history_file_test("output.json", "nonexistent.lock", InitialTestFile::None);
 
-    let result = MoveHistoryManager::new(&move_lock_path, &output_path, None).init();
+    let result = history_manager.init();
     assert!(result.is_err());
   }
 
   #[test]
   fn update_adds_new_package_versions() {
-    let temp_dir = TempDir::new().unwrap();
-    let history_path = temp_dir.path().join("Move.history.json");
-    let move_lock_path = temp_dir.path().join("Move.lock");
-
-    fs::write(&history_path, create_test_package_history()).unwrap();
+    let (_temp_dir, history_path, move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::HistoryFile);
 
     let updated_move_lock = r#"
 [env.mainnet]
@@ -304,7 +441,7 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
 "#;
     fs::write(&move_lock_path, updated_move_lock).unwrap();
 
-    MoveHistoryManager::new(&move_lock_path, &history_path, None).update().unwrap();
+    history_manager.update().unwrap();
 
     let updated_content = fs::read_to_string(&history_path).unwrap();
     let registry = PackageRegistry::from_package_history_json_str(&updated_content).unwrap();
@@ -316,25 +453,21 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
 
   #[test]
   fn update_fails_with_nonexistent_history_file() {
-    let temp_dir = TempDir::new().unwrap();
-    let history_path = temp_dir.path().join("nonexistent.json");
-    let move_lock_path = temp_dir.path().join("Move.lock");
+    let (_temp_dir, _history_path, _move_lock_path, history_manager) =
+      setup_missing_history_file_test("nonexistent.json", "Move.lock", InitialTestFile::MoveLock);
 
-    fs::write(&move_lock_path, create_test_move_lock()).unwrap();
-
-    let result = MoveHistoryManager::new(&move_lock_path, &history_path, None).update();
+    let result = history_manager.update();
     assert!(result.is_err());
   }
 
   #[test]
   fn update_does_not_duplicate_same_package_version() {
-    let temp_dir = TempDir::new().unwrap();
-    let history_path = temp_dir.path().join("Move.history.json");
-    let move_lock_path = temp_dir.path().join("Move.lock");
+    let (_temp_dir, history_path, move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::HistoryFile);
 
-    fs::write(&history_path, create_test_package_history()).unwrap();
     fs::write(&move_lock_path, create_test_move_lock()).unwrap();
-    MoveHistoryManager::new(&move_lock_path, &history_path, None).update().unwrap();
+
+    history_manager.update().unwrap();
 
     let updated_content = fs::read_to_string(&history_path).unwrap();
     let registry = PackageRegistry::from_package_history_json_str(&updated_content).unwrap();
@@ -346,37 +479,27 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
 
   #[test]
   fn history_file_exists_returns_true_when_file_exists() {
-    let temp_dir = TempDir::new().unwrap();
-    let move_lock_path = temp_dir.path().join("Move.lock");
-    let history_path = temp_dir.path().join("Move.history.json");
+    let (_temp_dir, _history_path, _move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::HistoryFile);
 
-    // Create the history file
-    fs::write(&history_path, "{}").unwrap();
-
-    let manager = MoveHistoryManager::new(&move_lock_path, &history_path, None);
-    assert!(manager.history_file_exists());
+    assert!(history_manager.history_file_exists());
   }
 
   #[test]
   fn history_file_exists_returns_false_when_file_does_not_exist() {
-    let temp_dir = TempDir::new().unwrap();
-    let move_lock_path = temp_dir.path().join("Move.lock");
-    let history_path = temp_dir.path().join("nonexistent.json");
+    let (_temp_dir, _history_path, _move_lock_path, history_manager) =
+      setup_missing_history_file_test("nonexistent.json", "Move.lock", InitialTestFile::None);
 
-    let manager = MoveHistoryManager::new(&move_lock_path, &history_path, None);
-    assert!(!manager.history_file_exists());
+    assert!(!history_manager.history_file_exists());
   }
 
   #[test]
   fn history_file_exists_returns_false_when_path_is_directory() {
-    let temp_dir = TempDir::new().unwrap();
-    let move_lock_path = temp_dir.path().join("Move.lock");
-    let history_path = temp_dir.path().join("directory");
+    let (_temp_dir, history_path, _move_lock_path, history_manager) =
+      setup_missing_history_file_test("directory", "Move.lock", InitialTestFile::None);
 
     // Create a directory instead of a file
     fs::create_dir(&history_path).unwrap();
-
-    let manager = MoveHistoryManager::new(&move_lock_path, &history_path, None);
-    assert!(!manager.history_file_exists());
+    assert!(!history_manager.history_file_exists());
   }
 }
