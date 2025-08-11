@@ -97,7 +97,7 @@ impl PackageRegistry {
 /// * In this example, the Move package is expected be located in a parent directory of the library package. If this is
 ///   not the case, please edit the file paths accordingly
 ///
-/// ```rust
+/// ``` ignore
 /// use std::path::PathBuf;
 ///
 /// use product_common::move_history_manager::MoveHistoryManager;
