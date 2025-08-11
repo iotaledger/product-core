@@ -29,7 +29,7 @@ impl MoveType for IotaVerifiableCredential {
     TypeTag::from_str(&format!("{package}::public_vc::PublicVc")).expect("valid utf8")
   }
 
-  fn get_typed_value(&self, _package: ObjectID) -> TypedValue<Self>
+  fn get_typed_value(&self, _package: ObjectID) -> TypedValue<'_, Self>
   where
     Self: MoveType,
     Self: Sized,

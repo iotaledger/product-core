@@ -17,7 +17,7 @@ pub trait MoveType<T: Serialize = Self>: Serialize {
   /// Returns the Move type for this type.
   fn move_type(package: ObjectID) -> TypeTag;
 
-  fn get_typed_value(&self, _package: ObjectID) -> TypedValue<Self>
+  fn get_typed_value(&self, _package: ObjectID) -> TypedValue<'_, Self>
   where
     Self: MoveType,
     Self: Sized,
