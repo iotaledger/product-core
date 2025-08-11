@@ -94,8 +94,8 @@ impl PackageRegistry {
 /// This example shows how to use the `MoveHistoryManager` in a build.rs` script.
 ///
 /// * Please replace `<Move-Package-Name>` with the actual name of the Move package
-/// * In this example, the Move package is expected be located in a parent
-///   directory of the library package. If this is not the case, please edit the file paths accordingly
+/// * In this example, the Move package is expected be located in a parent directory of the library package. If this is
+///   not the case, please edit the file paths accordingly
 ///
 /// ```rust
 /// use std::path::PathBuf;
