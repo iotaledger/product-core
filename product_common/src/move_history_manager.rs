@@ -120,6 +120,11 @@ impl MoveHistoryManager {
     self.history_file_path.exists() && self.history_file_path.is_file()
   }
 
+  /// Checks if the Move.lock file exists.
+  pub fn move_lock_file_exists(&self) -> bool {
+    self.move_lock_path.exists() && self.move_lock_path.is_file()
+  }
+
   /// Returns the list of environment aliases to ignore.
   pub fn aliases_to_ignore(&self) -> &[String] {
     &self.aliases_to_ignore
