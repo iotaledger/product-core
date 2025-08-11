@@ -83,7 +83,41 @@ impl PackageRegistry {
   }
 }
 
-/// Manages the history of Move packages, including initialization and updates.
+/// Manages the content of `Move.history.json` files, including initialization and updates.
+/// Provides the main functionality needed to implement a build script in IOTA product repositories.
+///
+/// Libraries in IOTA product repositories, depending on Move packages provided in the same repository,
+/// should have a `build.rs` script (contained in the libraries root folder), that manages the content of
+/// the `Move.history.json` file that is located next to the `Move.lock` file of the Move package.
+///
+/// # Example `build.rs` script
+/// This example shows how to use the `MoveHistoryManager` in a build.rs` script.
+///
+/// * Please replace `<Move-Package-Name>` with the actual name of the Move package
+/// * In this example, the Move package is expected be located in a parent
+///   directory of the library package. If this is not the case, please edit the file paths accordingly
+///
+/// ```rust
+/// use std::path::PathBuf;
+/// use product_common::move_history_manager::MoveHistoryManager;
+///
+/// fn main() {
+///     let move_lock_path = "../<Move-Package-Name>/Move.lock";
+///     println!("[build.rs] move_lock_path: {move_lock_path}");
+///     let move_history_path = "../<Move-Package-Name>/Move.history.json";
+///     println!("[build.rs] move_history_path: {move_history_path}");
+///
+///     MoveHistoryManager::new(
+///         &PathBuf::from(move_lock_path),
+///         &PathBuf::from(move_history_path),
+///         // Use `Some(vec![])` instead of `None`, if you don't want to ignore `localnet`
+///         None,
+///     ).manage_history_file(|message| { println!("[build.rs] {}", message); })
+///         .expect("Successfully managed Move history file");
+///
+///     // Tell Cargo to rerun this build script if the Move.lock file changes.
+///     println!("cargo::rerun-if-changed={move_lock_path}");
+/// }
 pub struct MoveHistoryManager {
   move_lock_path: PathBuf,
   history_file_path: PathBuf,
