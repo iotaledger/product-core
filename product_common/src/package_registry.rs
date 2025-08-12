@@ -35,6 +35,38 @@ impl Env {
   }
 }
 
+/// A registry that tracks package versions across different blockchain environments.
+///
+/// The `PackageRegistry` stores:
+/// - Aliases that map human-readable network names (like "mainnet", "testnet") to chain IDs.
+/// - Environment mappings that associate chain IDs with the history of package versions. The history of package
+///   versions is ordered chronologically, with the latest version at the end of the array.
+///
+/// # Initialization using `Move.history.json` files
+///
+/// The registry can be initialized from a `Move.history.json` file using the function
+/// `from_package_history_json_str()`. A `Move.history.json` file has the following structure:
+/// ```json
+/// {
+///   "aliases": {
+///     "networkName": "chainId",
+///     // e.g., "mainnet": "6364aad5"
+///   },
+///   "envs": {
+///     "chainId": ["0xpackageId1", "0xpackageId2"],
+///     // Where the last ID is the most recent version
+///   }
+/// }
+/// ```
+/// `Move.history.json` files can automatically be generated and updated using `build.rs`
+/// scripts in your Rust projects. The `product_common` crate provides a `MoveHistoryManager`
+/// that can be used to manage the `Move.history.json` file. See there for more details.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct PackageRegistry {
+  aliases: HashMap<String, String>,
+  envs: HashMap<String, Vec<ObjectID>>,
+}
+
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct PackageRegistry {
   aliases: HashMap<String, String>,

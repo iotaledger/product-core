@@ -84,18 +84,46 @@ impl PackageRegistry {
 }
 
 /// Manages the content of `Move.history.json` files, including initialization and updates.
-/// Provides the main functionality needed to implement a build script in IOTA product repositories.
+/// Provides the main functionality needed to implement a `build.rs` script in IOTA product repositories.
 ///
-/// Libraries in IOTA product repositories, depending on Move packages provided in the same repository,
+/// Libraries in IOTA product repositories, depending on Move packages **provided in the same repository**,
 /// should have a `build.rs` script (contained in the libraries root folder), that manages the content of
-/// the `Move.history.json` file that is located next to the `Move.lock` file of the Move package.
+/// the `Move.history.json` file.
 ///
-/// # Example `build.rs` script
-/// This example shows how to use the `MoveHistoryManager` in a build.rs` script.
+/// ## `Move.history.json` file
+/// The `Move.history.json` file is used to store the history of package versions for Move packages
+/// that the library depends on. See the `PackageRegistry` documentation for more details.
+///
+/// The `Move.history.json` file:
+/// * should be located in the same directory as the `Move.lock` file of the Move package that the library depends on
+/// * contains all data that is provided by the `PackageRegistry`, which is used by the library to interact with the
+///   Move package
+/// * will be integrated into build rust binaries at build time (using include_str!()) when the library is built
+/// * should not contain the package versions of the `localnet` environment, as this would probably blow up the size of
+///   the file and is not needed for production use cases
+/// * should be added to the git repository also containing the library and the Move package
+/// * should be updated by a `build.rs` script in the library package, whenever the `Move.lock` file of the Move package
+///   changes - see below for a `build.rs`  example using the `MoveHistoryManager`
+///
+/// ## `build.rs` scripts
+/// The `MoveHistoryManager` is designed to be used in a `build.rs` script of a library that depends on a Move package
+/// provided in the same repository. The `build.rs` script described in the example below will be build and
+/// executed every time when the library, containing the `build.rs` script, is built and the `Move.lock`
+/// file of the Move package has changed.
+///
+/// When the library is built and the timestamp of the `Move.lock` file has changed, the `MoveHistoryManager`
+/// will check if the `Move.lock` file exists and the `Move.history.json` file will be:
+/// * created, if a `Move.lock` file exists, but the `Move.history.json` file does not exist yet
+/// * updated, if both the `Move.lock` file and the `Move.history.json` file exist
+///
+/// If the `Move.lock` file doesn't exist the whole processing is skipped.
+///
+/// ## Example `build.rs` script
+/// This example shows how to use the `MoveHistoryManager` in a `build.rs` script.
 ///
 /// * Please replace `<Move-Package-Name>` with the actual name of the Move package
-/// * In this example, the Move package is expected be located in a parent directory of the library package. If this is
-///   not the case, please edit the file paths accordingly
+/// * In this example, the Move package is expected to be located in the parent directory of the library package. If
+///   this is not the case, please edit the file paths accordingly
 ///
 /// ``` ignore
 /// use std::path::PathBuf;
@@ -124,7 +152,7 @@ impl PackageRegistry {
 /// }
 /// ```
 ///
-/// To use the `MoveHistoryManager` in a `build.rs` script in an IOTA product repository, you need
+/// To use the `MoveHistoryManager` in a `build.rs` script in an IOTA product library package, you need
 /// to add the following build dependency in the `cargo.toml` of the crate containing the `build.rs`
 ///  file:
 ///
@@ -151,7 +179,7 @@ impl MoveHistoryManager {
   /// A new `MoveHistoryManager` instance.
   ///
   /// Doesn't check if any of the provided paths are invalid or if the `Move.lock` file cannot be parsed.
-  /// Functions `init` and `update` will handle those checks.
+  /// Functions `manage_history_file`, `init` and `update` will handle those checks.
   pub fn new(move_lock_path: &Path, history_file_path: &Path, aliases_to_ignore: Option<Vec<String>>) -> Self {
     let aliases_to_ignore = aliases_to_ignore.unwrap_or(vec!["localnet".to_string()]);
     Self {
