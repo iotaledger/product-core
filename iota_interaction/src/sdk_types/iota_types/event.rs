@@ -11,9 +11,8 @@ use serde_with::serde_as;
 use super::digests::TransactionDigest;
 use super::iota_serde::{BigInt, Readable};
 
-/// Unique ID of an IOTA Event, the ID is a combination of tx seq number and
-/// event seq number, the ID is local to this particular fullnode and will be
-/// different from other fullnode.
+/// Unique ID of an IOTA Event, the ID is a combination of transaction digest
+/// and event seq number.
 #[serde_as]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]

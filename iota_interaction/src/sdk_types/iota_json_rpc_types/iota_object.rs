@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use std::fmt::{self, Display, Formatter, Write};
 use std::string::String;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use fastcrypto::encoding::Base64;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -100,9 +100,9 @@ impl IotaObjectResponse {
     }
 
     pub fn object_id(&self) -> Result<ObjectID, anyhow::Error> {
-        match (&self.data, &self.error) {
-            (Some(obj_data), None) => Ok(obj_data.object_id),
-            (None, Some(IotaObjectResponseError::NotExists { object_id })) => Ok(*object_id),
+        Ok(match (&self.data, &self.error) {
+            (Some(obj_data), None) => obj_data.object_id,
+            (None, Some(IotaObjectResponseError::NotExists { object_id })) => *object_id,
             (
                 None,
                 Some(IotaObjectResponseError::Deleted {
@@ -110,11 +110,11 @@ impl IotaObjectResponse {
                          version: _,
                          digest: _,
                      }),
-            ) => Ok(*object_id),
-            _ => Err(anyhow!(
+            ) => *object_id,
+            _ => bail!(
                 "Could not get object_id, something went wrong with IotaObjectResponse construction."
-            )),
-        }
+            ),
+        })
     }
 
     pub fn object_ref_if_exists(&self) -> Option<ObjectRef> {
@@ -585,6 +585,7 @@ impl From<MovePackage> for IotaRawMovePackage {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "status", content = "details", rename = "ObjectRead")]
+#[expect(clippy::large_enum_variant)]
 pub enum IotaPastObjectResponse {
     /// The object exists and is found with this version
     VersionFound(IotaObjectData),

@@ -33,8 +33,6 @@ use super::error::{IotaError, IotaResult};
 use super::iota_serde::Readable;
 use crate::shared_crypto::intent::IntentMessage;
 
-const IOTA_PRIV_KEY_PREFIX: &str = "iotaprivkey";
-
 // Authority Objects
 pub type AuthorityKeyPair = BLS12381KeyPair;
 pub type AuthorityPublicKey = BLS12381PublicKey;
@@ -53,6 +51,8 @@ pub type NetworkPublicKey = Ed25519PublicKey;
 pub type NetworkPrivateKey = Ed25519PrivateKey;
 
 pub type DefaultHash = Blake2b256;
+
+const IOTA_PRIV_KEY_PREFIX: &str = "iotaprivkey";
 
 // Account Keys
 //
@@ -76,12 +76,24 @@ impl IotaKeyPair {
             IotaKeyPair::Secp256r1(kp) => PublicKey::Secp256r1(kp.public().into()),
         }
     }
+}
 
-    pub fn copy(&self) -> Self {
+impl Clone for IotaKeyPair {
+    fn clone(&self) -> Self {
         match self {
             IotaKeyPair::Ed25519(kp) => kp.copy().into(),
             IotaKeyPair::Secp256k1(kp) => kp.copy().into(),
             IotaKeyPair::Secp256r1(kp) => kp.copy().into(),
+        }
+    }
+}
+
+impl Signer<Signature> for IotaKeyPair {
+    fn sign(&self, msg: &[u8]) -> Signature {
+        match self {
+            IotaKeyPair::Ed25519(kp) => kp.sign(msg),
+            IotaKeyPair::Secp256k1(kp) => kp.sign(msg),
+            IotaKeyPair::Secp256r1(kp) => kp.sign(msg),
         }
     }
 }
@@ -94,16 +106,6 @@ impl EncodeDecodeBase64 for IotaKeyPair {
     fn decode_base64(value: &str) -> FastCryptoResult<Self> {
         let bytes = Base64::decode(value)?;
         Self::from_bytes(&bytes).map_err(|_| FastCryptoError::InvalidInput)
-    }
-}
-
-impl Signer<Signature> for IotaKeyPair {
-    fn sign(&self, msg: &[u8]) -> Signature {
-        match self {
-            IotaKeyPair::Ed25519(kp) => kp.sign(msg),
-            IotaKeyPair::Secp256k1(kp) => kp.sign(msg),
-            IotaKeyPair::Secp256r1(kp) => kp.sign(msg),
-        }
     }
 }
 
@@ -634,10 +636,7 @@ impl<S: IotaSignatureInner + Sized> IotaSignature for S {
                 let address = IotaAddress::from(pk);
                 if author != address {
                     return Err(IotaError::IncorrectSigner {
-                        error: format!(
-                            "Incorrect signer, expected {:?}, got {:?}",
-                            author, address
-                        ),
+                        error: format!("Incorrect signer, expected {author:?}, got {address:?}"),
                     });
                 }
             }
@@ -645,7 +644,7 @@ impl<S: IotaSignatureInner + Sized> IotaSignature for S {
 
         pk.verify(&digest, sig)
             .map_err(|e| IotaError::InvalidSignature {
-                error: format!("Fail to verify user sig {}", e),
+                error: format!("Fail to verify user sig {e}"),
             })
     }
 }

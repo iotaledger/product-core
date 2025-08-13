@@ -173,7 +173,7 @@ impl Display for IotaMoveVariant {
         writeln!(writer, "  {}: {type_}", "type")?;
         writeln!(writer, "  {}: {variant}", "variant")?;
         for (name, value) in fields {
-            let value = format!("{}", value);
+            let value = format!("{value}");
             let value = if value.starts_with('\n') {
                 indent(&value, 2)
             } else {
