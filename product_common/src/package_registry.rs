@@ -67,12 +67,6 @@ pub struct PackageRegistry {
   envs: HashMap<String, Vec<ObjectID>>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
-pub struct PackageRegistry {
-  aliases: HashMap<String, String>,
-  envs: HashMap<String, Vec<ObjectID>>,
-}
-
 impl PackageRegistry {
   /// Returns the historical list of this package's versions for a given `chain`.
   /// `chain` can either be a chain identifier or its alias.
