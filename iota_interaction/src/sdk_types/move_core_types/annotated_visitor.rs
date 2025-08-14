@@ -373,7 +373,7 @@ pub enum Error {
 /// useful for skipping over parts of the value structure.
 pub struct NullTraversal;
 
-impl<'b, 'l> Traversal<'b, 'l> for NullTraversal {
+impl Traversal<'_, '_> for NullTraversal {
     type Error = Error;
 }
 

@@ -32,9 +32,9 @@ pub struct Coin {
 }
 
 impl Coin {
-    pub fn new(id: UID, value: u64) -> Self {
+    pub fn new(id: ObjectID, value: u64) -> Self {
         Self {
-            id,
+            id: UID::new(id),
             balance: Balance::new(value),
         }
     }
@@ -104,7 +104,7 @@ impl Coin {
     // Related coin objects need to be updated in temporary_store to persist the
     // changes, including creating the coin object related to the newly created
     // coin.
-    pub fn split(&mut self, amount: u64, new_coin_id: UID) -> Result<Coin, ExecutionError> {
+    pub fn split(&mut self, amount: u64, new_coin_id: ObjectID) -> Result<Coin, ExecutionError> {
         self.balance.withdraw(amount)?;
         Ok(Coin::new(new_coin_id, amount))
     }
@@ -127,7 +127,7 @@ impl TreasuryCap {
     /// Create a TreasuryCap from BCS bytes
     pub fn from_bcs_bytes(content: &[u8]) -> Result<Self, IotaError> {
         bcs::from_bytes(content).map_err(|err| IotaError::ObjectDeserialization {
-            error: format!("Unable to deserialize TreasuryCap object: {}", err),
+            error: format!("Unable to deserialize TreasuryCap object: {err}"),
         })
     }
 
@@ -168,7 +168,7 @@ impl CoinMetadata {
     /// Create a coin from BCS bytes
     pub fn from_bcs_bytes(content: &[u8]) -> Result<Self, IotaError> {
         bcs::from_bytes(content).map_err(|err| IotaError::ObjectDeserialization {
-            error: format!("Unable to deserialize CoinMetadata object: {}", err),
+            error: format!("Unable to deserialize CoinMetadata object: {err}"),
         })
     }
 

@@ -7,6 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::vec::Vec;
 
 use enum_dispatch::enum_dispatch;
+use super::type_input::TypeInput;
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 use strum::IntoStaticStr;
@@ -134,8 +135,8 @@ pub enum Command {
     Publish(Vec<Vec<u8>>, Vec<ObjectID>),
     /// `forall T: Vec<T> -> vector<T>`
     /// Given n-values of the same type, it constructs a vector. For non objects
-    /// or an empty vector, the type tag must be specified.
-    MakeMoveVec(Option<TypeTag>, Vec<Argument>),
+    /// or an empty vector, the type input must be specified.
+    MakeMoveVec(Option<TypeInput>, Vec<Argument>),
     /// Upgrades a Move package
     /// Takes (in order):
     /// 1. A vector of serialized modules for the package.
@@ -171,11 +172,11 @@ pub struct ProgrammableMoveCall {
     /// The package containing the module and function.
     pub package: ObjectID,
     /// The specific module in the package containing the function.
-    pub module: Identifier,
+    pub module: String,
     /// The function to be called.
-    pub function: Identifier,
+    pub function: String,
     /// The type arguments to the function.
-    pub type_arguments: Vec<TypeTag>,
+    pub type_arguments: Vec<TypeInput>,
     /// The arguments to the function.
     pub arguments: Vec<Argument>,
 }
@@ -188,6 +189,9 @@ impl Command {
         type_arguments: Vec<TypeTag>,
         arguments: Vec<Argument>,
     ) -> Self {
+        let module = module.to_string();
+        let function = function.to_string();
+        let type_arguments = type_arguments.into_iter().map(TypeInput::from).collect();
         Command::MoveCall(Box::new(ProgrammableMoveCall {
             package,
             module,

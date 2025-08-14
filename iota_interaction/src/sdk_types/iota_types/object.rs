@@ -91,10 +91,10 @@ impl Display for Owner {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::AddressOwner(address) => {
-                write!(f, "Account Address ( {} )", address)
+                write!(f, "Account Address ( {address} )")
             }
             Self::ObjectOwner(address) => {
-                write!(f, "Object ID: ( {} )", address)
+                write!(f, "Object ID: ( {address} )")
             }
             Self::Immutable => {
                 write!(f, "Immutable")

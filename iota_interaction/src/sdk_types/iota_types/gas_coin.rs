@@ -13,7 +13,6 @@ use super::super::types::IOTA_FRAMEWORK_ADDRESS;
 use super::balance::{Balance, Supply};
 use super::base_types::ObjectID;
 use super::coin::{Coin, TreasuryCap};
-use super::id::UID;
 use crate::ident_str;
 
 /// The number of Nanos per IOTA token
@@ -66,7 +65,7 @@ pub struct GasCoin(pub Coin);
 
 impl GasCoin {
     pub fn new(id: ObjectID, value: u64) -> Self {
-        Self(Coin::new(UID::new(id), value))
+            Self(Coin::new(id, value))
     }
 
     pub fn value(&self) -> u64 {

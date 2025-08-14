@@ -33,6 +33,8 @@ pub enum Error {
     InsufficientFunds { address: IotaAddress, amount: u128 },
     #[error(transparent)]
     Json(#[from] serde_json::Error),
+    #[error("Invalid Header key-value pair: {0}")]
+    CustomHeaders(String),
     #[error("Error caused by a foreign function interface call: {0}")]
     FfiError(String), // Added for IOTA interaction
 }
