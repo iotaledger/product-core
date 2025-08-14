@@ -30,12 +30,6 @@ thiserror.workspace = true
 toml = { workspace = true, optional = true }
 url = { version = "2", default-features = false, optional = true, features = ["serde"] }
 
-[dependencies.identity_jose]
-git = "https://github.com/iotaledger/identity.rs.git"
-branch = "feat/identity-rebased-alpha-public-interaction-rust"
-package = "identity_jose"
-optional = true
-
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iota_interaction = { version = "0.7.0", path = "../iota_interaction", features = ["keytool"] }
 iota_interaction_rust = { version = "0.7.0", path = "../iota_interaction_rust", optional = true }
@@ -66,7 +60,6 @@ bindings = [
 ]
 binding-utils = ["bindings", "transaction", "core-client"]
 test-utils = [
-  "dep:identity_jose",
   "dep:lazy_static",
   "dep:secret-storage",
   "dep:iota-keys",
