@@ -237,18 +237,14 @@ impl MoveHistoryManager {
       if self.history_file_exists() {
         // If the output file already exists, update it.
         console_out(format!("File `{move_history_path}` already exists, updating..."));
-        self
-          .update()
-          .expect("Successfully updating `Move.history.json` file with `Move.lock` content");
+        self.update()?;
         console_out(format!(
           "Successfully updated`{move_history_path}` with content of `{move_lock_path}`"
         ));
       } else {
         // If the output file does not exist, create it.
         console_out(format!("File `{move_history_path}` does not exist, creating..."));
-        self
-          .init()
-          .expect("Successfully creating a `Move.history.json` file with `Move.lock` content");
+        self.init()?;
         console_out(format!(
           "Successfully created file `{move_history_path}` with content of `{move_lock_path}` content"
         ));
