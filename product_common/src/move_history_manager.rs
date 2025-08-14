@@ -4,21 +4,29 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::Context;
+use anyhow::{Context, Result};
 use iota_interaction::types::base_types::ObjectID;
 
 use super::package_registry::{Env, PackageRegistry};
 
-fn remove_first_and_last_char_from_string(value: String) -> String {
-  let mut chars = value.chars();
-  chars.next();
-  chars.next_back();
-  chars.as_str().to_string()
-}
-
-fn to_prettified_string(registry: &PackageRegistry) -> anyhow::Result<String> {
-  let json_value = serde_json::to_value(registry).context("Failed to serialize PackageRegistry to JSON value")?;
-  Ok(format!("{json_value:#}"))
+/// Helper function to extract an ID field from a TOML table with proper error handling.
+///
+/// # Arguments
+/// * `table` - The TOML table to extract the value from.
+/// * `key` - The key to extract from the table.
+/// * `alias` - The environment alias for error context.
+///
+/// # Returns
+/// The extracted string value or an error with context.
+fn get_id_from_table(table: &toml::Table, key: &str, alias: &str) -> Result<String> {
+  Ok(
+    table
+      .get(key)
+      .with_context(|| format!("invalid Move.lock file: missing `{key}` for env {alias}"))?
+      .as_str()
+      .with_context(|| format!("invalid Move.lock file: `{key}` for env {alias} is not a string"))?
+      .to_string(),
+  )
 }
 
 impl PackageRegistry {
@@ -49,26 +57,12 @@ impl PackageRegistry {
       };
       let chain_id: String = table
         .remove("chain-id")
-        .context(format!("invalid Move.lock file: missing `chain-id` for env {alias}"))?
+        .with_context(|| format!("invalid Move.lock file: missing `chain-id` for env {alias}"))?
         .try_into()
         .context("invalid Move.lock file: invalid `chain-id`")?;
 
-      let original_published_id: String = remove_first_and_last_char_from_string(
-        table
-          .get("original-published-id")
-          .context(format!(
-            "invalid Move.lock file: missing `original-published-id` for env {alias}"
-          ))?
-          .to_string(),
-      );
-      let latest_published_id: String = remove_first_and_last_char_from_string(
-        table
-          .get("latest-published-id")
-          .context(format!(
-            "invalid Move.lock file: missing `latest-published-id` for env {alias}"
-          ))?
-          .to_string(),
-      );
+      let original_published_id: String = get_id_from_table(&table, "original-published-id", &alias)?;
+      let latest_published_id: String = get_id_from_table(&table, "latest-published-id", &alias)?;
 
       let mut metadata = vec![ObjectID::from_hex_literal(original_published_id.as_str())?];
       if original_published_id != latest_published_id {
@@ -158,8 +152,9 @@ impl PackageRegistry {
 ///
 /// ``` toml
 /// [build-dependencies]
-/// product_common = { workspace = true, features = ["move-history-manager"] }
+/// product_common = { workspace = true, default-features = false, features = ["move-history-manager"] }
 /// ```
+#[derive(Debug)]
 pub struct MoveHistoryManager {
   move_lock_path: PathBuf,
   history_file_path: PathBuf,
@@ -277,7 +272,7 @@ impl MoveHistoryManager {
       let _ = registry.remove_env_by_alias(alias);
     }
 
-    let json_content = to_prettified_string(&registry)?;
+    let json_content = serde_json::to_string_pretty(&registry)?;
 
     fs::write(&self.history_file_path, json_content)
       .with_context(|| format!("Failed to write to output file: {}", self.history_file_path.display()))?;
@@ -317,7 +312,7 @@ impl MoveHistoryManager {
     }
 
     // Serialize and write updated registry
-    let updated_json_content = to_prettified_string(&registry)?;
+    let updated_json_content = serde_json::to_string_pretty(&registry)?;
 
     fs::write(&self.history_file_path, updated_json_content).with_context(|| {
       format!(
