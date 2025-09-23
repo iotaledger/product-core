@@ -34,13 +34,16 @@ impl PackageRegistry {
   ///
   /// # Arguments
   /// * `move_lock` - A string containing the content of the `Move.lock` file.
+  /// * `aliases_to_watch` - A vector of environment aliases to include in the registry.
+  ///   Only environments with aliases in this list will be processed and added to the registry.
+  ///   Other environments in the `Move.lock` file will be ignored.
   ///
   /// # Returns
   /// A `PackageRegistry` instance populated with data from the `Move.lock` file.
   ///
   /// # Errors
   /// Returns an error if the `Move.lock` file content is invalid or cannot be parsed.
-  pub fn from_move_lock_content(move_lock: &str) -> anyhow::Result<Self> {
+  pub fn from_move_lock_content(move_lock: &str, aliases_to_watch: &Vec<String>) -> anyhow::Result<Self> {
     let mut move_lock: toml::Table = move_lock.parse()?;
 
     let mut move_lock_iter = move_lock
@@ -52,6 +55,9 @@ impl PackageRegistry {
       .into_iter();
 
     move_lock_iter.try_fold(Self::default(), |mut registry, (alias, table)| {
+        if !aliases_to_watch.contains(&alias) {
+            return Ok(registry);
+        }
       let toml::Value::Table(mut table) = table else {
         anyhow::bail!("invalid Move.lock file: invalid `env` table");
       };
@@ -133,8 +139,10 @@ impl PackageRegistry {
 ///   MoveHistoryManager::new(
 ///     &PathBuf::from(move_lock_path),
 ///     &PathBuf::from(move_history_path),
-///     // Use `Some(vec![])` instead of `None`, if you don't want to ignore `localnet`
-///     None,
+///     // We will watch the default watch list (`get_default_aliases_to_watch()`) in this build script
+///     // so we leave the `additional_aliases_to_watch` argument vec empty.
+///     // Use for example `vec!["localnet".to_string()]` instead, if you don't want to ignore `localnet`.
+///     vec![],
 ///   )
 ///   .manage_history_file(|message| {
 ///     println!("[build.rs] {}", message);
@@ -158,7 +166,7 @@ impl PackageRegistry {
 pub struct MoveHistoryManager {
   move_lock_path: PathBuf,
   history_file_path: PathBuf,
-  aliases_to_ignore: Vec<String>,
+  aliases_to_watch: Vec<String>,
 }
 
 impl MoveHistoryManager {
@@ -167,21 +175,44 @@ impl MoveHistoryManager {
   /// # Arguments
   /// * `move_lock_path` - Path to the `Move.lock` file.
   /// * `history_file_path` - Path to the `M̀ove.history.toml` file.
-  /// * `aliases_to_ignore` - Optional list of environment aliases to ignore. If `aliases_to_ignore` is not provided, it
-  ///   defaults to `["localnet"]`.
+  /// * `additional_aliases_to_watch` - List of environment aliases to be watched additionally to those
+  ///    environments, being watched per default (see function `get_default_aliases_to_watch()` for more details).
+  ///    Examples:
+  ///    * Watch only defaults environments: `new(move_lock_path, history_file_path, vec![])`
+  ///    * Additionally watch the `localnet` environment: `new(move_lock_path, history_file_path, vec!["localnet"])`
   ///
   /// # Returns
   /// A new `MoveHistoryManager` instance.
   ///
   /// Doesn't check if any of the provided paths are invalid or if the `Move.lock` file cannot be parsed.
   /// Functions `manage_history_file`, `init` and `update` will handle those checks.
-  pub fn new(move_lock_path: &Path, history_file_path: &Path, aliases_to_ignore: Option<Vec<String>>) -> Self {
-    let aliases_to_ignore = aliases_to_ignore.unwrap_or(vec!["localnet".to_string()]);
+  pub fn new(move_lock_path: &Path, history_file_path: &Path, mut additional_aliases_to_watch: Vec<String>) -> Self {
+    let mut aliases_to_watch = Self::get_default_aliases_to_watch();
+    aliases_to_watch.append(&mut additional_aliases_to_watch);
+
     Self {
       move_lock_path: move_lock_path.to_owned(),
       history_file_path: history_file_path.to_owned(),
-      aliases_to_ignore,
+      aliases_to_watch,
     }
+  }
+
+  /// Returns the default list of environment aliases being watched if no additional
+  /// `additional_aliases_to_watch` is provided in the `new()` function.
+  /// Returns a vector containing `mainnet`, `testnet` and `devnet`.
+  ///
+  /// Use the `additional_aliases_to_watch` argument of the `new()` function to specify aliases
+  /// of additional environments to be watched, e.g. `localnet`.
+  ///
+  /// Use method `aliases_to_watch()` to evaluate the complete list of environment aliases being watched
+  /// by a `MoveHistoryManager` instance.
+  pub fn get_default_aliases_to_watch() -> Vec<String> {
+    vec!["mainnet".to_string(), "testnet".to_string(), "devnet".to_string()]
+  }
+
+  /// Returns the list of environment aliases being watched by this `MoveHistoryManager` instance.
+  pub fn aliases_to_watch(&self) -> &Vec<String> {
+    &self.aliases_to_watch
   }
 
   /// Checks if the Move.history.json file exists.
@@ -192,11 +223,6 @@ impl MoveHistoryManager {
   /// Checks if the Move.lock file exists.
   pub fn move_lock_file_exists(&self) -> bool {
     self.move_lock_path.exists() && self.move_lock_path.is_file()
-  }
-
-  /// Returns the list of environment aliases to ignore.
-  pub fn aliases_to_ignore(&self) -> &[String] {
-    &self.aliases_to_ignore
   }
 
   /// Returns the path to the Move.lock file.
@@ -256,17 +282,16 @@ impl MoveHistoryManager {
   }
 
   /// Creates an initial Move.history.json file from a Move.lock file
-  /// Will ignore any environment aliases specified in `aliases_to_ignore`.
+  /// Will only take those environment aliases into account, listed in `aliases_to_watch()`.
   pub fn init(&self) -> anyhow::Result<()> {
     let move_lock_content = fs::read_to_string(&self.move_lock_path)
       .with_context(|| format!("Failed to read Move.lock file: {}", &self.move_lock_path.display()))?;
 
-    let mut registry =
-      PackageRegistry::from_move_lock_content(&move_lock_content).context("Failed to parse Move.lock file")?;
-
-    for alias in self.aliases_to_ignore.iter() {
-      let _ = registry.remove_env_by_alias(alias);
-    }
+    let registry =
+      PackageRegistry::from_move_lock_content(
+        &move_lock_content,
+        &self.aliases_to_watch,
+      ).context("Failed to parse Move.lock file")?;
 
     let json_content = serde_json::to_string_pretty(&registry)?;
 
@@ -293,12 +318,11 @@ impl MoveHistoryManager {
     let move_lock_content = fs::read_to_string(&self.move_lock_path)
       .with_context(|| format!("Failed to read Move.lock file: {}", self.move_lock_path.display()))?;
 
-    let mut new_registry =
-      PackageRegistry::from_move_lock_content(&move_lock_content).context("Failed to parse Move.lock file")?;
-
-    for alias in self.aliases_to_ignore.iter() {
-      let _ = new_registry.remove_env_by_alias(alias);
-    }
+    let new_registry =
+      PackageRegistry::from_move_lock_content(
+        &move_lock_content,
+        &self.aliases_to_watch,
+      ).context("Failed to parse Move.lock file")?;
 
     // Add new package versions from Move.lock to existing registry
     for (chain_id, versions) in new_registry.envs().iter() {
@@ -392,7 +416,7 @@ latest-published-id = "0xfbddb4631d027b2c4f0b4b90c020713d258ed32bdb342b5397f4da7
       }
     }
 
-    let history_manager = MoveHistoryManager::new(&move_lock_path, &history_path, None);
+    let history_manager = MoveHistoryManager::new(&move_lock_path, &history_path, vec![]);
     (temp_dir, history_path, move_lock_path, history_manager)
   }
 
@@ -412,6 +436,8 @@ latest-published-id = "0xfbddb4631d027b2c4f0b4b90c020713d258ed32bdb342b5397f4da7
     assert!(content.contains("\"aliases\": {"));
     assert!(content.contains("\"mainnet\": \"6364aad5\""));
     assert!(content.contains("\"testnet\": \"2304aa97\""));
+    // localnet should not be included per default
+    assert!(!content.contains("\"localnet\": \"ecc0606a\""));
   }
 
   #[test]
@@ -569,4 +595,28 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     fs::create_dir(&history_path).unwrap();
     assert!(!history_manager.history_file_exists());
   }
+
+  #[test]
+  fn new_includes_additional_aliases_to_watch() {
+    let move_lock_path = PathBuf::from("Move.lock");
+    let history_file_path = PathBuf::from("Move.history.json");
+    let additional = vec!["localnet".to_string(), "customnet".to_string()];
+    let manager = MoveHistoryManager::new(&move_lock_path, &history_file_path, additional.clone());
+
+    let mut expected = MoveHistoryManager::get_default_aliases_to_watch();
+    expected.extend(additional);
+
+    assert_eq!(manager.aliases_to_watch(), &expected);
+  }
+
+  #[test]
+  fn aliases_to_watch_returns_only_defaults_when_no_additional_provided() {
+    let move_lock_path = PathBuf::from("Move.lock");
+    let history_file_path = PathBuf::from("Move.history.json");
+    let manager = MoveHistoryManager::new(&move_lock_path, &history_file_path, vec![]);
+
+    let expected = MoveHistoryManager::get_default_aliases_to_watch();
+    assert_eq!(manager.aliases_to_watch(), &expected);
+  }
 }
+
