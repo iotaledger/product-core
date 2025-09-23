@@ -81,7 +81,7 @@ macro_rules! assert_invariant {
     Eq, PartialEq, Clone, Debug, Serialize, Deserialize, Error, Hash, AsRefStr, IntoStaticStr,
 )]
 pub enum UserInputError {
-    #[error("Mutable object {object_id} cannot appear more than one in one transaction")]
+    #[error("Mutable object {object_id} cannot appear more than once in one transaction")]
     MutableObjectUsedMoreThanOnce { object_id: ObjectID },
     #[error("Wrong number of parameters for the transaction")]
     ObjectInputArityViolation,
@@ -95,7 +95,8 @@ pub enum UserInputError {
         version: Option<SequenceNumber>,
     },
     #[error(
-        "Object {provided_obj_ref:?} is not available for consumption, its current version: {current_version:?}"
+        "Object ID {} Version {} Digest {} is not available for consumption, current version: {current_version}",
+        .provided_obj_ref.0, .provided_obj_ref.1, .provided_obj_ref.2
     )]
     ObjectVersionUnavailableForConsumption {
         provided_obj_ref: ObjectRef,
@@ -271,6 +272,12 @@ pub enum UserInputError {
         limit
     )]
     TooManyTransactionsInSoftBundle { limit: u64 },
+    #[error(
+        "Total transactions size ({:?})bytes exceeds the maximum allowed ({:?})bytes in a Soft Bundle",
+        size,
+        limit
+    )]
+    SoftBundleTooLarge { size: u64, limit: u64 },
     #[error("Transaction {:?} in Soft Bundle contains no shared objects", digest)]
     NoSharedObject { digest: TransactionDigest },
     #[error("Transaction {:?} in Soft Bundle has already been executed", digest)]
@@ -291,6 +298,9 @@ pub enum UserInputError {
 
     #[error("Coin type is globally paused for use: {coin_type}")]
     CoinTypeGlobalPause { coin_type: String },
+
+    #[error("Invalid identifier found in the transaction: {error}")]
+    InvalidIdentifier { error: String },
 }
 
 #[derive(
@@ -529,9 +539,7 @@ pub enum IotaError {
 
     #[error("Authority Error: {error:?}")]
     GenericAuthority { error: String },
-    
-    // GenericBridge is not available
-    
+
     #[error("Failed to dispatch subscription: {error:?}")]
     FailedToDispatchSubscription { error: String },
 
@@ -629,9 +637,6 @@ pub enum IotaError {
 
     #[error("Failed to read or deserialize system state related data structures on-chain: {0}")]
     IotaSystemStateRead(String),
-
-    #[error("Failed to read or deserialize bridge related data structures on-chain: {0}")]
-    IotaBridgeRead(String),
 
     #[error("Unexpected version error: {0}")]
     UnexpectedVersion(String),
@@ -917,7 +922,7 @@ impl ExecutionError {
 
 impl std::fmt::Display for ExecutionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ExecutionError: {:?}", self)
+        write!(f, "ExecutionError: {self:?}")
     }
 }
 

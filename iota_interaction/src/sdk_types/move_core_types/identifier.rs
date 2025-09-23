@@ -10,7 +10,8 @@ use std::borrow::Borrow;
 
 use anyhow::{bail, Result};
 use ref_cast::RefCast;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_with::{DeserializeAs, SerializeAs};
 
 /// Return true if this character can appear in a Move identifier.
 ///
@@ -59,10 +60,28 @@ pub const fn is_valid(s: &str) -> bool {
 /// An owned identifier.
 ///
 /// For more details, see the module level documentation.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Identifier(Box<str>);
 // An identifier cannot be mutated so use Box<str> instead of String -- it is 1
 // word smaller.
+
+impl Serialize for Identifier {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serde_with::DisplayFromStr::serialize_as(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Identifier {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        serde_with::DisplayFromStr::deserialize_as(deserializer)
+    }
+}
 
 impl Identifier {
     /// Creates a new `Identifier` instance.

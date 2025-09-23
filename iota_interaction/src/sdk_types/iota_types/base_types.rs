@@ -132,6 +132,14 @@ impl MoveObjectType {
         Self(MoveObjectType_::GasCoin)
     }
 
+    pub fn coin(coin_type: TypeTag) -> Self {
+        Self(if GAS::is_gas_type(&coin_type) {
+            MoveObjectType_::GasCoin
+        } else {
+            MoveObjectType_::Coin(coin_type)
+        })
+    }
+
     pub fn staked_iota() -> Self {
         Self(MoveObjectType_::StakedIota)
     }
@@ -604,8 +612,20 @@ pub const RESOLVED_UTF8_STR: (&AccountAddress, &IdentStr, &IdentStr) = (
 
 // TODO: rename to version
 impl SequenceNumber {
-    pub const MIN: SequenceNumber = SequenceNumber(u64::MIN);
-    pub const MAX: SequenceNumber = SequenceNumber(0x7fff_ffff_ffff_ffff);
+    /// An inclusive lower limit on a valid sequence number.
+    ///
+    /// A valid sequence number means an object, which this sequence number
+    /// is assigned to, does not appear in a cancelled transaction.
+    pub const MIN_VALID_INCL: SequenceNumber = SequenceNumber(u64::MIN);
+
+    /// An exclusive upper limit on a valid sequence number: sequence numbers
+    /// strictly smaller than this limit are valid sequence numbers.
+    ///
+    /// A valid sequence number means an object, which this sequence number
+    /// is assigned to, does not appear in a cancelled transaction.
+    /// Sequence numbers larger than this value are "special" and
+    /// assigned to objects that appear in cancelled transactions.
+    pub const MAX_VALID_EXCL: SequenceNumber = SequenceNumber(0x7fff_ffff_ffff_ffff);
 
     pub const fn new() -> Self {
         SequenceNumber(0)
@@ -767,6 +787,11 @@ impl std::ops::Deref for ObjectID {
     }
 }
 
+/// Generate a fake ObjectID with repeated one byte.
+pub fn dbg_object_id(name: u8) -> ObjectID {
+    ObjectID::new([name; ObjectID::LENGTH])
+}
+
 #[derive(PartialEq, Eq, Clone, Debug, thiserror::Error)]
 pub enum ObjectIDParseError {
     #[error("ObjectID hex literal must start with 0x")]
@@ -802,8 +827,8 @@ impl fmt::Display for MoveObjectType {
 impl fmt::Display for ObjectType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ObjectType::Package => write!(f, "{}", PACKAGE),
-            ObjectType::Struct(t) => write!(f, "{}", t),
+            ObjectType::Package => write!(f, "{PACKAGE}"),
+            ObjectType::Struct(t) => write!(f, "{t}"),
         }
     }
 }

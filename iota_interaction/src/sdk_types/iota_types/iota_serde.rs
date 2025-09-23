@@ -96,7 +96,7 @@ fn to_custom_error<'de, D, E>(e: E) -> D::Error
         E: Debug,
         D: Deserializer<'de>,
 {
-    Error::custom(format!("byte deserialization failed, cause by: {:?}", e))
+    Error::custom(format!("byte deserialization failed, cause by: {e:?}"))
 }
 
 /// Use with serde_as to control serde for human-readable serialization and
@@ -268,7 +268,6 @@ impl<'de> DeserializeAs<'de, TypeTag> for IotaTypeTag {
     }
 }
 
-
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Copy, JsonSchema)]
 pub struct BigInt<T>(
@@ -376,9 +375,9 @@ impl<'de> DeserializeAs<'de, super::base_types::SequenceNumber> for SequenceNumb
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Copy, JsonSchema)]
 #[serde(rename = "ProtocolVersion")]
-pub struct AsProtocolVersion(u64);
+pub struct AsProtocolVersion(#[schemars(with = "BigInt<u64>")] u64);
 
 impl SerializeAs<ProtocolVersion> for AsProtocolVersion {
     fn serialize_as<S>(value: &ProtocolVersion, serializer: S) -> Result<S::Ok, S::Error>

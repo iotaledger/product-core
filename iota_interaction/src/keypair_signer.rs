@@ -16,7 +16,7 @@ pub struct KeyPairSigner(IotaKeyPair);
 
 impl Clone for KeyPairSigner {
   fn clone(&self) -> Self {
-    Self(self.0.copy())
+    Self(self.0.clone())
   }
 }
 
