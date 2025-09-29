@@ -261,7 +261,7 @@ impl MoveHistoryManager {
 
     if !self.move_lock_file_exists() {
       console_out(format!("File `{move_lock_path}` does not exist, skipping..."));
-      return Ok(())
+      return Ok(());
     }
 
     // The move_lock_file exists
