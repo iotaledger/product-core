@@ -34,16 +34,16 @@ impl PackageRegistry {
   ///
   /// # Arguments
   /// * `move_lock` - A string containing the content of the `Move.lock` file.
-  /// * `aliases_to_watch` - A vector of environment aliases to include in the registry.
-  ///   Only environments with aliases in this list will be processed and added to the registry.
-  ///   Other environments in the `Move.lock` file will be ignored.
+  /// * `aliases_to_watch` - A vector of environment aliases to include in the registry. Only environments with aliases
+  ///   in this list will be processed and added to the registry. Other environments in the `Move.lock` file will be
+  ///   ignored.
   ///
   /// # Returns
   /// A `PackageRegistry` instance populated with data from the `Move.lock` file.
   ///
   /// # Errors
   /// Returns an error if the `Move.lock` file content is invalid or cannot be parsed.
-  pub fn from_move_lock_content(move_lock: &str, aliases_to_watch: &Vec<String>) -> anyhow::Result<Self> {
+  pub fn from_move_lock_content(move_lock: &str, aliases_to_watch: &[String]) -> anyhow::Result<Self> {
     let mut move_lock: toml::Table = move_lock.parse()?;
 
     let mut move_lock_iter = move_lock
@@ -55,9 +55,9 @@ impl PackageRegistry {
       .into_iter();
 
     move_lock_iter.try_fold(Self::default(), |mut registry, (alias, table)| {
-        if !aliases_to_watch.contains(&alias) {
-            return Ok(registry);
-        }
+      if !aliases_to_watch.contains(&alias) {
+        return Ok(registry);
+      }
       let toml::Value::Table(mut table) = table else {
         anyhow::bail!("invalid Move.lock file: invalid `env` table");
       };
@@ -175,11 +175,10 @@ impl MoveHistoryManager {
   /// # Arguments
   /// * `move_lock_path` - Path to the `Move.lock` file.
   /// * `history_file_path` - Path to the `M̀ove.history.toml` file.
-  /// * `additional_aliases_to_watch` - List of environment aliases to be watched additionally to those
-  ///    environments, being watched per default (see function `get_default_aliases_to_watch()` for more details).
-  ///    Examples:
-  ///    * Watch only defaults environments: `new(move_lock_path, history_file_path, vec![])`
-  ///    * Additionally watch the `localnet` environment: `new(move_lock_path, history_file_path, vec!["localnet"])`
+  /// * `additional_aliases_to_watch` - List of environment aliases to be watched additionally to those environments,
+  ///   being watched per default (see function `get_default_aliases_to_watch()` for more details). Examples:
+  ///   * Watch only defaults environments: `new(move_lock_path, history_file_path, vec![])`
+  ///   * Additionally watch the `localnet` environment: `new(move_lock_path, history_file_path, vec!["localnet"])`
   ///
   /// # Returns
   /// A new `MoveHistoryManager` instance.
@@ -287,11 +286,8 @@ impl MoveHistoryManager {
     let move_lock_content = fs::read_to_string(&self.move_lock_path)
       .with_context(|| format!("Failed to read Move.lock file: {}", &self.move_lock_path.display()))?;
 
-    let registry =
-      PackageRegistry::from_move_lock_content(
-        &move_lock_content,
-        &self.aliases_to_watch,
-      ).context("Failed to parse Move.lock file")?;
+    let registry = PackageRegistry::from_move_lock_content(&move_lock_content, &self.aliases_to_watch)
+      .context("Failed to parse Move.lock file")?;
 
     let json_content = serde_json::to_string_pretty(&registry)?;
 
@@ -318,11 +314,8 @@ impl MoveHistoryManager {
     let move_lock_content = fs::read_to_string(&self.move_lock_path)
       .with_context(|| format!("Failed to read Move.lock file: {}", self.move_lock_path.display()))?;
 
-    let new_registry =
-      PackageRegistry::from_move_lock_content(
-        &move_lock_content,
-        &self.aliases_to_watch,
-      ).context("Failed to parse Move.lock file")?;
+    let new_registry = PackageRegistry::from_move_lock_content(&move_lock_content, &self.aliases_to_watch)
+      .context("Failed to parse Move.lock file")?;
 
     // Add new package versions from Move.lock to existing registry
     for (chain_id, versions) in new_registry.envs().iter() {
@@ -619,4 +612,3 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     assert_eq!(manager.aliases_to_watch(), &expected);
   }
 }
-
