@@ -258,24 +258,27 @@ impl MoveHistoryManager {
   pub fn manage_history_file(&self, console_out: impl Fn(String)) -> anyhow::Result<()> {
     let move_history_path = self.history_file_path.to_string_lossy();
     let move_lock_path = self.move_lock_path.to_string_lossy();
-    if self.move_lock_file_exists() {
-      if self.history_file_exists() {
-        // If the output file already exists, update it.
-        console_out(format!("File `{move_history_path}` already exists, updating..."));
-        self.update()?;
-        console_out(format!(
-          "Successfully updated`{move_history_path}` with content of `{move_lock_path}`"
-        ));
-      } else {
-        // If the output file does not exist, create it.
-        console_out(format!("File `{move_history_path}` does not exist, creating..."));
-        self.init()?;
-        console_out(format!(
-          "Successfully created file `{move_history_path}` with content of `{move_lock_path}` content"
-        ));
-      }
+
+    if !self.move_lock_file_exists() {
+      console_out(format!("File `{move_lock_path}` does not exist, skipping..."));
+      return Ok(())
+    }
+
+    // The move_lock_file exists
+    if self.history_file_exists() {
+      // If the output file already exists, update it.
+      console_out(format!("File `{move_history_path}` already exists, updating..."));
+      self.update()?;
+      console_out(format!(
+        "Successfully updated`{move_history_path}` with content of `{move_lock_path}`"
+      ));
     } else {
-      console_out(format!("File `{move_history_path}` does not exist, skipping..."));
+      // If the output file does not exist, create it.
+      console_out(format!("File `{move_history_path}` does not exist, creating..."));
+      self.init()?;
+      console_out(format!(
+        "Successfully created file `{move_history_path}` with content of `{move_lock_path}` content"
+      ));
     }
     Ok(())
   }
