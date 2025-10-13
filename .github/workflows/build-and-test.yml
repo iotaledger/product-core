@@ -95,7 +95,6 @@ jobs:
 
     steps:
       - name: Install Protoc
-        if: matrix.os == 'windows-latest' || matrix.os == 'macos-latest' || matrix.os == 'ubuntu-24.04'
         uses: taiki-e/install-action@protoc
 
       - name: git configure long path
