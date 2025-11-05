@@ -174,7 +174,7 @@ impl MoveHistoryManager {
   ///
   /// # Arguments
   /// * `move_lock_path` - Path to the `Move.lock` file.
-  /// * `history_file_path` - Path to the `M̀ove.history.toml` file.
+  /// * `history_file_path` - Path to the `Move.history.toml` file.
   /// * `additional_aliases_to_watch` - List of environment aliases to be watched additionally to those environments,
   ///   being watched per default (see function `get_default_aliases_to_watch()` for more details). Examples:
   ///   * Watch only defaults environments: `new(move_lock_path, history_file_path, vec![])`
