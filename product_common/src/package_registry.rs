@@ -127,7 +127,8 @@ impl PackageRegistry {
     self.aliases.insert(alias, chain_id);
   }
 
-  /// Inserts a new package version for a given chain.
+  /// Inserts a new package version for a given chain. If the chain does not exist, it is created.
+  /// If the new package version is the same as the last one, it is not added again.
   pub fn insert_new_package_version(&mut self, chain_id: &str, package: ObjectID) {
     let history = self.envs.entry(chain_id.to_string()).or_default();
     if history.last() != Some(&package) {
