@@ -106,6 +106,11 @@ impl PackageRegistry {
     &self.envs
   }
 
+  /// Returns the aliases of this package registry.
+  pub fn aliases(&self) -> &HashMap<String, String> {
+    &self.aliases
+  }
+
   /// Adds or replaces this package's metadata for a given environment.
   pub fn insert_env(&mut self, env: Env, metadata: Vec<ObjectID>) {
     let Env { chain_id, alias } = env;
