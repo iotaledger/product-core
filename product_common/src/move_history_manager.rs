@@ -327,6 +327,11 @@ impl MoveHistoryManager {
       }
     }
 
+    // Update aliases from Move.lock to existing registry
+    for (alias, chain_id) in new_registry.aliases().iter() {
+      registry.update_alias(alias.clone(), chain_id.clone());
+    }
+
     // Serialize and write updated registry
     let updated_json_content = serde_json::to_string_pretty(&registry)?;
 
