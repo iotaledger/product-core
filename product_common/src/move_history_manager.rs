@@ -270,7 +270,7 @@ impl MoveHistoryManager {
       console_out(format!("File `{move_history_path}` already exists, updating..."));
       self.update()?;
       console_out(format!(
-        "Successfully updated`{move_history_path}` with content of `{move_lock_path}`"
+        "Successfully updated `{move_history_path}` with content of `{move_lock_path}`"
       ));
     } else {
       // If the output file does not exist, create it.
