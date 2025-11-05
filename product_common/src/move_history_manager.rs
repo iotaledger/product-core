@@ -619,6 +619,7 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     let expected = MoveHistoryManager::get_default_aliases_to_watch();
     assert_eq!(manager.aliases_to_watch(), &expected);
   }
+
   #[test]
   fn update_syncs_new_and_existing_aliases() {
     let (_temp_dir, history_path, move_lock_path, history_manager) =
@@ -686,4 +687,42 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     assert_eq!(registry.chain_alias("6364aad5"), Some("mainnet"));
     assert_eq!(registry.chain_alias("2304aa97"), Some("testnet"));
   }
+
+  #[test]
+  fn update_syncs_only_aliases_included_in_aliases_to_watch_list() {
+    let (_temp_dir, history_path, move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::HistoryFile);
+
+    // Same envs, no additions - just update mainnet version
+    let updated_move_lock = r#"
+  [env.mainnet]
+  chain-id = "6364aad5"
+  latest-published-id="0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+  original-published-id="0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+
+  [env.testnet]
+  chain-id = "2304aa97"
+  original-published-id="0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
+  latest-published-id="0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
+
+  [env.localnet]
+  chain-id = "12345678"
+  original-published-id="0xabc123def456789012345678901234567890abcd"
+  latest-published-id="0xabc123def456789012345678901234567890abcd"
+  "#;
+    fs::write(&move_lock_path, updated_move_lock).unwrap();
+
+    history_manager.update().unwrap();
+
+    let updated_content = fs::read_to_string(&history_path).unwrap();
+    let registry = PackageRegistry::from_package_history_json_str(&updated_content).unwrap();
+
+    // Original aliases must be preserved
+    assert_eq!(registry.chain_alias("6364aad5"), Some("mainnet"));
+    assert_eq!(registry.chain_alias("2304aa97"), Some("testnet"));
+    // Localnet is not in the aliases_to_watch list per default, so it should not be added
+    assert_eq!(registry.chain_alias("12345678"), None);
+  }
 }
+
+
