@@ -724,5 +724,3 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     assert_eq!(registry.chain_alias("12345678"), None);
   }
 }
-
-
