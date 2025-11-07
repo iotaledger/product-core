@@ -37,7 +37,7 @@ strum.workspace = true
 
 thiserror.workspace = true
 # Want to use the nice API of tokio::sync::RwLock for now even though we can't use threads.
-tokio = { version = "1.44.2", default-features = false, features = ["sync"] }
+tokio = { version = "1.46.1", default-features = false, features = ["sync"] }
 wasm-bindgen = { version = "0.2.100", features = ["serde-serialize"] }
 wasm-bindgen-futures = { version = "0.4", default-features = false }
 
