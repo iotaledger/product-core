@@ -46,9 +46,11 @@ impl PackageRegistry {
   pub fn from_move_lock_content(move_lock: &str, aliases_to_watch: &[String]) -> anyhow::Result<Self> {
     let mut move_lock: toml::Table = move_lock.parse()?;
 
-    let mut move_lock_iter = move_lock
-      .remove("env")
-      .context("invalid Move.lock file: missing `env` table")?
+    let Some(mut env_value) = move_lock.remove("env") else {
+      return Ok(Self::default());
+    };
+
+    let mut move_lock_iter = env_value
       .as_table_mut()
       .map(std::mem::take)
       .context("invalid Move.lock file: `env` is not a table")?
@@ -633,6 +635,60 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
 
     let expected = MoveHistoryManager::get_default_aliases_to_watch();
     assert_eq!(manager.aliases_to_watch(), &expected);
+  }
+
+  #[test]
+  fn from_move_lock_content_handles_missing_env_table() {
+    // Fresh Move.lock without any deployments
+    let move_lock_content = r#"
+        [move]
+        version = 2
+
+        [move.package]
+        name = "test_package"
+    "#;
+
+    let registry =
+      PackageRegistry::from_move_lock_content(move_lock_content, &["mainnet".to_string(), "testnet".to_string()])
+        .unwrap();
+
+    // Should return empty registry without error
+    assert_eq!(registry.envs().len(), 0);
+    assert_eq!(registry.aliases().len(), 0);
+  }
+
+  #[test]
+  fn manage_history_file_handles_fresh_move_project() {
+    let temp_dir = TempDir::new().unwrap();
+    let history_path = temp_dir.path().join("Move.history.json");
+    let move_lock_path = temp_dir.path().join("Move.lock");
+
+    // Fresh Move.lock without env section
+    let fresh_move_lock = r#"
+        [move]
+        version = 2
+
+        [move.package]
+        name = "test_package"
+    "#;
+    fs::write(&move_lock_path, fresh_move_lock).unwrap();
+
+    let history_manager = MoveHistoryManager::new(&move_lock_path, &history_path, vec![]);
+
+    // Should succeed without errors
+    history_manager
+      .manage_history_file(|message| {
+        println!("{}", message);
+      })
+      .unwrap();
+
+    assert!(history_path.exists());
+    let content = fs::read_to_string(&history_path).unwrap();
+    let registry = PackageRegistry::from_package_history_json_str(&content).unwrap();
+
+    // Empty registry is valid for unpublished packages
+    assert_eq!(registry.envs().len(), 0);
+    assert_eq!(registry.aliases().len(), 0);
   }
 
   #[test]
