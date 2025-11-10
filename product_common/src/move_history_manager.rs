@@ -740,4 +740,47 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     // Localnet is not in the aliases_to_watch list per default, so it should not be added
     assert_eq!(registry.chain_alias("12345678"), None);
   }
+
+  #[test]
+  fn update_handles_redeployment_breaking_changes() {
+    let (_temp_dir, history_path, move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::HistoryFile);
+
+    // Simulate a breaking change redeployment where the original-published-id for mainnet changes
+    // (previous value has been 0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08)
+    // The new original-published-id will equal the new latest-published-id. env.testnet remains unchanged.
+    let updated_move_lock = r#"
+[env.mainnet]
+chain-id = "6364aad5"
+original-published-id = "0xa4cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de10"
+latest-published-id = "0xa4cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de10"
+
+[env.testnet]
+chain-id = "2304aa97"
+original-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
+latest-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
+"#;
+    fs::write(&move_lock_path, updated_move_lock).unwrap();
+
+    history_manager.update().unwrap();
+
+    let updated_content = fs::read_to_string(&history_path).unwrap();
+    let registry = PackageRegistry::from_package_history_json_str(&updated_content).unwrap();
+
+    // Old version from initial history should still be present
+    let mainnet_history = registry.history("6364aad5").unwrap();
+    assert_eq!(mainnet_history.len(), 2);
+    assert_eq!(
+      mainnet_history[0].to_hex_literal(),
+      "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+    );
+    // New redeployed version should be added
+    assert_eq!(
+      mainnet_history[1].to_hex_literal(),
+      "0xa4cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de10"
+    );
+
+    // Testnet should remain unchanged with only one version
+    assert_eq!(registry.history("2304aa97").unwrap().len(), 1);
+  }
 }
