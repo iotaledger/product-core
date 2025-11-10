@@ -1,6 +1,6 @@
 [package]
 name = "product_common"
-version = "0.8.4"
+version = "0.8.5"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
@@ -17,7 +17,7 @@ async-trait.workspace = true
 bcs = { workspace = true, optional = true }
 cfg-if.workspace = true
 fastcrypto = { workspace = true, optional = true }
-iota-keys = { git = "https://github.com/iotaledger/iota.git", package = "iota-keys", tag = "v1.9.2", optional = true }
+iota-keys = { git = "https://github.com/iotaledger/iota.git", package = "iota-keys", tag = "v1.10.0", optional = true }
 itertools = { version = "0.13.0", optional = true }
 lazy_static = { version = "1.5.0", optional = true }
 phf.workspace = true
@@ -31,22 +31,22 @@ toml = { workspace = true, optional = true }
 url = { version = "2", default-features = false, optional = true, features = ["serde"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iota_interaction = { version = "0.8.4", path = "../iota_interaction", features = ["keytool"] }
-iota_interaction_rust = { version = "0.8.4", path = "../iota_interaction_rust", optional = true }
+iota_interaction = { version = "0.8.5", path = "../iota_interaction", features = ["keytool"] }
+iota_interaction_rust = { version = "0.8.5", path = "../iota_interaction_rust", optional = true }
 iota-sdk.workspace = true
-tokio = { version = "1.44.2", default-features = false, features = ["process"] }
+tokio.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-iota_interaction = { version = "0.8.4", path = "../iota_interaction", default-features = false }
-iota_interaction_ts = { version = "0.8.4", path = "../bindings/wasm/iota_interaction_ts" }
+iota_interaction = { version = "0.8.5", path = "../iota_interaction", default-features = false }
+iota_interaction_ts = { version = "0.8.5", path = "../bindings/wasm/iota_interaction_ts" }
 wasm-bindgen = { version = "0.2.100", optional = true }
 wasm-bindgen-futures = { version = "0.4", default-features = false, optional = true }
 serde-wasm-bindgen = { version = "0.6", optional = true }
 js-sys = { version = "0.3", optional = true }
 
 [dev-dependencies]
-iota_interaction = { version = "0.8.4", path = "../iota_interaction" }
-iota_interaction_rust = { version = "0.8.4", path = "../iota_interaction_rust" }
+iota_interaction = { version = "0.8.5", path = "../iota_interaction" }
+iota_interaction_rust = { version = "0.8.5", path = "../iota_interaction_rust" }
 tempfile.workspace = true
 
 [features]

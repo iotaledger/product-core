@@ -1,6 +1,6 @@
 [package]
 name = "iota_interaction"
-version = "0.8.4"
+version = "0.8.5"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
@@ -22,13 +22,13 @@ jsonpath-rust = { version = "0.5.1", optional = true }
 secret-storage.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-shared-crypto = { git = "https://github.com/iotaledger/iota.git", package = "shared-crypto", tag = "v1.9.2" }
+shared-crypto = { git = "https://github.com/iotaledger/iota.git", package = "shared-crypto", tag = "v1.10.0" }
 strum.workspace = true
 thiserror.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iota-sdk = { git = "https://github.com/iotaledger/iota.git", package = "iota-sdk", tag = "v1.9.2" }
-move-core-types = { git = "https://github.com/iotaledger/iota.git", package = "move-core-types", tag = "v1.9.2" }
+iota-sdk = { git = "https://github.com/iotaledger/iota.git", package = "iota-sdk", tag = "v1.10.0" }
+move-core-types = { git = "https://github.com/iotaledger/iota.git", package = "move-core-types", tag = "v1.10.0" }
 tokio = { workspace = true, optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
