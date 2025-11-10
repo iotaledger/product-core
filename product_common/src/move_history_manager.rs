@@ -106,20 +106,21 @@ impl PackageRegistry {
 ///   changes - see below for a `build.rs`  example using the `MoveHistoryManager`
 ///
 /// Edge cases in `Move.history.json` handling:
-/// * Network Resets
+/// * Network Resets<br>
 ///   In case of network resets (for example on devnet), packages already published on the network are deleted.
 ///   In this case, developers need to redeploy the package on the reset network.
-///   Since the `Move.history.json` file shall only contain the history of available onchain packages, the
-///   file needs to be manually edited by the PA or community developer to remove the deleted package versions
-///   (due to the network reset) from the file.
-/// * Redeployment (Breaking Changes)
+///   Since the `Move.history.json` file shall only contain the history of available package versions (still stored onchain),
+///   the file needs to be manually edited by the developer to remove the deleted package versions from the address list
+///   of the specific environment (in the`env` entry). Alternatively the whole `env` entry and associated alias can be removed.
+///   Make sure to maintain the consistency of the `Move.history.json` file when doing so.
+/// * Redeployment (Breaking Changes)<br>
 ///   In general, breaking changes of packages already published on mainnet and testnet, must be avoided.
 ///   However, if a breaking change is needed (for example in case of a redesigned alpha version), the package will be
 ///   initially redeployed even if this package is already used by community developers.
 ///   Due to the initial redeployment of the package, the `MoveHistoryManager` will fetch the new `latest-published-id`
 ///   (equaling the new `original-published-id`) from the `Move.lock` file and add the id to the address list of the
 ///   environment. The addresses of the old package versions will remain in the history as well, so that objects
-///   created with old package versions can still be found..
+///   created with old package versions can still be found.
 ///
 /// ## `build.rs` scripts
 /// The `MoveHistoryManager` is designed to be used in a `build.rs` script of a library that depends on a Move package
