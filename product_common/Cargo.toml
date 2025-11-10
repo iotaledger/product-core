@@ -1,6 +1,6 @@
 [package]
 name = "product_common"
-version = "0.8.4"
+version = "0.8.5"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
@@ -23,7 +23,7 @@ async-trait.workspace = true
 bcs = { workspace = true, optional = true }
 cfg-if.workspace = true
 fastcrypto = { workspace = true, optional = true }
-iota-keys = { package = "iota-keys", git = "https://github.com/iotaledger/iota.git", tag = "v1.9.2", optional = true }
+iota-keys = { package = "iota-keys", git = "https://github.com/iotaledger/iota.git", tag = "v1.10.0", optional = true }
 itertools = { version = "0.13.0", optional = true }
 lazy_static = { version = "1.5.0", optional = true }
 phf.workspace = true
@@ -37,19 +37,19 @@ toml = { workspace = true, optional = true }
 url = { version = "2", default-features = false, features = ["serde"], optional = true }
 
 [dev-dependencies]
-iota_interaction = { path = "../iota_interaction", version = "0.8.4" }
-iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.4" }
+iota_interaction = { path = "../iota_interaction", version = "0.8.5" }
+iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.5" }
 tempfile.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iota_interaction = { path = "../iota_interaction", version = "0.8.4", features = ["keytool"] }
-iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.4", optional = true }
+iota_interaction = { path = "../iota_interaction", version = "0.8.5", features = ["keytool"] }
+iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.5", optional = true }
 iota-sdk.workspace = true
-tokio = { version = "1.44.2", default-features = false, features = ["process"] }
+tokio.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-iota_interaction = { path = "../iota_interaction", version = "0.8.4", default-features = false }
-iota_interaction_ts = { path = "../bindings/wasm/iota_interaction_ts", version = "0.8.4" }
+iota_interaction = { path = "../iota_interaction", version = "0.8.5", default-features = false }
+iota_interaction_ts = { path = "../bindings/wasm/iota_interaction_ts", version = "0.8.5" }
 js-sys = { version = "0.3", optional = true }
 serde-wasm-bindgen = { version = "0.6", optional = true }
 wasm-bindgen = { version = "0.2.100", optional = true }

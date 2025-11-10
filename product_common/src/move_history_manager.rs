@@ -107,6 +107,21 @@ impl PackageRegistry {
 /// * should be updated by a `build.rs` script in the library package, whenever the `Move.lock` file of the Move package
 ///   changes - see below for a `build.rs`  example using the `MoveHistoryManager`
 ///
+/// Edge cases in `Move.history.json` handling:
+/// * Network Resets<br> In case of network resets (for example on devnet), packages already published on the network
+///   are deleted. In this case, developers need to redeploy the package on the reset network. Since the
+///   `Move.history.json` file shall only contain the history of available package versions (still stored onchain), the
+///   file needs to be manually edited by the developer to remove the deleted package versions from the address list of
+///   the specific environment (in the`env` entry). Alternatively the whole `env` entry and associated alias can be
+///   removed. Make sure to maintain the consistency of the `Move.history.json` file when doing so.
+/// * Redeployment (Breaking Changes)<br> In general, breaking changes of packages already published on mainnet and
+///   testnet, must be avoided. However, if a breaking change is needed (for example in case of a redesigned alpha
+///   version), the package will be initially redeployed even if this package is already used by community developers.
+///   Due to the initial redeployment of the package, the `MoveHistoryManager` will fetch the new `latest-published-id`
+///   (equaling the new `original-published-id`) from the `Move.lock` file and add the id to the address list of the
+///   environment. The addresses of the old package versions will remain in the history as well, so that objects created
+///   with old package versions can still be found.
+///
 /// ## `build.rs` scripts
 /// The `MoveHistoryManager` is designed to be used in a `build.rs` script of a library that depends on a Move package
 /// provided in the same repository. The `build.rs` script described in the example below will be build and
@@ -778,5 +793,48 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     assert_eq!(registry.chain_alias("2304aa97"), Some("testnet"));
     // Localnet is not in the aliases_to_watch list per default, so it should not be added
     assert_eq!(registry.chain_alias("12345678"), None);
+  }
+
+  #[test]
+  fn update_handles_redeployment_breaking_changes() {
+    let (_temp_dir, history_path, move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::HistoryFile);
+
+    // Simulate a breaking change redeployment where the original-published-id for mainnet changes
+    // (previous value has been 0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08)
+    // The new original-published-id will equal the new latest-published-id. env.testnet remains unchanged.
+    let updated_move_lock = r#"
+[env.mainnet]
+chain-id = "6364aad5"
+original-published-id = "0xa4cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de10"
+latest-published-id = "0xa4cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de10"
+
+[env.testnet]
+chain-id = "2304aa97"
+original-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
+latest-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
+"#;
+    fs::write(&move_lock_path, updated_move_lock).unwrap();
+
+    history_manager.update().unwrap();
+
+    let updated_content = fs::read_to_string(&history_path).unwrap();
+    let registry = PackageRegistry::from_package_history_json_str(&updated_content).unwrap();
+
+    // Old version from initial history should still be present
+    let mainnet_history = registry.history("6364aad5").unwrap();
+    assert_eq!(mainnet_history.len(), 2);
+    assert_eq!(
+      mainnet_history[0].to_hex_literal(),
+      "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+    );
+    // New redeployed version should be added
+    assert_eq!(
+      mainnet_history[1].to_hex_literal(),
+      "0xa4cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de10"
+    );
+
+    // Testnet should remain unchanged with only one version
+    assert_eq!(registry.history("2304aa97").unwrap().len(), 1);
   }
 }
