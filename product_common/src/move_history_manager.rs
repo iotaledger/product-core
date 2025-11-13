@@ -173,11 +173,11 @@ impl PackageRegistry {
 ///
 /// To use the `MoveHistoryManager` in a `build.rs` script in an IOTA product library package, you need
 /// to add the following build dependency in the `cargo.toml` of the crate containing the `build.rs`
-///  file:
+/// file (please replace the version tag with the latest version available):
 ///
 /// ``` toml
 /// [build-dependencies]
-/// product_common = { workspace = true, default-features = false, features = ["move-history-manager"] }
+/// product_common = { git = "https://github.com/iotaledger/product-core.git", tag = "v0.8.6", default-features = false, package = "product_common", features = ["move-history-manager"] }
 /// ```
 #[derive(Debug)]
 pub struct MoveHistoryManager {
