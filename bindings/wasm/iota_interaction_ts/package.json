@@ -40,7 +40,7 @@
     "wasm-opt": "^1.4.0"
   },
   "peerDependencies": {
-    "@iota/iota-sdk": "^1.2.0"
+    "@iota/iota-sdk": "^1.7.1"
   },
   "engines": {
     "node": ">=20"
