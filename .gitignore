@@ -12,10 +12,10 @@ Cargo.lock
 
 # Ignore IDE/editor files
 .idea/
+.zed/
 .vscode/
 
 docs
 
 # ignore IOTA build artifacts & package locks
 build
-

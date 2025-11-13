@@ -29,6 +29,8 @@ serde_json = { version = "1.0", default-features = false }
 strum = { version = "0.25", default-features = false, features = ["std", "derive"] }
 thiserror = { version = "1.0", default-features = false }
 tokio = { version = "1.46.1", default-features = false, features = ["process"] }
+tempfile = "3.20.0"
+toml = "0.8"
 
 [workspace.lints.clippy]
 result_large_err = "allow"

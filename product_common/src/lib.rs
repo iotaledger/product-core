@@ -10,6 +10,8 @@ pub mod error;
 pub mod gas_station;
 #[cfg(feature = "http-client")]
 pub mod http_client;
+#[cfg(feature = "move-history-manager")]
+pub mod move_history_manager;
 pub mod network_name;
 pub mod object;
 pub mod package_registry;
