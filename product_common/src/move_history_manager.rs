@@ -327,7 +327,7 @@ impl MoveHistoryManager {
       )
     })?;
 
-    let mut registry = MoveHistory::from_package_history_json_str(&history_content)
+    let mut registry = MoveHistory::from_move_history_json_str(&history_content)
       .context("Failed to parse existing Move.history.json file")?;
 
     // Read and parse Move.lock file
@@ -478,7 +478,7 @@ original-published-id = "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed20
       .unwrap();
 
     let updated_content = fs::read_to_string(&history_path).unwrap();
-    let registry = MoveHistory::from_package_history_json_str(&updated_content).unwrap();
+    let registry = MoveHistory::from_move_history_json_str(&updated_content).unwrap();
 
     assert_eq!(registry.history("6364aad5").unwrap().len(), 2);
   }
@@ -555,7 +555,7 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     history_manager.update().unwrap();
 
     let updated_content = fs::read_to_string(&history_path).unwrap();
-    let registry = MoveHistory::from_package_history_json_str(&updated_content).unwrap();
+    let registry = MoveHistory::from_move_history_json_str(&updated_content).unwrap();
 
     assert_eq!(registry.history("6364aad5").unwrap().len(), 2);
     assert_eq!(registry.history("2304aa97").unwrap().len(), 2);
@@ -581,7 +581,7 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     history_manager.update().unwrap();
 
     let updated_content = fs::read_to_string(&history_path).unwrap();
-    let registry = MoveHistory::from_package_history_json_str(&updated_content).unwrap();
+    let registry = MoveHistory::from_move_history_json_str(&updated_content).unwrap();
 
     // Should still have only 1 version each since we're adding the same versions
     assert_eq!(registry.history("6364aad5").unwrap().len(), 1);
@@ -684,7 +684,7 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
 
     assert!(history_path.exists());
     let content = fs::read_to_string(&history_path).unwrap();
-    let registry = MoveHistory::from_package_history_json_str(&content).unwrap();
+    let registry = MoveHistory::from_move_history_json_str(&content).unwrap();
 
     // Empty registry is valid for unpublished packages
     assert_eq!(registry.envs().len(), 0);
@@ -718,7 +718,7 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     history_manager.update().unwrap();
 
     let updated_content = fs::read_to_string(&history_path).unwrap();
-    let registry = MoveHistory::from_package_history_json_str(&updated_content).unwrap();
+    let registry = MoveHistory::from_move_history_json_str(&updated_content).unwrap();
 
     // All aliases should be present (existing + new)
     assert_eq!(registry.chain_alias("6364aad5"), Some("mainnet"));
@@ -752,7 +752,7 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     history_manager.update().unwrap();
 
     let updated_content = fs::read_to_string(&history_path).unwrap();
-    let registry = MoveHistory::from_package_history_json_str(&updated_content).unwrap();
+    let registry = MoveHistory::from_move_history_json_str(&updated_content).unwrap();
 
     // Original aliases must be preserved
     assert_eq!(registry.chain_alias("6364aad5"), Some("mainnet"));
@@ -786,7 +786,7 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     history_manager.update().unwrap();
 
     let updated_content = fs::read_to_string(&history_path).unwrap();
-    let registry = MoveHistory::from_package_history_json_str(&updated_content).unwrap();
+    let registry = MoveHistory::from_move_history_json_str(&updated_content).unwrap();
 
     // Original aliases must be preserved
     assert_eq!(registry.chain_alias("6364aad5"), Some("mainnet"));
@@ -819,7 +819,7 @@ latest-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864a
     history_manager.update().unwrap();
 
     let updated_content = fs::read_to_string(&history_path).unwrap();
-    let registry = MoveHistory::from_package_history_json_str(&updated_content).unwrap();
+    let registry = MoveHistory::from_move_history_json_str(&updated_content).unwrap();
 
     // Old version from initial history should still be present
     let mainnet_history = registry.history("6364aad5").unwrap();

@@ -45,7 +45,7 @@ impl Env {
 /// # Initialization using `Move.history.json` files
 ///
 /// The registry can be initialized from a `Move.history.json` file using the function
-/// `from_package_history_json_str()`. A `Move.history.json` file has the following structure:
+/// `from_move_history_json_str()`. A `Move.history.json` file has the following structure:
 /// ```json
 /// {
 ///   "aliases": {
@@ -68,7 +68,7 @@ pub struct MoveHistory {
 }
 
 impl MoveHistory {
-  /// Returns the historical list of this package's versions for a given `chain`.
+  /// Returns the historical list of the package's versions for a given `chain`.
   /// `chain` can either be a chain identifier or its alias.
   ///
   /// ID at position `0` is the first ever published version of the package, `1` is
@@ -78,7 +78,7 @@ impl MoveHistory {
     self.envs.get(chain).or_else(from_alias).map(|v| v.as_slice())
   }
 
-  /// Returns this package's latest version ID for a given chain.
+  /// Returns the package's latest version ID for a given chain.
   pub fn package_id(&self, chain: &str) -> Option<ObjectID> {
     self.history(chain).and_then(|versions| versions.last()).copied()
   }
@@ -111,7 +111,7 @@ impl MoveHistory {
     &self.aliases
   }
 
-  /// Adds or replaces this package's metadata for a given environment.
+  /// Adds or replaces this history's metadata for a given environment.
   pub fn insert_env(&mut self, env: Env, metadata: Vec<ObjectID>) {
     let Env { chain_id, alias } = env;
 
@@ -143,10 +143,10 @@ impl MoveHistory {
   }
 
   /// Creates a [MoveHistory] from a Move.history.json file.
-  pub fn from_package_history_json_str(package_history: &str) -> anyhow::Result<Self> {
-    let package_history: Value = serde_json::from_str(package_history)?;
+  pub fn from_move_history_json_str(move_history_json: &str) -> anyhow::Result<Self> {
+    let move_history: Value = serde_json::from_str(move_history_json)?;
 
-    let ret_val = package_history
+    let ret_val = move_history
       .get("aliases")
       .context("invalid Move.history.json file: missing `aliases` object")?
       .as_object()
@@ -163,7 +163,7 @@ impl MoveHistory {
         Ok::<MoveHistory, anyhow::Error>(history)
       })?;
 
-    package_history
+    move_history
       .get("envs")
       .context("invalid Move.history.json file: missing `envs` object")?
       .as_object()
@@ -198,7 +198,7 @@ mod tests {
     };
   }
 
-  const PACKAGE_HISTORY_JSON: &str = r#"
+  const MOVE_HISTORY_JSON: &str = r#"
 {
   "aliases": {
     "localnet": "594fb3ed",
@@ -223,7 +223,7 @@ mod tests {
 
   #[test]
   fn deserialize_move_history_from_valid_json() {
-    let history = MoveHistory::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
+    let history = MoveHistory::from_move_history_json_str(MOVE_HISTORY_JSON).unwrap();
     assert_eq!(history.aliases.get("mainnet"), Some(&"6364aad5".to_string()));
     assert_eq!(history.aliases.get("testnet"), Some(&"2304aa97".to_string()));
     assert_eq!(history.envs.get("6364aad5").unwrap().len(), 1);
@@ -260,7 +260,7 @@ mod tests {
 
   #[test]
   fn package_id_returns_correct_id() {
-    let history = MoveHistory::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
+    let history = MoveHistory::from_move_history_json_str(MOVE_HISTORY_JSON).unwrap();
     let package_id = history.package_id("mainnet");
     assert_eq!(
       package_id,
@@ -296,20 +296,20 @@ mod tests {
     );
 
     let json_content = serde_json::to_string(&history).unwrap();
-    let _ = MoveHistory::from_package_history_json_str(json_content.as_str())
+    let _ = MoveHistory::from_move_history_json_str(json_content.as_str())
       .expect("Serialized json string can be deserialized back to MoveHistory");
   }
 
   #[test]
   fn package_id_returns_none_for_unknown_chain() {
-    let history = MoveHistory::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
+    let history = MoveHistory::from_move_history_json_str(MOVE_HISTORY_JSON).unwrap();
     let package_id = history.package_id("unknown_chain");
     assert_eq!(package_id, None);
   }
 
   #[test]
   fn chain_alias_returns_none_for_unknown_chain_id() {
-    let history = MoveHistory::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
+    let history = MoveHistory::from_move_history_json_str(MOVE_HISTORY_JSON).unwrap();
     let alias = history.chain_alias("unknown_chain_id");
     assert_eq!(alias, None);
   }
