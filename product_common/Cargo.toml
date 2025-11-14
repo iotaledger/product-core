@@ -33,7 +33,7 @@ serde.workspace = true
 serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
-toml = { workspace = true, optional = true }
+toml = { workspace = true } # , optional = true --- TODO see comment for `move-history-manager` feature
 url = { version = "2", default-features = false, features = ["serde"], optional = true }
 
 [dev-dependencies]
@@ -71,7 +71,11 @@ default-http-client = ["dep:reqwest", "http-client"]
 gas-station = ["http-client", "transaction"]
 http-client = ["dep:url"]
 # Management functions to read Move.lock files and create/update Move.history.json files
-move-history-manager = ["dep:toml"]
+# TODO: The Full Package History verion of product core only needs the `toml` dependency if feature `move-history-manager`
+#       is activated. To prevent existing projects from having build issues, we need to restore the static depency `toml`,
+#       which needs to be turned into the feature flag controlled depencency again once the legacy PackageRegstry is
+#       removed from product-core and all our products are using the MoveHistory.
+move-history-manager = [] # ["dep:toml"]
 send-sync = ["secret-storage/send-sync-storage"]
 test-utils = [
   "dep:bcs",
