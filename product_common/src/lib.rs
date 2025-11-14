@@ -12,9 +12,10 @@ pub mod gas_station;
 pub mod http_client;
 #[cfg(feature = "move-history-manager")]
 pub mod move_history_manager;
+pub mod move_history;
 pub mod network_name;
 pub mod object;
-pub mod move_history;
+pub mod package_registry;
 pub mod well_known_networks;
 
 #[cfg(feature = "transaction")]
