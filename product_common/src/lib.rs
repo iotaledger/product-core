@@ -14,7 +14,7 @@ pub mod http_client;
 pub mod move_history_manager;
 pub mod network_name;
 pub mod object;
-pub mod package_registry;
+pub mod move_history;
 pub mod well_known_networks;
 
 #[cfg(feature = "transaction")]

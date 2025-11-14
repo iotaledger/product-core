@@ -37,7 +37,7 @@ impl Env {
 
 /// A registry that tracks package versions across different blockchain environments.
 ///
-/// The `PackageRegistry` stores:
+/// The `MoveHistory` stores:
 /// - Aliases that map human-readable network names (like "mainnet", "testnet") to chain IDs.
 /// - Environment mappings that associate chain IDs with the history of package versions. The history of package
 ///   versions is ordered chronologically, with the latest version at the end of the array.
@@ -62,12 +62,12 @@ impl Env {
 /// scripts in your Rust projects. The `product_common` crate provides a `MoveHistoryManager`
 /// that can be used to manage the `Move.history.json` file. See there for more details.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
-pub struct PackageRegistry {
+pub struct MoveHistory {
   aliases: HashMap<String, String>,
   envs: HashMap<String, Vec<ObjectID>>,
 }
 
-impl PackageRegistry {
+impl MoveHistory {
   /// Returns the historical list of this package's versions for a given `chain`.
   /// `chain` can either be a chain identifier or its alias.
   ///
@@ -91,7 +91,7 @@ impl PackageRegistry {
       .find_map(|(alias, chain)| (chain == chain_id).then_some(alias.as_str()))
   }
 
-  /// Removes the environment specified by the alias from the registry.
+  /// Removes the environment specified by the alias from the history.
   /// Returns the removed environment's versions if it existed, or `None` if the alias was not found.
   pub fn remove_env_by_alias(&mut self, alias: &str) -> Option<Vec<ObjectID>> {
     if let Some(chain_id) = self.aliases.remove(alias) {
@@ -101,12 +101,12 @@ impl PackageRegistry {
     }
   }
 
-  /// Returns the envs of this package registry.
+  /// Returns the envs of this move history.
   pub fn envs(&self) -> &HashMap<String, Vec<ObjectID>> {
     &self.envs
   }
 
-  /// Returns the aliases of this package registry.
+  /// Returns the aliases of this move history.
   pub fn aliases(&self) -> &HashMap<String, String> {
     &self.aliases
   }
@@ -136,13 +136,13 @@ impl PackageRegistry {
     }
   }
 
-  /// Merges another [PackageRegistry] into this one.
-  pub fn join(&mut self, other: PackageRegistry) {
+  /// Merges another [MoveHistory] into this one.
+  pub fn join(&mut self, other: MoveHistory) {
     self.aliases.extend(other.aliases);
     self.envs.extend(other.envs);
   }
 
-  /// Creates a [PackageRegistry] from a Move.history.json file.
+  /// Creates a [MoveHistory] from a Move.history.json file.
   pub fn from_package_history_json_str(package_history: &str) -> anyhow::Result<Self> {
     let package_history: Value = serde_json::from_str(package_history)?;
 
@@ -152,15 +152,15 @@ impl PackageRegistry {
       .as_object()
       .context("invalid Move.history.json file: `aliases` is not a JSON object literal")?
       .into_iter()
-      .try_fold(Self::default(), |mut registry, (alias, chain_id)| {
+      .try_fold(Self::default(), |mut history, (alias, chain_id)| {
         let chain_id: String = chain_id
           .as_str()
           .context(format!(
             "invalid Move.history.json file: invalid `chain-id` '{chain_id}' for alias {alias}"
           ))?
           .to_string();
-        registry.aliases.insert(alias.clone(), chain_id);
-        Ok::<PackageRegistry, anyhow::Error>(registry)
+        history.aliases.insert(alias.clone(), chain_id);
+        Ok::<MoveHistory, anyhow::Error>(history)
       })?;
 
     package_history
@@ -169,7 +169,7 @@ impl PackageRegistry {
       .as_object()
       .context("invalid Move.history.json file: `envs` is not a JSON object literal")?
       .into_iter()
-      .try_fold(ret_val, |mut registry, (chain_id, versions)| {
+      .try_fold(ret_val, |mut history, (chain_id, versions)| {
         let versions: Vec<ObjectID> = versions
           .as_array()
           .context(format!("invalid Move.history.json file: invalid versions for {chain_id}. versions is not an array"))?
@@ -182,8 +182,8 @@ impl PackageRegistry {
             arr.push(obj_id);
             Ok::<Vec<ObjectID>, anyhow::Error>(arr)
           })?;
-        registry.envs.insert(chain_id.clone(), versions);
-        Ok(registry)
+        history.envs.insert(chain_id.clone(), versions);
+        Ok(history)
       })
   }
 }
@@ -222,36 +222,36 @@ mod tests {
 "#;
 
   #[test]
-  fn deserialize_package_registry_from_valid_json() {
-    let registry = PackageRegistry::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
-    assert_eq!(registry.aliases.get("mainnet"), Some(&"6364aad5".to_string()));
-    assert_eq!(registry.aliases.get("testnet"), Some(&"2304aa97".to_string()));
-    assert_eq!(registry.envs.get("6364aad5").unwrap().len(), 1);
-    assert_eq!(registry.envs.get("2304aa97").unwrap().len(), 2);
-    assert_eq!(registry.history("mainnet").unwrap().len(), 1);
-    assert_eq!(registry.history("testnet").unwrap().len(), 2);
+  fn deserialize_move_history_from_valid_json() {
+    let history = MoveHistory::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
+    assert_eq!(history.aliases.get("mainnet"), Some(&"6364aad5".to_string()));
+    assert_eq!(history.aliases.get("testnet"), Some(&"2304aa97".to_string()));
+    assert_eq!(history.envs.get("6364aad5").unwrap().len(), 1);
+    assert_eq!(history.envs.get("2304aa97").unwrap().len(), 2);
+    assert_eq!(history.history("mainnet").unwrap().len(), 1);
+    assert_eq!(history.history("testnet").unwrap().len(), 2);
     assert_eq!(
-      registry.history("testnet").unwrap()[0],
+      history.history("testnet").unwrap()[0],
       object_id!("0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555")
     );
     assert_eq!(
-      registry.history("testnet").unwrap()[1],
+      history.history("testnet").unwrap()[1],
       object_id!("0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc")
     );
     assert_eq!(
-      registry.package_id("mainnet"),
+      history.package_id("mainnet"),
       Some(object_id!(
         "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
       ))
     );
     assert_eq!(
-      registry.package_id("testnet"),
+      history.package_id("testnet"),
       Some(object_id!(
         "0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc"
       ))
     );
     assert_eq!(
-      registry.package_id("devnet"),
+      history.package_id("devnet"),
       Some(object_id!(
         "0x6a976d3da90db5d27f8a0c13b3268a37e582b455cfc7bf72d6461f6e8f668823"
       ))
@@ -260,8 +260,8 @@ mod tests {
 
   #[test]
   fn package_id_returns_correct_id() {
-    let registry = PackageRegistry::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
-    let package_id = registry.package_id("mainnet");
+    let history = MoveHistory::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
+    let package_id = history.package_id("mainnet");
     assert_eq!(
       package_id,
       Some(object_id!(
@@ -271,23 +271,23 @@ mod tests {
   }
 
   #[test]
-  fn test_serialize_package_registry_to_json() {
-    let mut registry = PackageRegistry::default();
+  fn test_serialize_move_history_to_json() {
+    let mut history = MoveHistory::default();
     // Add well-known networks.
-    registry.insert_env(
+    history.insert_env(
       Env::new_with_alias("6364aad5", "mainnet"),
       vec![object_id!(
         "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
       )],
     );
-    registry.insert_env(
+    history.insert_env(
       Env::new_with_alias("2304aa97", "testnet"),
       vec![
         object_id!("0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"),
         object_id!("0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc"),
       ],
     );
-    registry.insert_env(
+    history.insert_env(
       Env::new_with_alias("e678123a", "devnet"),
       vec![
         object_id!("0xe6fa03d273131066036f1d2d4c3d919b9abbca93910769f26a924c7a01811103"),
@@ -295,56 +295,56 @@ mod tests {
       ],
     );
 
-    let json_content = serde_json::to_string(&registry).unwrap();
-    let _ = PackageRegistry::from_package_history_json_str(json_content.as_str())
-      .expect("Serialized json string can be deserialized back to PackageRegistry");
+    let json_content = serde_json::to_string(&history).unwrap();
+    let _ = MoveHistory::from_package_history_json_str(json_content.as_str())
+      .expect("Serialized json string can be deserialized back to MoveHistory");
   }
 
   #[test]
   fn package_id_returns_none_for_unknown_chain() {
-    let registry = PackageRegistry::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
-    let package_id = registry.package_id("unknown_chain");
+    let history = MoveHistory::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
+    let package_id = history.package_id("unknown_chain");
     assert_eq!(package_id, None);
   }
 
   #[test]
   fn chain_alias_returns_none_for_unknown_chain_id() {
-    let registry = PackageRegistry::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
-    let alias = registry.chain_alias("unknown_chain_id");
+    let history = MoveHistory::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
+    let alias = history.chain_alias("unknown_chain_id");
     assert_eq!(alias, None);
   }
 
   #[test]
   fn insert_env_overwrites_existing_alias() {
-    let mut registry = PackageRegistry::default();
-    registry.insert_env(
+    let mut history = MoveHistory::default();
+    history.insert_env(
       Env::new_with_alias("6364aad5", "mainnet"),
       vec![object_id!(
         "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
       )],
     );
-    registry.insert_env(
+    history.insert_env(
       Env::new_with_alias("2304aa97", "mainnet"),
       vec![object_id!(
         "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
       )],
     );
-    assert_eq!(registry.aliases.get("mainnet"), Some(&"2304aa97".to_string()));
+    assert_eq!(history.aliases.get("mainnet"), Some(&"2304aa97".to_string()));
   }
 
   #[test]
   fn insert_new_package_version_does_not_duplicate_last_version() {
-    let mut registry = PackageRegistry::default();
-    registry.insert_new_package_version(
+    let mut history = MoveHistory::default();
+    history.insert_new_package_version(
       "6364aad5",
       object_id!("0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"),
     );
-    registry.insert_new_package_version(
+    history.insert_new_package_version(
       "6364aad5",
       object_id!("0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"),
     );
     assert_eq!(
-      registry.history("6364aad5").unwrap(),
+      history.history("6364aad5").unwrap(),
       &[object_id!(
         "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
       )]
@@ -353,27 +353,27 @@ mod tests {
 
   #[test]
   fn join_merges_aliases_and_envs() {
-    let mut registry1 = PackageRegistry::default();
-    registry1.insert_env(
+    let mut history1 = MoveHistory::default();
+    history1.insert_env(
       Env::new_with_alias("6364aad5", "mainnet"),
       vec![object_id!(
         "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
       )],
     );
 
-    let mut registry2 = PackageRegistry::default();
-    registry2.insert_env(
+    let mut history2 = MoveHistory::default();
+    history2.insert_env(
       Env::new_with_alias("2304aa97", "testnet"),
       vec![object_id!(
         "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
       )],
     );
 
-    registry1.join(registry2);
+    history1.join(history2);
 
-    assert_eq!(registry1.aliases.get("mainnet"), Some(&"6364aad5".to_string()));
-    assert_eq!(registry1.aliases.get("testnet"), Some(&"2304aa97".to_string()));
-    assert!(registry1.envs.contains_key("6364aad5"));
-    assert!(registry1.envs.contains_key("2304aa97"));
+    assert_eq!(history1.aliases.get("mainnet"), Some(&"6364aad5".to_string()));
+    assert_eq!(history1.aliases.get("testnet"), Some(&"2304aa97".to_string()));
+    assert!(history1.envs.contains_key("6364aad5"));
+    assert!(history1.envs.contains_key("2304aa97"));
   }
 }
