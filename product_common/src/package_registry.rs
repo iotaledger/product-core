@@ -152,7 +152,16 @@ impl PackageRegistry {
     if let Some(alias) = alias {
       self.aliases.insert(alias, chain_id.clone());
     }
-    let history = vec![metadata.original_published_id, metadata.latest_published_id];
+
+    let history = if metadata.original_published_id == metadata.latest_published_id {
+      vec![metadata.original_published_id]
+    } else {
+      vec![
+        metadata.original_published_id,
+        metadata.latest_published_id,
+      ]
+    };
+
     self.envs.insert(chain_id, history);
   }
 
