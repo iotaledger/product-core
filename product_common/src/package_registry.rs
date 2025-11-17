@@ -67,7 +67,6 @@ where
   String::deserialize(deserializer)?.parse().map_err(D::Error::custom)
 }
 
-
 /// A registry that tracks package versions across different blockchain environments.
 ///
 /// The `PackageRegistry` stores:
@@ -156,10 +155,7 @@ impl PackageRegistry {
     let history = if metadata.original_published_id == metadata.latest_published_id {
       vec![metadata.original_published_id]
     } else {
-      vec![
-        metadata.original_published_id,
-        metadata.latest_published_id,
-      ]
+      vec![metadata.original_published_id, metadata.latest_published_id]
     };
 
     self.envs.insert(chain_id, history);
@@ -402,7 +398,7 @@ mod tests {
   }
 
   #[test]
-  fn insert_env_overwrites_existing_alias() {
+  fn insert_env_history_overwrites_existing_alias() {
     let mut registry = PackageRegistry::default();
     registry.insert_env_history(
       Env::new_with_alias("6364aad5", "mainnet"),
@@ -462,5 +458,118 @@ mod tests {
     assert_eq!(registry1.aliases.get("testnet"), Some(&"2304aa97".to_string()));
     assert!(registry1.envs.contains_key("6364aad5"));
     assert!(registry1.envs.contains_key("2304aa97"));
+  }
+
+  // ----------------------------------------------
+  // Tests for the deprecated `insert_env` function
+  // ----------------------------------------------
+
+  #[test]
+  fn insert_env_creates_single_entry_history_when_original_equals_latest() {
+    let mut registry = PackageRegistry::default();
+    #[allow(deprecated)]
+    registry.insert_env(
+      Env::new_with_alias("6364aad5", "mainnet"),
+      Metadata {
+        original_published_id: object_id!(
+        "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+      ),
+        latest_published_id: object_id!(
+        "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+      ),
+        published_version: 1,
+      },
+    );
+
+    assert_eq!(registry.history("6364aad5").unwrap().len(), 1);
+    assert_eq!(
+      registry.history("6364aad5").unwrap()[0],
+      object_id!("0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08")
+    );
+  }
+
+  #[test]
+  fn insert_env_creates_two_entry_history_when_original_differs_from_latest() {
+    let mut registry = PackageRegistry::default();
+    #[allow(deprecated)]
+    registry.insert_env(
+      Env::new_with_alias("2304aa97", "testnet"),
+      Metadata {
+        original_published_id: object_id!(
+        "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
+      ),
+        latest_published_id: object_id!(
+        "0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc"
+      ),
+        published_version: 2,
+      },
+    );
+
+    assert_eq!(registry.history("2304aa97").unwrap().len(), 2);
+    assert_eq!(
+      registry.history("2304aa97").unwrap()[0],
+      object_id!("0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555")
+    );
+    assert_eq!(
+      registry.history("2304aa97").unwrap()[1],
+      object_id!("0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc")
+    );
+  }
+
+  #[test]
+  fn insert_env_adds_alias_when_provided() {
+    let mut registry = PackageRegistry::default();
+    #[allow(deprecated)]
+    registry.insert_env(
+      Env::new_with_alias("6364aad5", "mainnet"),
+      Metadata::from_package_id(object_id!(
+      "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+    )),
+    );
+
+    assert_eq!(registry.aliases.get("mainnet"), Some(&"6364aad5".to_string()));
+  }
+
+  #[test]
+  fn insert_env_does_not_add_alias_when_not_provided() {
+    let mut registry = PackageRegistry::default();
+    #[allow(deprecated)]
+    registry.insert_env(
+      Env::new("6364aad5"),
+      Metadata::from_package_id(object_id!(
+      "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+    )),
+    );
+
+    assert!(registry.aliases.is_empty());
+    assert!(registry.envs.contains_key("6364aad5"));
+  }
+
+  #[test]
+  fn insert_env_replaces_existing_environment_with_same_chain_id() {
+    let mut registry = PackageRegistry::default();
+    #[allow(deprecated)]
+    registry.insert_env(
+      Env::new_with_alias("6364aad5", "mainnet"),
+      Metadata::from_package_id(object_id!(
+      "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+    )),
+    );
+
+    #[allow(deprecated)]
+    registry.insert_env(
+      Env::new_with_alias("6364aad5", "production"),
+      Metadata::from_package_id(object_id!(
+      "0x94cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de09"
+    )),
+    );
+
+    assert_eq!(registry.aliases.get("production"), Some(&"6364aad5".to_string()));
+    assert!(registry.aliases.get("mainnet").is_none());
+    assert_eq!(registry.history("6364aad5").unwrap().len(), 1);
+    assert_eq!(
+      registry.history("6364aad5").unwrap()[0],
+      object_id!("0x94cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de09")
+    );
   }
 }
