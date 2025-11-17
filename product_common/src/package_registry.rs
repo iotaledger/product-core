@@ -361,20 +361,20 @@ mod tests {
   fn test_serialize_package_registry_to_json() {
     let mut registry = PackageRegistry::default();
     // Add well-known networks.
-    registry.insert_env(
+    registry.insert_env_history(
       Env::new_with_alias("6364aad5", "mainnet"),
       vec![object_id!(
         "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
       )],
     );
-    registry.insert_env(
+    registry.insert_env_history(
       Env::new_with_alias("2304aa97", "testnet"),
       vec![
         object_id!("0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"),
         object_id!("0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc"),
       ],
     );
-    registry.insert_env(
+    registry.insert_env_history(
       Env::new_with_alias("e678123a", "devnet"),
       vec![
         object_id!("0xe6fa03d273131066036f1d2d4c3d919b9abbca93910769f26a924c7a01811103"),
@@ -404,13 +404,13 @@ mod tests {
   #[test]
   fn insert_env_overwrites_existing_alias() {
     let mut registry = PackageRegistry::default();
-    registry.insert_env(
+    registry.insert_env_history(
       Env::new_with_alias("6364aad5", "mainnet"),
       vec![object_id!(
         "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
       )],
     );
-    registry.insert_env(
+    registry.insert_env_history(
       Env::new_with_alias("2304aa97", "mainnet"),
       vec![object_id!(
         "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
@@ -441,7 +441,7 @@ mod tests {
   #[test]
   fn join_merges_aliases_and_envs() {
     let mut registry1 = PackageRegistry::default();
-    registry1.insert_env(
+    registry1.insert_env_history(
       Env::new_with_alias("6364aad5", "mainnet"),
       vec![object_id!(
         "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
@@ -449,7 +449,7 @@ mod tests {
     );
 
     let mut registry2 = PackageRegistry::default();
-    registry2.insert_env(
+    registry2.insert_env_history(
       Env::new_with_alias("2304aa97", "testnet"),
       vec![object_id!(
         "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
