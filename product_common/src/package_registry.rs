@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use anyhow::Context;
 use iota_interaction::types::base_types::ObjectID;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 pub const MAINNET_CHAIN_ID: &str = "6364aad5";
@@ -34,6 +34,39 @@ impl Env {
     }
   }
 }
+
+/// A published package's metadata for a certain environment.
+#[deprecated = "Use Vec<ObjectID> with PackageRegistry::insert_env_history() instead."]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Metadata {
+  pub original_published_id: ObjectID,
+  pub latest_published_id: ObjectID,
+  #[serde(deserialize_with = "deserialize_u64_from_str")]
+  pub published_version: u64,
+}
+
+impl Metadata {
+  /// Create a new [Metadata] assuming a newly published package.
+  pub fn from_package_id(package: ObjectID) -> Self {
+    Self {
+      original_published_id: package,
+      latest_published_id: package,
+      published_version: 1,
+    }
+  }
+}
+
+#[deprecated]
+fn deserialize_u64_from_str<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  use serde::de::Error;
+
+  String::deserialize(deserializer)?.parse().map_err(D::Error::custom)
+}
+
 
 /// A registry that tracks package versions across different blockchain environments.
 ///
@@ -112,13 +145,25 @@ impl PackageRegistry {
   }
 
   /// Adds or replaces this package's metadata for a given environment.
-  pub fn insert_env(&mut self, env: Env, metadata: Vec<ObjectID>) {
+  #[deprecated = "Use PackageRegistry::insert_env_history() instead."]
+  pub fn insert_env(&mut self, env: Env, metadata: Metadata) {
     let Env { chain_id, alias } = env;
 
     if let Some(alias) = alias {
       self.aliases.insert(alias, chain_id.clone());
     }
-    self.envs.insert(chain_id, metadata);
+    let history = vec![metadata.original_published_id, metadata.latest_published_id];
+    self.envs.insert(chain_id, history);
+  }
+
+  /// Adds or replaces this package's id history for a given environment.
+  pub fn insert_env_history(&mut self, env: Env, history: Vec<ObjectID>) {
+    let Env { chain_id, alias } = env;
+
+    if let Some(alias) = alias {
+      self.aliases.insert(alias, chain_id.clone());
+    }
+    self.envs.insert(chain_id, history);
   }
 
   /// Updates or adds an alias for a given chain ID.
@@ -183,6 +228,39 @@ impl PackageRegistry {
             Ok::<Vec<ObjectID>, anyhow::Error>(arr)
           })?;
         registry.envs.insert(chain_id.clone(), versions);
+        Ok(registry)
+      })
+  }
+
+  #[cfg(not(feature = "move-history-manager"))]
+  /// Creates a [PackageRegistry] from a Move.lock file.
+  #[deprecated = "Use PackageRegistry::from_package_history_json_str() instead."]
+  pub fn from_move_lock_content(move_lock: &str) -> anyhow::Result<Self> {
+    let mut move_lock: toml::Table = move_lock.parse()?;
+
+    move_lock
+      .remove("env")
+      .context("invalid Move.lock file: missing `env` table")?
+      .as_table_mut()
+      .map(std::mem::take)
+      .context("invalid Move.lock file: `env` is not a table")?
+      .into_iter()
+      .try_fold(Self::default(), |mut registry, (alias, table)| {
+        let toml::Value::Table(mut table) = table else {
+          anyhow::bail!("invalid Move.lock file: invalid `env` table");
+        };
+        let chain_id: String = table
+          .remove("chain-id")
+          .context(format!("invalid Move.lock file: missing `chain-id` for env {alias}"))?
+          .try_into()
+          .context("invalid Move.lock file: invalid `chain-id`")?;
+
+        let env = Env::new_with_alias(chain_id, alias.clone());
+        let metadata = table
+          .try_into()
+          .context(format!("invalid Move.lock file: invalid env metadata for {alias}"))?;
+        registry.insert_env(env, metadata);
+
         Ok(registry)
       })
   }
