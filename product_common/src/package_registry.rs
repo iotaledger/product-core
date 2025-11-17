@@ -518,7 +518,6 @@ mod tests {
         "0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc"
       ))
     );
-
   }
 
   #[test]
