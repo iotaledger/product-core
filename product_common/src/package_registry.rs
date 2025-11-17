@@ -243,6 +243,7 @@ impl PackageRegistry {
   #[cfg(not(feature = "move-history-manager"))]
   /// Creates a [PackageRegistry] from a Move.lock file.
   #[deprecated = "Use PackageRegistry::from_package_history_json_str() instead."]
+  #[allow(deprecated)]
   pub fn from_move_lock_content(move_lock: &str) -> anyhow::Result<Self> {
     let mut move_lock: toml::Table = move_lock.parse()?;
 
