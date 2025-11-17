@@ -509,6 +509,15 @@ mod tests {
       registry.history("2304aa97").unwrap()[1],
       object_id!("0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc")
     );
+
+    let package_id = registry.package_id("testnet");
+    assert_eq!(
+      package_id,
+      Some(object_id!(
+        "0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc"
+      ))
+    );
+
   }
 
   #[test]
@@ -559,12 +568,15 @@ mod tests {
       )),
     );
 
-    assert_eq!(registry.aliases.get("production"), Some(&"6364aad5".to_string()));
-    assert!(!registry.aliases.contains_key("mainnet"));
+    // Only one env with chain ID "6364aad5" should exist, the second insert replaced the first.
     assert_eq!(registry.history("6364aad5").unwrap().len(), 1);
     assert_eq!(
       registry.history("6364aad5").unwrap()[0],
       object_id!("0x94cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de09")
     );
+
+    // Aliases are managed using the alias name as key, so both should exist.
+    assert_eq!(registry.aliases.get("production"), Some(&"6364aad5".to_string()));
+    assert_eq!(registry.aliases.get("mainnet"), Some(&"6364aad5".to_string()));
   }
 }
