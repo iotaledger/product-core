@@ -474,12 +474,8 @@ mod tests {
     registry.insert_env(
       Env::new_with_alias("6364aad5", "mainnet"),
       Metadata {
-        original_published_id: object_id!(
-        "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
-      ),
-        latest_published_id: object_id!(
-        "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
-      ),
+        original_published_id: object_id!("0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"),
+        latest_published_id: object_id!("0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"),
         published_version: 1,
       },
     );
@@ -498,12 +494,8 @@ mod tests {
     registry.insert_env(
       Env::new_with_alias("2304aa97", "testnet"),
       Metadata {
-        original_published_id: object_id!(
-        "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
-      ),
-        latest_published_id: object_id!(
-        "0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc"
-      ),
+        original_published_id: object_id!("0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"),
+        latest_published_id: object_id!("0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc"),
         published_version: 2,
       },
     );
@@ -526,8 +518,8 @@ mod tests {
     registry.insert_env(
       Env::new_with_alias("6364aad5", "mainnet"),
       Metadata::from_package_id(object_id!(
-      "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
-    )),
+        "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+      )),
     );
 
     assert_eq!(registry.aliases.get("mainnet"), Some(&"6364aad5".to_string()));
@@ -540,8 +532,8 @@ mod tests {
     registry.insert_env(
       Env::new("6364aad5"),
       Metadata::from_package_id(object_id!(
-      "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
-    )),
+        "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+      )),
     );
 
     assert!(registry.aliases.is_empty());
@@ -555,16 +547,16 @@ mod tests {
     registry.insert_env(
       Env::new_with_alias("6364aad5", "mainnet"),
       Metadata::from_package_id(object_id!(
-      "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
-    )),
+        "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+      )),
     );
 
     #[allow(deprecated)]
     registry.insert_env(
       Env::new_with_alias("6364aad5", "production"),
       Metadata::from_package_id(object_id!(
-      "0x94cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de09"
-    )),
+        "0x94cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de09"
+      )),
     );
 
     assert_eq!(registry.aliases.get("production"), Some(&"6364aad5".to_string()));
