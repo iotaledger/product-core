@@ -46,6 +46,7 @@ pub struct Metadata {
   pub published_version: u64,
 }
 
+#[allow(deprecated)]
 impl Metadata {
   /// Create a new [Metadata] assuming a newly published package.
   pub fn from_package_id(package: ObjectID) -> Self {
@@ -145,6 +146,7 @@ impl PackageRegistry {
 
   /// Adds or replaces this package's metadata for a given environment.
   #[deprecated = "Use PackageRegistry::insert_env_history() instead."]
+  #[allow(deprecated)]
   pub fn insert_env(&mut self, env: Env, metadata: Metadata) {
     let Env { chain_id, alias } = env;
 
@@ -152,6 +154,7 @@ impl PackageRegistry {
       self.aliases.insert(alias, chain_id.clone());
     }
 
+    #[allow(deprecated)]
     let history = if metadata.original_published_id == metadata.latest_published_id {
       vec![metadata.original_published_id]
     } else {
@@ -565,7 +568,7 @@ mod tests {
     );
 
     assert_eq!(registry.aliases.get("production"), Some(&"6364aad5".to_string()));
-    assert!(registry.aliases.get("mainnet").is_none());
+    assert!(!registry.aliases.contains_key("mainnet"));
     assert_eq!(registry.history("6364aad5").unwrap().len(), 1);
     assert_eq!(
       registry.history("6364aad5").unwrap()[0],
