@@ -11,20 +11,20 @@ on:
           - publish
           - retag
       publish-tag:
-        description: "Tag to publish Wasm under (e.g. e.g. `dev`, will default to `latest`)"
+        description: "PUBLISH - Tag to publish Wasm under (e.g. e.g. `dev`, will default to `latest`)"
         required: true
       publish-branch:
-        description: "Branch to run publish from"
+        description: "PUBLISH - Branch to run publish from"
         required: true
       publish-dry-run:
-        description: "Run in dry-run mode"
+        description: "PUBLISH - Run in dry-run mode"
         type: boolean
         required: false
         default: true
       retag-version:
-        description: "version to set tag on"
+        description: "RETAG - version to set tag on"
       retag-tag:
-        description: "Tag to set"
+        description: "RETAG - Tag to set"
 
 permissions:
   id-token: write  # Required for OIDC
