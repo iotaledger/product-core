@@ -50,7 +50,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.publish-branch }}
       - name: Release to npm
-        uses: "./.github/actions/publish/publish-wasm"
+        uses: "./.github/actions/publish/publish-wasm@chore/adapt-npm-workflows"
         with:
           dry-run: ${{ github.event.inputs.publish-dry-run }}
           input-artifact-name: interactions-bindings-build
