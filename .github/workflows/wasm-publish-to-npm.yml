@@ -3,40 +3,69 @@ name: Wasm publish to npm
 on:
   workflow_dispatch:
     inputs:
-      tag:
+      operation:
+        description: 'Which operation to perform'
+        required: true
+        type: choice
+        options:
+          - publish
+          - retag
+      publish-tag:
         description: "Tag to publish Wasm under (e.g. e.g. `dev`, will default to `latest`)"
         required: true
-      branch:
+      publish-branch:
         description: "Branch to run publish from"
         required: true
-      dry-run:
+      publish-dry-run:
         description: "Run in dry-run mode"
         type: boolean
         required: false
         default: true
+      retag-version:
+        description: "version to set tag on"
+      retag-tag:
+        description: "Tag to set"
+
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
 
 jobs:
   build-wasm:
+    if: ${{ github.event.inputs.operation == 'publish' }}
     uses: "./.github/workflows/shared-build-wasm.yml"
     with:
       run-unit-tests: false
-      ref: ${{ github.event.inputs.branch }}
+      ref: ${{ github.event.inputs.publish-branch }}
       output-artifact-name: interactions-bindings-build
 
   release-wasm:
+    if: ${{ github.event.inputs.operation == 'publish' }}
     runs-on: ubuntu-latest
     needs: [build-wasm]
-    environment: release
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch }}
+          ref: ${{ github.event.inputs.publish-branch }}
       - name: Release to npm
         uses: "./.github/actions/publish/publish-wasm"
         with:
-          dry-run: ${{ github.event.inputs.dry-run }}
+          dry-run: ${{ github.event.inputs.publish-dry-run }}
           input-artifact-name: interactions-bindings-build
-          npm-token: ${{ secrets.NPM_TOKEN_PRODUCT_CORE }}
           working-directory: ./bindings/wasm/iota_interaction_ts
-          tag: ${{ github.event.inputs.tag }}
+          tag: ${{ github.event.inputs.publish-tag }}
+  retag-wasm:
+    if: ${{ github.event.inputs.operation == 'retag' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "lts/*"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Run dist-tag
+        shell: sh
+        run: |
+          npm dist-tag add @iota/iota-interaction-ts@${{ github.event.inputs.retag-version }} ${{ github.event.inputs.retag-tag }}
