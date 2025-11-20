@@ -56,6 +56,7 @@ jobs:
           input-artifact-name: interactions-bindings-build
           working-directory: ./bindings/wasm/iota_interaction_ts
           tag: ${{ github.event.inputs.publish-tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   retag-wasm:
     if: ${{ github.event.inputs.operation == 'retag' }}
     runs-on: ubuntu-latest
