@@ -53,7 +53,7 @@ jobs:
           publish-branch='${{ github.event.inputs.publish-branch }}'
 
           retag-version='${{ github.event.inputs.retag-version }}'
-          retag-tag=`'${{ github.event.inputs.retag-tag }}'
+          retag-tag='${{ github.event.inputs.retag-tag }}'
 
           if [[ ${{ github.event.inputs.operation }} == 'publish' ]]; then
             check_vars publish-tag publish-branch
