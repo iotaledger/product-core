@@ -49,18 +49,18 @@ jobs:
               return 0
           }
           
-          publish-tag='${{ github.event.inputs.publish-tag }}'
-          publish-branch='${{ github.event.inputs.publish-branch }}'
+          publish_tag=${{ github.event.inputs.publish-tag }}
+          publish_branch=${{ github.event.inputs.publish-branch }}
 
-          retag-version='${{ github.event.inputs.retag-version }}'
-          retag-tag='${{ github.event.inputs.retag-tag }}'
+          retag_version=${{ github.event.inputs.retag-version }}
+          retag_tag=${{ github.event.inputs.retag-tag }}
 
           if [[ ${{ github.event.inputs.operation }} == 'publish' ]]; then
-            check_vars publish-tag publish-branch
+            check_vars publish_tag publish_branch
           fi
 
           if [[ ${{ github.event.inputs.operation }} == 'retag' ]]; then
-            check_vars retag-version retag-tag
+            check_vars retag_version retag_tag
           fi
 
 
