@@ -33,7 +33,7 @@ serde.workspace = true
 serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
-toml = { workspace = true, optional = true }
+toml = { workspace = true } # , optional = true --- TODO see comment for `move-history-manager` feature
 url = { version = "2", default-features = false, features = ["serde"], optional = true }
 
 [dev-dependencies]
@@ -71,7 +71,14 @@ default-http-client = ["dep:reqwest", "http-client"]
 gas-station = ["http-client", "transaction"]
 http-client = ["dep:url"]
 # Management functions to read Move.lock files and create/update Move.history.json files
-move-history-manager = ["dep:toml"]
+# TODO: Since the Full Package History version of product core (MoveHistoryManager and `Move.history.toml` files are used
+#       for the PackageRegistry), product core only needs the `toml` dependency if feature `move-history-manager` is
+#       activated.
+#       Despite this, to prevent existing projects from having build issues, we need to maintain the static `toml`
+#       depency. As soon as all products have migrated to use MoveHistoryManager and the legacy PackageRegistry functions
+#       marked as deprecated have been removed, we can re-add the `optional = true` flag to the `toml` dependency
+#       and add it to the `move-history-manager`  feature flag depencency list.
+move-history-manager = [] # ["dep:toml"]
 send-sync = ["secret-storage/send-sync-storage"]
 test-utils = [
   "dep:bcs",

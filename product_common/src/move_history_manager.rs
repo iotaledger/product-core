@@ -78,7 +78,7 @@ impl PackageRegistry {
       }
 
       let env = Env::new_with_alias(chain_id, alias.clone());
-      registry.insert_env(env, metadata);
+      registry.insert_env_history(env, metadata);
 
       Ok(registry)
     })
