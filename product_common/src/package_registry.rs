@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use anyhow::Context;
 use iota_interaction::types::base_types::ObjectID;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 pub const MAINNET_CHAIN_ID: &str = "6364aad5";
@@ -33,6 +33,39 @@ impl Env {
       alias: Some(alias.into()),
     }
   }
+}
+
+/// A published package's metadata for a certain environment.
+#[deprecated = "Use Vec<ObjectID> with PackageRegistry::insert_env_history() instead."]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Metadata {
+  pub original_published_id: ObjectID,
+  pub latest_published_id: ObjectID,
+  #[serde(deserialize_with = "deserialize_u64_from_str")]
+  pub published_version: u64,
+}
+
+#[allow(deprecated)]
+impl Metadata {
+  /// Create a new [Metadata] assuming a newly published package.
+  pub fn from_package_id(package: ObjectID) -> Self {
+    Self {
+      original_published_id: package,
+      latest_published_id: package,
+      published_version: 1,
+    }
+  }
+}
+
+#[deprecated]
+fn deserialize_u64_from_str<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  use serde::de::Error;
+
+  String::deserialize(deserializer)?.parse().map_err(D::Error::custom)
 }
 
 /// A registry that tracks package versions across different blockchain environments.
@@ -112,13 +145,33 @@ impl PackageRegistry {
   }
 
   /// Adds or replaces this package's metadata for a given environment.
-  pub fn insert_env(&mut self, env: Env, metadata: Vec<ObjectID>) {
+  #[deprecated = "Use PackageRegistry::insert_env_history() instead."]
+  #[allow(deprecated)]
+  pub fn insert_env(&mut self, env: Env, metadata: Metadata) {
     let Env { chain_id, alias } = env;
 
     if let Some(alias) = alias {
       self.aliases.insert(alias, chain_id.clone());
     }
-    self.envs.insert(chain_id, metadata);
+
+    #[allow(deprecated)]
+    let history = if metadata.original_published_id == metadata.latest_published_id {
+      vec![metadata.original_published_id]
+    } else {
+      vec![metadata.original_published_id, metadata.latest_published_id]
+    };
+
+    self.envs.insert(chain_id, history);
+  }
+
+  /// Adds or replaces this package's id history for a given environment.
+  pub fn insert_env_history(&mut self, env: Env, history: Vec<ObjectID>) {
+    let Env { chain_id, alias } = env;
+
+    if let Some(alias) = alias {
+      self.aliases.insert(alias, chain_id.clone());
+    }
+    self.envs.insert(chain_id, history);
   }
 
   /// Updates or adds an alias for a given chain ID.
@@ -183,6 +236,40 @@ impl PackageRegistry {
             Ok::<Vec<ObjectID>, anyhow::Error>(arr)
           })?;
         registry.envs.insert(chain_id.clone(), versions);
+        Ok(registry)
+      })
+  }
+
+  #[cfg(not(feature = "move-history-manager"))]
+  /// Creates a [PackageRegistry] from a Move.lock file.
+  #[deprecated = "Use PackageRegistry::from_package_history_json_str() instead."]
+  #[allow(deprecated)]
+  pub fn from_move_lock_content(move_lock: &str) -> anyhow::Result<Self> {
+    let mut move_lock: toml::Table = move_lock.parse()?;
+
+    move_lock
+      .remove("env")
+      .context("invalid Move.lock file: missing `env` table")?
+      .as_table_mut()
+      .map(std::mem::take)
+      .context("invalid Move.lock file: `env` is not a table")?
+      .into_iter()
+      .try_fold(Self::default(), |mut registry, (alias, table)| {
+        let toml::Value::Table(mut table) = table else {
+          anyhow::bail!("invalid Move.lock file: invalid `env` table");
+        };
+        let chain_id: String = table
+          .remove("chain-id")
+          .context(format!("invalid Move.lock file: missing `chain-id` for env {alias}"))?
+          .try_into()
+          .context("invalid Move.lock file: invalid `chain-id`")?;
+
+        let env = Env::new_with_alias(chain_id, alias.clone());
+        let metadata = table
+          .try_into()
+          .context(format!("invalid Move.lock file: invalid env metadata for {alias}"))?;
+        registry.insert_env(env, metadata);
+
         Ok(registry)
       })
   }
@@ -274,20 +361,20 @@ mod tests {
   fn test_serialize_package_registry_to_json() {
     let mut registry = PackageRegistry::default();
     // Add well-known networks.
-    registry.insert_env(
+    registry.insert_env_history(
       Env::new_with_alias("6364aad5", "mainnet"),
       vec![object_id!(
         "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
       )],
     );
-    registry.insert_env(
+    registry.insert_env_history(
       Env::new_with_alias("2304aa97", "testnet"),
       vec![
         object_id!("0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"),
         object_id!("0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc"),
       ],
     );
-    registry.insert_env(
+    registry.insert_env_history(
       Env::new_with_alias("e678123a", "devnet"),
       vec![
         object_id!("0xe6fa03d273131066036f1d2d4c3d919b9abbca93910769f26a924c7a01811103"),
@@ -315,15 +402,15 @@ mod tests {
   }
 
   #[test]
-  fn insert_env_overwrites_existing_alias() {
+  fn insert_env_history_overwrites_existing_alias() {
     let mut registry = PackageRegistry::default();
-    registry.insert_env(
+    registry.insert_env_history(
       Env::new_with_alias("6364aad5", "mainnet"),
       vec![object_id!(
         "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
       )],
     );
-    registry.insert_env(
+    registry.insert_env_history(
       Env::new_with_alias("2304aa97", "mainnet"),
       vec![object_id!(
         "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
@@ -354,7 +441,7 @@ mod tests {
   #[test]
   fn join_merges_aliases_and_envs() {
     let mut registry1 = PackageRegistry::default();
-    registry1.insert_env(
+    registry1.insert_env_history(
       Env::new_with_alias("6364aad5", "mainnet"),
       vec![object_id!(
         "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
@@ -362,7 +449,7 @@ mod tests {
     );
 
     let mut registry2 = PackageRegistry::default();
-    registry2.insert_env(
+    registry2.insert_env_history(
       Env::new_with_alias("2304aa97", "testnet"),
       vec![object_id!(
         "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
@@ -375,5 +462,121 @@ mod tests {
     assert_eq!(registry1.aliases.get("testnet"), Some(&"2304aa97".to_string()));
     assert!(registry1.envs.contains_key("6364aad5"));
     assert!(registry1.envs.contains_key("2304aa97"));
+  }
+
+  // ----------------------------------------------
+  // Tests for the deprecated `insert_env` function
+  // ----------------------------------------------
+
+  #[test]
+  fn insert_env_creates_single_entry_history_when_original_equals_latest() {
+    let mut registry = PackageRegistry::default();
+    #[allow(deprecated)]
+    registry.insert_env(
+      Env::new_with_alias("6364aad5", "mainnet"),
+      Metadata {
+        original_published_id: object_id!("0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"),
+        latest_published_id: object_id!("0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"),
+        published_version: 1,
+      },
+    );
+
+    assert_eq!(registry.history("6364aad5").unwrap().len(), 1);
+    assert_eq!(
+      registry.history("6364aad5").unwrap()[0],
+      object_id!("0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08")
+    );
+  }
+
+  #[test]
+  fn insert_env_creates_two_entry_history_when_original_differs_from_latest() {
+    let mut registry = PackageRegistry::default();
+    #[allow(deprecated)]
+    registry.insert_env(
+      Env::new_with_alias("2304aa97", "testnet"),
+      Metadata {
+        original_published_id: object_id!("0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"),
+        latest_published_id: object_id!("0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc"),
+        published_version: 2,
+      },
+    );
+
+    assert_eq!(registry.history("2304aa97").unwrap().len(), 2);
+    assert_eq!(
+      registry.history("2304aa97").unwrap()[0],
+      object_id!("0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555")
+    );
+    assert_eq!(
+      registry.history("2304aa97").unwrap()[1],
+      object_id!("0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc")
+    );
+
+    let package_id = registry.package_id("testnet");
+    assert_eq!(
+      package_id,
+      Some(object_id!(
+        "0x3403da7ec4cd2ff9bdf6f34c0b8df5a2bd62c798089feb0d2ebf1c2e953296dc"
+      ))
+    );
+  }
+
+  #[test]
+  fn insert_env_adds_alias_when_provided() {
+    let mut registry = PackageRegistry::default();
+    #[allow(deprecated)]
+    registry.insert_env(
+      Env::new_with_alias("6364aad5", "mainnet"),
+      Metadata::from_package_id(object_id!(
+        "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+      )),
+    );
+
+    assert_eq!(registry.aliases.get("mainnet"), Some(&"6364aad5".to_string()));
+  }
+
+  #[test]
+  fn insert_env_does_not_add_alias_when_not_provided() {
+    let mut registry = PackageRegistry::default();
+    #[allow(deprecated)]
+    registry.insert_env(
+      Env::new("6364aad5"),
+      Metadata::from_package_id(object_id!(
+        "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+      )),
+    );
+
+    assert!(registry.aliases.is_empty());
+    assert!(registry.envs.contains_key("6364aad5"));
+  }
+
+  #[test]
+  fn insert_env_replaces_existing_environment_with_same_chain_id() {
+    let mut registry = PackageRegistry::default();
+    #[allow(deprecated)]
+    registry.insert_env(
+      Env::new_with_alias("6364aad5", "mainnet"),
+      Metadata::from_package_id(object_id!(
+        "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+      )),
+    );
+
+    #[allow(deprecated)]
+    registry.insert_env(
+      Env::new_with_alias("6364aad5", "production"),
+      Metadata::from_package_id(object_id!(
+        "0x94cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de09"
+      )),
+    );
+
+    // Only one env with chain ID "6364aad5" should exist, the second insert replaced the first.
+    assert_eq!(registry.history("6364aad5").unwrap().len(), 1);
+    assert_eq!(
+      registry.history("6364aad5").unwrap()[0],
+      object_id!("0x94cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de09")
+    );
+
+    // Aliases are managed using the alias name as key, so both should exist.
+    assert_eq!(registry.aliases.get("production"), Some(&"6364aad5".to_string()));
+    assert_eq!(registry.aliases.get("mainnet"), Some(&"6364aad5".to_string()));
   }
 }
