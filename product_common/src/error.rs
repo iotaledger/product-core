@@ -20,6 +20,9 @@ pub enum Error {
   /// Caused by issues with paying for transaction.
   #[error("issue with gas for transaction: {0}")]
   GasIssue(String),
+  /// Failed to deserialize data using BCS.
+  #[error("BCS deserialization error: {0}")]
+  DeserializationError(#[from] bcs::Error),
   /// Could not build transaction.
   #[error("failed to build transaction; {0}")]
   TransactionBuildingFailed(String),
@@ -58,16 +61,18 @@ pub enum Error {
   #[cfg(feature = "core-client")]
   #[error("Failed to parse move tag: {0}")]
   FailedToParseMoveTag(String),
-
   /// Failed to get Move object
   #[cfg(feature = "core-client")]
   #[error("Failed to get move object: {0}")]
   FailedToGetMoveObject(String),
-
   /// Invalid Move argument
   #[cfg(feature = "core-client")]
   #[error("Invalid move argument: {0}")]
   InvalidMoveArgument(String),
+  /// The response from the IOTA node API was not in the expected format.
+  #[cfg(feature = "core-client")]
+  #[error("unexpected API response: {0}")]
+  UnexpectedApiResponse(String),
 }
 
 #[cfg(all(target_arch = "wasm32", feature = "bindings"))]

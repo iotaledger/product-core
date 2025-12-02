@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::str::FromStr;
-
+use serde::de::DeserializeOwned;
 use iota_interaction::rpc_types::IotaObjectDataOptions;
-use iota_interaction::types::base_types::{ObjectID, ObjectRef};
+use iota_interaction::types::base_types::{IotaAddress, ObjectID, ObjectRef};
 use iota_interaction::types::programmable_transaction_builder::ProgrammableTransactionBuilder as Ptb;
 
-use iota_interaction::types::transaction::{Argument, ObjectArg, ProgrammableTransaction};
+use iota_interaction::types::transaction::{Argument, ObjectArg, ProgrammableTransaction, TransactionKind};
 use iota_interaction::types::{IOTA_CLOCK_OBJECT_ID, IOTA_CLOCK_OBJECT_SHARED_VERSION, TypeTag, Identifier};
 use iota_interaction::{ident_str, IotaClientTrait, OptionalSync};
 use crate::core_client::CoreClientReadOnly;
@@ -166,6 +166,52 @@ where
 
     Ok(ptb.finish())
 }
+
+/// A helper function to execute a read-only transaction and deserialize
+/// the result into the specified type `T`.
+///
+/// This function uses the `dev_inspect_transaction_block` endpoint of the IOTA client
+/// to simulate the execution of a programmable transaction without submitting it
+/// to the network. The result of the first return value of the first execution result
+/// is deserialized using BCS.
+///
+/// # Arguments
+///
+/// * `tx`: The [`ProgrammableTransaction`] to execute.
+///
+/// # Returns
+/// A `Result` containing the deserialized result of type `T` or an [`Error`].
+pub async fn execute_read_only_transaction<C, T>(
+    client: &C,
+    tx: ProgrammableTransaction,
+) -> Result<T, Error>
+where
+  C: CoreClientReadOnly + OptionalSync,
+  T: DeserializeOwned,
+{
+    let inspection_result = client
+      .client_adapter()
+      .read_api()
+      .dev_inspect_transaction_block(IotaAddress::ZERO, TransactionKind::programmable(tx), None, None, None)
+      .await
+      .map_err(|err| Error::UnexpectedApiResponse(format!("Failed to inspect transaction block: {err}")))?;
+
+    let execution_results = inspection_result
+      .results
+      .ok_or_else(|| Error::UnexpectedApiResponse("DevInspectResults missing 'results' field".to_string()))?;
+
+    let (return_value_bytes, _) = execution_results
+      .first()
+      .ok_or_else(|| Error::UnexpectedApiResponse("Execution results list is empty".to_string()))?
+      .return_values
+      .first()
+      .ok_or_else(|| Error::InvalidMoveArgument("should have at least one return value".to_string()))?;
+
+    let deserialized_output = bcs::from_bytes::<T>(return_value_bytes)?;
+
+    Ok(deserialized_output)
+}
+
 
 #[cfg(test)]
 mod tests {
