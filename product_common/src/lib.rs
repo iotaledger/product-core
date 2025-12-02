@@ -13,6 +13,8 @@ pub mod http_client;
 #[cfg(feature = "move-history-manager")]
 pub mod move_history_manager;
 pub mod network_name;
+#[cfg(feature = "core-client")]
+pub mod move_utils;
 pub mod object;
 pub mod package_registry;
 pub mod well_known_networks;
