@@ -10,7 +10,6 @@ use iota_interaction::rpc_types::{
   IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI as _, IotaTransactionBlockEvents,
   IotaTransactionBlockResponseOptions,
 };
-use iota_interaction::shared_crypto::intent::{Intent, IntentMessage};
 use iota_interaction::types::base_types::{IotaAddress, ObjectRef};
 use iota_interaction::types::crypto::{IotaSignature as _, PublicKey, Signature};
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
@@ -18,6 +17,7 @@ use iota_interaction::types::transaction::{
   GasData, ProgrammableTransaction, TransactionData, TransactionDataAPI as _, TransactionKind,
 };
 use iota_interaction::{IotaClientTrait, IotaKeySignature, OptionalSend, OptionalSync};
+use iota_sdk_types::crypto::{Intent, IntentMessage};
 use itertools::Itertools;
 use secret_storage::Signer;
 

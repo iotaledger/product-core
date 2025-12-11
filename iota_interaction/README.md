@@ -12,7 +12,6 @@ code copied from the *iotaledger/iota.git* repository:
 | sdk_types/iota_types               | crates/iota-types                                    |
 | sdk_types/move_command_line_common | external-crates/move/crates/move-command-line-common |
 | sdk_types/move_core_types          | external-crates/move/crates/move-core-types          |
-| sdk_types/shared_crypto            | crates/shared-crypto/Cargo.toml                      |
 
 The folder structure in `sdk_types` matches the way the original IOTA Client Rust SDK
 provides the above listed crates via `pub use`.
