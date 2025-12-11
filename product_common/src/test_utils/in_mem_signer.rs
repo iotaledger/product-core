@@ -5,12 +5,12 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use fastcrypto::hash::HashFunction;
-use iota_interaction::shared_crypto::intent::Intent;
 use iota_interaction::types::transaction::TransactionData;
 use iota_interaction::IotaKeySignature;
 use iota_keys::keystore::{AccountKeystore, InMemKeystore};
 use iota_sdk::types::base_types::IotaAddress;
 use iota_sdk::types::crypto::SignatureScheme;
+use iota_sdk_types::crypto::Intent;
 use secret_storage::{SignatureScheme as SignerSignatureScheme, Signer as SignerTrait};
 use tokio::sync::RwLock;
 

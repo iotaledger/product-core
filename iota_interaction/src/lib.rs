@@ -35,8 +35,6 @@ pub use iota_sdk::*;
 pub use move_core_types as move_types;
 #[cfg(target_arch = "wasm32")]
 pub use sdk_types::*;
-#[cfg(not(target_arch = "wasm32"))]
-pub use shared_crypto;
 
 /// BCS serialized Transaction, where a Transaction includes the TransactionData and a Vec<Signature>
 pub type TransactionBcs = Vec<u8>;
