@@ -23,6 +23,8 @@ cfg-if.workspace = true
 eyre = "0.6.12"
 fastcrypto.workspace = true
 futures = { version = "0.3" }
+# Latest hyper is not compatible with axum-server used by iota-sdk. We need to pin it to 1.7 until iota-sdk upgrades axum-server.
+hyper = "=1.7" # Fix for iota-sdk 1.13 issue with axum-server.
 iota-sdk = { version = "1.1.5", default-features = false, features = ["serde", "std"] }
 iota_interaction = { version = "0.8.7", path = "../../../iota_interaction", default-features = false }
 js-sys = { version = "0.3.61" }

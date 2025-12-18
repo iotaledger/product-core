@@ -11,7 +11,6 @@ pub mod types;
 pub mod error;
 pub mod generated_types;
 pub mod iota_sdk_lib;
-pub mod shared_crypto;
 
 pub(crate) use types as iota_types;
 pub(crate) use move_types as move_core_types;

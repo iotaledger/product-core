@@ -23,6 +23,7 @@ use fastcrypto::traits::{
   Authenticator, EncodeDecodeBase64, KeyPair as KeypairTraits, Signer, ToFromBytes, VerifyingKey,
 };
 use fastcrypto_zkp::zk_login_utils::Bn254FrElement;
+use iota_sdk_types::crypto::IntentMessage;
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_with::{serde_as, Bytes};
@@ -31,7 +32,6 @@ use strum::EnumString;
 use super::base_types::IotaAddress;
 use super::error::{IotaError, IotaResult};
 use super::iota_serde::Readable;
-use crate::shared_crypto::intent::IntentMessage;
 
 // Authority Objects
 pub type AuthorityKeyPair = BLS12381KeyPair;

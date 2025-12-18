@@ -59,7 +59,7 @@ impl Signer<IotaKeySignature> for KeyPairSigner {
   async fn sign(&self, data: &TransactionData) -> Result<Signature, SecretStorageError> {
     use fastcrypto::hash::{Blake2b256, HashFunction};
     use fastcrypto::traits::Signer;
-    use shared_crypto::intent::Intent;
+    use iota_sdk_types::crypto::Intent;
 
     let tx_data_bcs =
       bcs::to_bytes(data).map_err(|e| SecretStorageError::Other(anyhow!("bcs serialization failed: {e}")))?;
