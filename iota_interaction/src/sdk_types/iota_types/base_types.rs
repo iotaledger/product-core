@@ -278,12 +278,6 @@ impl MoveObjectType {
         }
     }
 
-    pub fn is_upgrade_cap(&self) -> bool {
-        self.address() == IOTA_FRAMEWORK_ADDRESS
-            && self.module().as_str() == "package"
-            && self.name().as_str() == "UpgradeCap"
-    }
-
     pub fn is_regulated_coin_metadata(&self) -> bool {
         self.address() == IOTA_FRAMEWORK_ADDRESS
             && self.module().as_str() == "coin"
@@ -473,29 +467,6 @@ impl IotaAddress {
     pub fn generate<R: rand::RngCore + rand::CryptoRng>(mut rng: R) -> Self {
         let buf: [u8; IOTA_ADDRESS_LENGTH] = rng.gen();
         Self(buf)
-    }
-
-    /// Serialize an `Option<IotaAddress>` in Hex.
-    pub fn optional_address_as_hex<S>(
-        key: &Option<IotaAddress>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-        where
-            S: serde::ser::Serializer,
-    {
-        serializer.serialize_str(&key.map(Hex::encode).unwrap_or_default())
-    }
-
-    /// Deserialize into an `Option<IotaAddress>`.
-    pub fn optional_address_from_hex<'de, D>(
-        deserializer: D,
-    ) -> Result<Option<IotaAddress>, D::Error>
-        where
-            D: serde::de::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        let value = decode_bytes_hex(&s).map_err(serde::de::Error::custom)?;
-        Ok(Some(value))
     }
 
     /// Return the underlying byte array of a IotaAddress.
