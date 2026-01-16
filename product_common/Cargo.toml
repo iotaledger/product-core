@@ -1,6 +1,6 @@
 [package]
 name = "product_common"
-version = "0.8.8"
+version = "0.8.9"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
@@ -38,20 +38,20 @@ toml = { workspace = true } # , optional = true --- TODO see comment for `move-h
 url = { version = "2", default-features = false, features = ["serde"], optional = true }
 
 [dev-dependencies]
-iota_interaction = { path = "../iota_interaction", version = "0.8.8" }
-iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.8" }
+iota_interaction = { path = "../iota_interaction", version = "0.8.9" }
+iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.9" }
 tempfile.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 hyper.workspace = true # Fix for iota-sdk 1.13 issue with axum-server.
-iota_interaction = { path = "../iota_interaction", version = "0.8.8", features = ["keytool"] }
-iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.8", optional = true }
+iota_interaction = { path = "../iota_interaction", version = "0.8.9", features = ["keytool"] }
+iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.9", optional = true }
 iota-sdk.workspace = true
 tokio.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-iota_interaction = { path = "../iota_interaction", version = "0.8.8", default-features = false }
-iota_interaction_ts = { path = "../bindings/wasm/iota_interaction_ts", version = "0.8.8" }
+iota_interaction = { path = "../iota_interaction", version = "0.8.9", default-features = false }
+iota_interaction_ts = { path = "../bindings/wasm/iota_interaction_ts", version = "0.8.9" }
 js-sys = { version = "0.3", optional = true }
 serde-wasm-bindgen = { version = "0.6", optional = true }
 wasm-bindgen = { version = "0.2.100", optional = true }
