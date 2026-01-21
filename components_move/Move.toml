@@ -1,0 +1,8 @@
+[package]
+name = "components"
+edition = "2024.beta"
+
+[dependencies]
+
+[addresses]
+components = "0x0"
