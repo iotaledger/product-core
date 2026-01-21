@@ -7,17 +7,17 @@
 /// - Define an initial role with a custom set of permissions (i.e. an Admin role).
 /// - Use custom permission types defined by the integrating module using the generic parameter `P`.
 /// - Create, delete, and update roles and their permissions
-/// - Issue, revoke, and destroy `components::capability`s associated with a specific role.
-/// - Validate `components::capability`s against the defined roles to facilitate proper access control by other modules
+/// - Issue, revoke, and destroy `tf_components::capability`s associated with a specific role.
+/// - Validate `tf_components::capability`s against the defined roles to facilitate proper access control by other modules
 ///   (function `RoleMap.is_capability_valid()`)
 /// - All functions are access restricted by custom permissions defined during `RoleMap` instantiation.
 ///
 /// Examples:
-/// - components::main module uses `RoleMap` to manage access to the audit trail records and their operations.
+/// - tf_components::main module uses `RoleMap` to manage access to the audit trail records and their operations.
 
-module components::role_map;
+module tf_components::role_map;
 
-use components::capability::{Self, Capability};
+use tf_components::capability::{Self, Capability};
 use iota::clock::Clock;
 use iota::event;
 use iota::vec_map::{Self, VecMap};
@@ -100,7 +100,7 @@ public struct CapabilityAdminPermissions<P: copy + drop> has copy, drop, store {
 
 /// The RoleMap structure mapping role names to their associated permissions
 /// Generic parameter P defines the permission type used by the integrating module
-/// (i.e. components::Permission)
+/// (i.e. tf_components::Permission)
 public struct RoleMap<P: copy + drop> has copy, drop, store {
     /// The ObjectID of the onchain object integrating this RoleMap
     security_vault_id: ID,
@@ -349,7 +349,7 @@ public fun is_capability_valid<P: copy + drop>(
 /// Errors:
 /// - Aborts with EPermissionDenied if the provided capability does not have the permission specified with `CapabilityAdminPermissions::add`.
 /// - Aborts with ERoleDoesNotExist if the specified role does not exist in the role_map.
-/// - Aborts with components::capability::EValidityPeriodInconsistent if the provided valid_from and valid_until are inconsistent.
+/// - Aborts with tf_components::capability::EValidityPeriodInconsistent if the provided valid_from and valid_until are inconsistent.
 public fun new_capability<P: copy + drop>(
     role_map: &mut RoleMap<P>,
     cap: &Capability,

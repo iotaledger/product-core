@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #[test_only]
-module components::capability_tests;
+module tf_components::capability_tests;
 
-use components::test_utils::{Self, initial_admin_role_name};
+use tf_components::test_utils::{Self, initial_admin_role_name};
 use iota::test_scenario as ts;
 
 // ===== Tests for Capability creation via RoleMap =====

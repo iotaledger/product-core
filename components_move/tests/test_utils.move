@@ -1,7 +1,7 @@
 // Copyright (c) 2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-module components::test_utils;
+module tf_components::test_utils;
 
 use iota::object::id_from_bytes;
 use iota::vec_set::{Self, VecSet};
@@ -73,15 +73,15 @@ public fun fake_object_id_from_string(id_string: &String): ID {
 
 /// Create RoleAdminPermissions and CapabilityAdminPermissions with default test permissions
 public fun get_admin_permissions(): (
-    components::role_map::RoleAdminPermissions<Permission>,
-    components::role_map::CapabilityAdminPermissions<Permission>,
+    tf_components::role_map::RoleAdminPermissions<Permission>,
+    tf_components::role_map::CapabilityAdminPermissions<Permission>,
 ) {
-    let role_admin_permissions = components::role_map::new_role_admin_permissions(
+    let role_admin_permissions = tf_components::role_map::new_role_admin_permissions(
         manage_roles(),
         manage_roles(),
         manage_roles(),
     );
-    let capability_admin_permissions = components::role_map::new_capability_admin_permissions(
+    let capability_admin_permissions = tf_components::role_map::new_capability_admin_permissions(
         manage_capabilities(),
         manage_capabilities(),
     );
@@ -99,12 +99,12 @@ public fun initial_admin_role_name(): String {
 /// Returns the RoleMap, admin capability, and the security_vault_id
 public fun create_test_role_map(
     ctx: &mut iota::tx_context::TxContext,
-): (components::role_map::RoleMap<Permission>, components::capability::Capability, ID) {
+): (tf_components::role_map::RoleMap<Permission>, tf_components::capability::Capability, ID) {
     let security_vault_id = fake_object_id_from_string(&SECURITY_VAULT_ID_STRING.to_string());
     let initial_admin_role = INITIAL_ADMIN_ROLE_NAME.to_string();
     let (role_admin_permissions, capability_admin_permissions) = get_admin_permissions();
 
-    let (role_map, admin_cap) = components::role_map::new(
+    let (role_map, admin_cap) = tf_components::role_map::new(
         security_vault_id,
         initial_admin_role,
         super_admin_permissions(),

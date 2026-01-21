@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /// Role Based Capabilities for access control management
-module components::capability;
+module tf_components::capability;
 
 use iota::clock::{Self, Clock};
 use std::string::String;

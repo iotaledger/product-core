@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #[test_only]
-module components::role_map_tests;
+module tf_components::role_map_tests;
 
-use components::role_map;
-use components::test_utils;
+use tf_components::role_map;
+use tf_components::test_utils;
 use iota::test_scenario as ts;
 use iota::vec_set;
 use std::string;
