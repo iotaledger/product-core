@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #[test_only]
-module tf_components::capability_tests;
+module tf_components::capability_component_tests;
 
 use tf_components::test_utils::{Self, initial_admin_role_name};
 use iota::test_scenario as ts;
