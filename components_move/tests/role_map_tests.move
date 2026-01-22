@@ -4,11 +4,11 @@
 #[test_only]
 module tf_components::role_map_tests;
 
-use tf_components::role_map;
-use tf_components::core_test_utils as test_utils;
 use iota::test_scenario as ts;
 use iota::vec_set;
 use std::string;
+use tf_components::core_test_utils as test_utils;
+use tf_components::role_map;
 
 #[test]
 fun test_role_based_permission_delegation() {

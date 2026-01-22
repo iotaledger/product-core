@@ -17,12 +17,12 @@
 
 module tf_components::role_map;
 
-use tf_components::capability::{Self, Capability};
 use iota::clock::Clock;
 use iota::event;
 use iota::vec_map::{Self, VecMap};
 use iota::vec_set::{Self, VecSet};
 use std::string::String;
+use tf_components::capability::{Self, Capability};
 
 // =============== Errors ==========================================================
 
