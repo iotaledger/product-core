@@ -1,13 +1,13 @@
 // Copyright (c) 2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-module tf_components::test_utils;
+module tf_components::core_test_utils;
 
 use iota::object::id_from_bytes;
 use iota::vec_set::{Self, VecSet};
 use std::string::String;
 
-/// Simeple Permission set for RoleMap tests
+/// Simple Permission set for RoleMap tests
 #[test_only]
 public enum Permission has copy, drop, store {
     DeleteEverything,

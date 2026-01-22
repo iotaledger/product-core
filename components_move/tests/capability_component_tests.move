@@ -4,7 +4,7 @@
 #[test_only]
 module tf_components::capability_component_tests;
 
-use tf_components::test_utils::{Self, initial_admin_role_name};
+use tf_components::core_test_utils::{Self as test_utils, initial_admin_role_name};
 use iota::test_scenario as ts;
 
 // ===== Tests for Capability creation via RoleMap =====

@@ -5,7 +5,7 @@
 module tf_components::role_map_tests;
 
 use tf_components::role_map;
-use tf_components::test_utils;
+use tf_components::core_test_utils as test_utils;
 use iota::test_scenario as ts;
 use iota::vec_set;
 use std::string;
