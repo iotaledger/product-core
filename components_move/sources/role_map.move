@@ -13,7 +13,9 @@
 /// - All functions are access restricted by custom permissions defined during `RoleMap` instantiation.
 ///
 /// Examples:
-/// - tf_components::main module uses `RoleMap` to manage access to the audit trail records and their operations.
+/// - The TF product Audit Trails uses `RoleMap` to manage access to the audit trail records and their operations.
+/// - The `tf_components` package README provides a "Hello World" like simple usage example
+///   ([Counter Example](../README.md#rolemap-integration-example)).
 
 module tf_components::role_map;
 
