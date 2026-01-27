@@ -108,7 +108,7 @@ public struct RoleMap<P: copy + drop> has copy, drop, store {
     security_vault_id: ID,
     /// Mapping of role names to their associated permissions
     roles: VecMap<std::string::String, VecSet<P>>,
-    /// Whitelist of all issued capability IDs
+    /// Allowlist of all issued capability IDs
     issued_capabilities: VecSet<ID>,
     /// Permissions required to administer roles in this RoleMap
     role_admin_permissions: RoleAdminPermissions<P>,
