@@ -1,6 +1,6 @@
 # Trust Framework Components
 
-The ts_components package contains Move modules providing reusable components for building smart contracts
+The tf_components package contains Move modules providing reusable components for building smart contracts
 within the IOTA Trust Framework. These components are designed to be modular and easily integrated into various
 Trust Framework products and community-developed smart contracts.
 
