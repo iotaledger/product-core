@@ -56,6 +56,9 @@ extern "C" {
   #[derive(Clone)]
   pub type WasmIotaClient;
 
+  #[wasm_bindgen(constructor, catch)]
+  pub async fn _new(params: js_sys::Object) -> Result<WasmIotaClient, JsValue>;
+
   #[wasm_bindgen(method, js_name = getChainIdentifier)]
   pub fn get_chain_identifier(this: &WasmIotaClient) -> PromiseString;
 
@@ -113,6 +116,31 @@ extern "C" {
     this: &WasmIotaClient,
     input: &WasmDevInspectTransactionBlockParams,
   ) -> PromiseDevInspectResults;
+}
+
+impl WasmIotaClient {
+  /// Creates a new TS IOTA Client connected to the given RPC URL.
+  pub async fn new(rpc: impl AsRef<str>) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    use js_sys::{Error, Reflect};
+    use wasm_bindgen::JsCast;
+
+    let params = js_sys::Object::new();
+    Reflect::set(
+      params.as_ref(),
+      &JsValue::from_str("url"),
+      &JsValue::from_str(rpc.as_ref()),
+    )
+    .map_err(|e| {
+      let js_err: Error = e.unchecked_into();
+      String::from(&js_err.to_string())
+    })?;
+
+    let client = Self::_new(params).await.map_err(|e| {
+      let js_err: Error = e.unchecked_into();
+      String::from(&js_err.to_string())
+    })?;
+    Ok(client)
+  }
 }
 
 // Helper struct used to convert TYPESCRIPT types to RUST types
