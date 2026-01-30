@@ -37,7 +37,7 @@ The [`Counter` example](./examples/counter/README.md) is a very simple example, 
 `RoleMap` and `Capability` for role based access control. The accompanying 
 [test file](./examples/counter/tests/counter_tests.move) demonstrates the Move user experience.
 
-The TF product Audit Trails uses the `RoleMap` to manage access to the audit trail records and their operations, which 
+The Trust Framework product *Audit Trails* uses the `RoleMap` to manage access to the audit trail records and their operations, which 
 can be seen as a more complex example:
 * The `RoleMap` is integrated in the `audit_trail::main` module to manage access to the audit trail records and 
   their operations. See [here](https://github.com/iotaledger/notarization/blob/main/audit-trail-move/sources/audit_trail.move#L208) for an example.
