@@ -37,9 +37,9 @@ The `role_map` module provides the `RoleMap<P>` struct and associated functions:
 
 ### RoleMap Integration Example
 
-To show how the `RoleMap` is to integrated into 3rd party shared objects (or TF products),
+To show how the `RoleMap` can be integrated into 3rd party shared objects (or TF products),
 this example integrates the `RoleMap` into a simple shared `Counter` object, as being described
-[here](https://docs.iota.org/developer/iota-101/move-overview/package-upgrades/upgrade#4-guard-function-access)).
+[here](https://docs.iota.org/developer/iota-101/move-overview/package-upgrades/upgrade#4-guard-function-access).
 
 In general, to integrate the `RoleMap` into a shared object,
 we need to define a Permission enum similar to the [enum used for IOTA Audit Trails](https://github.com/iotaledger/notarization/blob/main/audit-trail-move/sources/permission.move#L10-L11).
@@ -56,9 +56,11 @@ public enum CounterPermission has copy, drop, store {
     // --- Used for a super-admin role who can do everything ---
     /// Destroy the Counter
     DeleteCounter,
-    /// Manage Capabilities including adding and revoking
-    ManageCapabilities,
-    /// Manage Roles including adding, removing and updating
+    /// Manage Capabilities: Adding new capabilities
+    AddCapabilities,
+    /// Manage Capabilities: Revoking existing capabilities
+    RevokeCapabilities,
+    /// One permission for the complete roles management, including adding, removing and updating roles
     ManageRoles,
 
     // --- Counter Management, could be used for a counter admin role---
@@ -72,8 +74,12 @@ public fun delete_counter(): CounterPermission {
     CounterPermission::DeleteCounter
 }
 
-public fun manage_capabilities(): CounterPermission {
-    CounterPermission::ManageCapabilities
+public fun add_capabilities(): CounterPermission {
+    CounterPermission::AddCapabilities
+}
+
+public fun revoke_capabilities(): CounterPermission {
+    CounterPermission::RevokeCapabilities
 }
 
 public fun manage_roles(): CounterPermission {
@@ -94,7 +100,8 @@ public fun reset_counter(): CounterPermission {
 public fun super_admin_permissions(): VecSet<CounterPermission> {
     let mut perms = vec_set::empty();
     perms.insert(delete_counter());
-    perms.insert(manage_capabilities());
+    perms.insert(add_capabilities());
+    perms.insert(revoke_capabilities());
     perms.insert(manage_roles());
     perms.insert(increment_counter());
     perms.insert(reset_counter());
@@ -129,6 +136,20 @@ public fun create(
     let counter_uid = object::new(ctx);
     let counter_id = object::uid_to_inner(&counter_uid);
 
+    // Create a `CapabilityAdminPermissions` instance to configure the permissions
+    // that will be needed by users to issue and revoke cabilities with the `RoleMap`.
+    //
+    // There are two actions that need to be configured with a permission of your choice:
+    // * `add`: Permission required to add (issue) a new capability
+    // * `revoke`: Permission required to revoke an existing capability
+    //
+    // In this example we use a specific permission for each action.
+    //
+    let capability_admin_permissions = role_map::new_capability_admin_permissions(
+        counter::permission::add_capabilities(),
+        counter::permission::revoke_capabilities(),
+    );
+    
     // Create a `RoleAdminPermissions` instance to configure the permissions
     // that will be needed by users to administer roles with the `RoleMap`.
     //
@@ -137,26 +158,15 @@ public fun create(
     // * `delete`: Permission required to delete an existing role
     // * `update` Permission required to update permissions associated with an existing role
     //
-    // In this example we allow to use all three actions with the `ManageRoles` permission.
+    // In this example we allow to use all three actions with the `ManageRoles` permission
+    // for the sake of simplicity. In a real world application you would probably have action
+    // specific permissiions like `AddRoles`, `DeleteRoles` and `UpdateRoles` like we did
+    // above to specifify the `CapabilityAdminPermissions`.
     //
    let role_admin_permissions = role_map::new_role_admin_permissions(
         counter::permission::manage_roles(),
         counter::permission::manage_roles(),
         counter::permission::manage_roles(),
-    );
-
-    // Create a `CapabilityAdminPermissions` instance to configure the permissions
-    // that will be needed by users to issue and revoke cabilities with the `RoleMap`.
-    //
-    // There are two actions that need to be configured with a permission of your choice:
-    // * `add`: Permission required to add (issue) a new capability
-    // * `revoke`: Permission required to revoke an existing capability
-    //
-    // In this example we allow to use all two actions with the `ManageCapabilities` permission.
-    //
-    let capability_admin_permissions = role_map::new_capability_admin_permissions(
-        counter::permission::manage_capabilities(),
-        counter::permission::manage_capabilities(),
     );
 
     let (roles, admin_cap) = role_map::new(
@@ -180,8 +190,7 @@ public fun create(
 ```
 
 Later on, the `Counter` can use the `RoleMap.is_capability_valid()` function to check
-whether a provided capabilityhas the required permission:
-
+whether a provided capability has the required permission:
 
 In the file `counter/counter.move`:
 ```Move
