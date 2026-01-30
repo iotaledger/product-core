@@ -1,0 +1,8 @@
+[package]
+name = "TfComponents"
+edition = "2024.beta"
+
+[dependencies]
+
+[addresses]
+tf_components = "0x0"
