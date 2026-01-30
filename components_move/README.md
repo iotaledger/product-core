@@ -22,9 +22,9 @@ a capability token that grants access rights defined by one specific role in the
 The `role_map` module directly depends on the `capability` module. Both modules are tight strongly together.
 
 The `RoleMap<P>` struct provides the following functionalities:
+- Uses custom permission types defined by the integrating module using the generic argument `P`
 - Defines an initial role with a custom set of permissions (i.e. for an Admin role) and creates an initial
   `Capability` for this role to allow later access control administration by the creator of the integrating module
-- Uses custom permission types defined by the integrating module using the generic argument `P`
 - Allows to create, delete, and update roles and their permissions
 - Allows to issue, revoke, and destroy `Capability`s associated with a specific role
 - Validates `Capability`s against the defined roles to facilitate proper access control by the integrating module
