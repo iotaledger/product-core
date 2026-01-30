@@ -16,22 +16,25 @@ can be found in the [permission.move](./sources/permission.move) file.
 ## RoleMap Integration
 
 The integration of the `RoleMap<CounterPermission>` into the target object, which is the `Counter` object in
-this example, requires the following steps. The target object needs to:
-
-* instantiate the `RoleMap` instance in its create function
-* provide the necessary getter and mutator functions for users to access the `RoleMap` instance
-* use the `RoleMap.is_capability_valid()` function to check whether a provided capability has the required permission
+this example, requires the following steps.
 
 The implementation of the shared `Counter` example can be found in the
 [counter.move](./sources/counter.move) file.
 
+The target object needs to:
+* instantiate the `RoleMap` instance in its `create()` function
+* provide the necessary getter and mutator functions for users to access the `RoleMap` instance
+  (function `access()` and `access_mut()` in the [counter.move](./sources/counter.move) file)
+* use the `RoleMap.is_capability_valid()` function to check whether a provided capability has the required permission
+  (used in function `increment()` in the [counter.move](./sources/counter.move) file)
+
 ## User experience and testing the Integration
 
 The accompanying [counter_tests.move](./tests/counter_tests.move) file demonstrates the
-user experience of users interacting with the shared `Counter` object using the integrated
+user experience of Move users interacting with the shared `Counter` object via the integrated
 `RoleMap` and `Capability` objects.
 
-To run the tests, use the following command from the `TfComponents` package root directory:
+To run the tests, run the following command in the `TfComponents` package root directory:
 
 ```bash
 iota move test
