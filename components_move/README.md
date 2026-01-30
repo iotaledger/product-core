@@ -12,21 +12,20 @@ Modules Overview:
 * timelock:   Provides the `Timelock` struct for time-based access control, enabling restrictions based on time 
               constraints.
 
-## Role-Based Access Control - The `role_map` Module
+## Role-Based Access Control - The `role_map` and the `capability` Module
 
-The `role_map` module provides the `RoleMap<P>` struct and associated functions:
-```
-/// A role-based access control helper mapping unique role identifiers to their associated permissions.
-///
-/// Provides the following functionalities:
-/// - Define an initial role with a custom set of permissions (i.e. an Admin role).
-/// - Use custom permission types defined by the integrating module using the generic parameter `P`.
-/// - Create, delete, and update roles and their permissions
-/// - Issue, revoke, and destroy `tf_components::capability`s associated with a specific role.
-/// - Validate `tf_components::capability`s against the defined roles to facilitate proper access control by other modules
-///   (function `RoleMap.is_capability_valid()`)
-/// - All functions are access restricted by custom permissions defined during `RoleMap` instantiation.
-``` 
+The `role_map` module provides the `RoleMap<P>` struct and its associated functions.
+the `RoleMap<P>`is a role-based access control helper that maps unique role identifiers to their associated permissions.
+
+It provides the following functionalities:
+- Defines an initial role with a custom set of permissions (i.e. an Admin role).
+- Uses custom permission types defined by the integrating module using generic arguments
+- Allows to create, delete, and update roles and their permissions
+- Allows to issue, revoke, and destroy `capability::Capability`s associated with a specific role.
+- Validates `capability::Capability`s against the defined roles to facilitate proper access control by the integrating modules
+  (function `RoleMap.is_capability_valid()`).
+- All functions are access restricted by custom permissions defined during `RoleMap` instantiation.
+
 The `role_map` module directly depends on the `tf_components::capability` module. Both modules are tight strongly together.
 
 ### Usage Examples
