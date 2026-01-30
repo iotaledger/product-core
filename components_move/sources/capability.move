@@ -189,7 +189,7 @@ public(package) fun destroy(cap: Capability) {
     let Capability {
         id,
         role: _role,
-        security_vault_id: _trail_id,
+        security_vault_id: _security_vault_id
         issued_to: _issued_to,
         valid_from: _valid_from,
         valid_until: _valid_until,
