@@ -289,7 +289,7 @@ public fun has_role<P: copy + drop>(role_map: &RoleMap<P>, role: &String): bool 
 /// - The capability has not been revoked (is included in the `issued_capabilities` set).
 ///   Aborts with ECapabilityHasBeenRevoked if revoked.
 /// - The capability is currently active, based on its time restrictions (if any).
-///   Aborts with ECapabilityTimeConstraintsNotMet, if the current time is outside the valid_from and valid_until range.
+///   Aborts with `ECapabilityTimeConstraintsNotMet`, if the current time is outside the `valid_from` and `valid_until` range.
 /// - If the capability is restricted to a specific address, the caller's address matches the sender of the transaction.
 ///   Aborts with ECapabilityIssuedToMismatch if the addresses do not match.
 ///
