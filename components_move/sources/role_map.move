@@ -342,8 +342,8 @@ public fun is_capability_valid<P: copy + drop>(
 /// - cap: Reference to the capability used to authorize the creation of the new capability.
 /// - role: The role to be assigned to the new capability.
 /// - issued_to: Optional address restriction for the new capability.
-/// - valid_from: Optional start time (in seconds since Unix epoch) for the new capability.
-/// - valid_until: Optional. Last point in time where the capability is valid (in seconds since Unix epoch).
+/// - valid_from: Optional start time (in milliseconds since Unix epoch) for the new capability.
+/// - valid_until: Optional. Last point in time where the capability is valid (in milliseconds since Unix epoch).
 /// - clock: Reference to a Clock instance for time-based validation.
 /// - ctx: Reference to the transaction context.
 ///
@@ -426,7 +426,7 @@ public fun new_capability_without_restrictions<P: copy + drop>(
     new_cap
 }
 
-/// Create a new capability with a specific role that expires at a given timestamp (seconds since Unix epoch).
+/// Create a new capability with a specific role that expires at a given timestamp (milliseconds since Unix epoch).
 ///
 /// Returns the newly created capability.
 ///
@@ -466,7 +466,7 @@ public fun new_capability_valid_until<P: copy + drop>(
 }
 
 /// Create a new capability with a specific role restricted to an address.
-/// Optionally set an expiration time (seconds since Unix epoch).
+/// Optionally set an expiration time (milliseconds since Unix epoch).
 ///
 /// Returns the newly created capability.
 ///

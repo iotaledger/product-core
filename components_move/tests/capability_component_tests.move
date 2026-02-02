@@ -102,8 +102,8 @@ fun test_capability_valid_from_and_valid_until() {
     ts::next_tx(&mut scenario, admin_user);
     let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
 
-    let valid_from_ts = 1000u64;
-    let valid_until_ts = 2000u64;
+    let valid_from_ts = 1000000u64;
+    let valid_until_ts = 2000000u64;
 
     // Create capability with validity period
     let timed_cap = role_map.new_capability(
@@ -162,7 +162,7 @@ fun test_is_valid_for_timestamp_with_valid_from() {
     ts::next_tx(&mut scenario, admin_user);
     let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
 
-    let valid_from_ts = 1000u64;
+    let valid_from_ts = 1000000u64;
 
     // Create capability with valid_from only
     let timed_cap = role_map.new_capability(
@@ -176,12 +176,11 @@ fun test_is_valid_for_timestamp_with_valid_from() {
     );
 
     // Should be invalid before valid_from
-    assert!(!timed_cap.is_valid_for_timestamp(999), 0);
+    assert!(!timed_cap.is_valid_for_timestamp(999999), 0);
     // Should be valid at valid_from (inclusive)
-    assert!(timed_cap.is_valid_for_timestamp(1000), 1);
+    assert!(timed_cap.is_valid_for_timestamp(1000000), 1);
     // Should be valid after valid_from
-    assert!(timed_cap.is_valid_for_timestamp(1001), 2);
-
+    assert!(timed_cap.is_valid_for_timestamp(1000001), 2);
     // Cleanup
     iota::clock::destroy_for_testing(clock);
     role_map.destroy_capability(admin_cap);
@@ -201,7 +200,7 @@ fun test_is_valid_for_timestamp_with_valid_until() {
     ts::next_tx(&mut scenario, admin_user);
     let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
 
-    let valid_until_ts = 2000u64;
+    let valid_until_ts = 2000000u64;
 
     // Create capability with valid_until only
     let timed_cap = role_map.new_capability(
@@ -215,11 +214,11 @@ fun test_is_valid_for_timestamp_with_valid_until() {
     );
 
     // Should be valid before valid_until
-    assert!(timed_cap.is_valid_for_timestamp(1999), 0);
+    assert!(timed_cap.is_valid_for_timestamp(1999999), 0);
     // Should be valid at valid_until (inclusive)
-    assert!(timed_cap.is_valid_for_timestamp(2000), 1);
+    assert!(timed_cap.is_valid_for_timestamp(2000000), 1);
     // Should be invalid after valid_until
-    assert!(!timed_cap.is_valid_for_timestamp(2001), 2);
+    assert!(!timed_cap.is_valid_for_timestamp(2000001), 2);
 
     // Cleanup
     iota::clock::destroy_for_testing(clock);
@@ -240,8 +239,8 @@ fun test_is_valid_for_timestamp_with_both_restrictions() {
     ts::next_tx(&mut scenario, admin_user);
     let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
 
-    let valid_from_ts = 1000u64;
-    let valid_until_ts = 2000u64;
+    let valid_from_ts = 1000000u64;
+    let valid_until_ts = 2000000u64;
 
     // Create capability with both valid_from and valid_until
     let timed_cap = role_map.new_capability(
@@ -255,15 +254,15 @@ fun test_is_valid_for_timestamp_with_both_restrictions() {
     );
 
     // Should be invalid before valid_from
-    assert!(!timed_cap.is_valid_for_timestamp(999), 0);
+    assert!(!timed_cap.is_valid_for_timestamp(999999), 0);
     // Should be valid at valid_from (inclusive)
-    assert!(timed_cap.is_valid_for_timestamp(1000), 1);
+    assert!(timed_cap.is_valid_for_timestamp(1000000), 1);
     // Should be valid between valid_from and valid_until
-    assert!(timed_cap.is_valid_for_timestamp(1500), 2);
+    assert!(timed_cap.is_valid_for_timestamp(1500000), 2);
     // Should be valid at valid_until (inclusive)
-    assert!(timed_cap.is_valid_for_timestamp(2000), 3);
+    assert!(timed_cap.is_valid_for_timestamp(2000000), 3);
     // Should be invalid after valid_until
-    assert!(!timed_cap.is_valid_for_timestamp(2001), 4);
+    assert!(!timed_cap.is_valid_for_timestamp(2000001), 4);
 
     // Cleanup
     iota::clock::destroy_for_testing(clock);
@@ -309,8 +308,8 @@ fun test_is_currently_valid_within_validity_period() {
     // Set clock to 1500 seconds (1500000 ms)
     iota::clock::set_for_testing(&mut clock, 1500000);
 
-    let valid_from_ts = 1000u64;
-    let valid_until_ts = 2000u64;
+    let valid_from_ts = 1000000u64;
+    let valid_until_ts = 2000000u64;
 
     // Create capability with validity period
     let timed_cap = role_map.new_capability(
@@ -347,8 +346,8 @@ fun test_is_currently_valid_before_validity_period() {
     // Set clock to 500 seconds (500000 ms)
     iota::clock::set_for_testing(&mut clock, 500000);
 
-    let valid_from_ts = 1000u64;
-    let valid_until_ts = 2000u64;
+    let valid_from_ts = 1000000u64;
+    let valid_until_ts = 2000000u64;
 
     // Create capability with validity period
     let timed_cap = role_map.new_capability(
@@ -385,8 +384,8 @@ fun test_is_currently_valid_after_validity_period() {
     // Set clock to 2500 seconds (2500000 ms)
     iota::clock::set_for_testing(&mut clock, 2500000);
 
-    let valid_from_ts = 1000u64;
-    let valid_until_ts = 2000u64;
+    let valid_from_ts = 1000000u64;
+    let valid_until_ts = 2000000u64;
 
     // Create capability with validity period
     let timed_cap = role_map.new_capability(
@@ -424,8 +423,8 @@ fun test_capability_with_all_restrictions() {
     ts::next_tx(&mut scenario, admin_user);
     let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
 
-    let valid_from_ts = 1000u64;
-    let valid_until_ts = 2000u64;
+    let valid_from_ts = 1000000u64;
+    let valid_until_ts = 2000000u64;
 
     // Create capability with all restrictions
     let restricted_cap = role_map.new_capability(

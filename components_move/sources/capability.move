@@ -27,11 +27,11 @@ public struct Capability has key, store {
     /// * If Some(address), the capability is bound to that specific address
     /// * If None, the capability is not bound to a specific address
     issued_to: Option<address>,
-    /// Optional validity period start timestamp (in seconds since Unix epoch).
+    /// Optional validity period start timestamp (in milliseconds since Unix epoch).
     /// * The specified timestamp is included in the validity period
     /// * If None, the capability is valid from creation time
     valid_from: Option<u64>,
-    /// Optional validity period end timestamp (in seconds since Unix epoch).
+    /// Optional validity period end timestamp (in milliseconds since Unix epoch).
     /// Last point in time where the capability is valid.
     /// * The specified timestamp is included in the validity period
     /// * If None, the capability does not expire
@@ -44,8 +44,8 @@ public struct Capability has key, store {
 /// * role: The role granted by this capability
 /// * target_key: The target_key of the RoleMap instance this capability applies to. Usually the ID of the managed onchain object (i.e. an audit trail).
 /// * issued_to: Optional address restriction; if Some(address), the capability is bound to that specific address
-/// * valid_from: Optional. First point in time where the capability is valid (in seconds since Unix epoch). If Some(ts), the capability is valid from that timestamp onwards (inclusive)
-/// * valid_until: Optional. Last point in time where the capability is valid (in seconds since Unix epoch). If Some(ts), the capability is valid until that timestamp (inclusive)
+/// * valid_from: Optional. First point in time where the capability is valid (in milliseconds since Unix epoch). If Some(ts), the capability is valid from that timestamp onwards (inclusive)
+/// * valid_until: Optional. Last point in time where the capability is valid (in milliseconds since Unix epoch). If Some(ts), the capability is valid until that timestamp (inclusive)
 /// * ctx: The transaction context
 ///
 /// Returns: The newly created Capability
@@ -164,21 +164,21 @@ public fun valid_until(cap: &Capability): &Option<u64> {
 
 // Check if the capability is currently valid for `clock::timestamp_ms(clock)`
 public fun is_currently_valid(cap: &Capability, clock: &Clock): bool {
-    let current_ts = clock::timestamp_ms(clock) / 1000; // convert to seconds
+    let current_ts = clock::timestamp_ms(clock);
     cap.is_valid_for_timestamp(current_ts)
 }
 
-// Check if the capability is valid for a specific timestamp (in seconds since Unix epoch)
-public fun is_valid_for_timestamp(cap: &Capability, timestamp_secs: u64): bool {
+// Check if the capability is valid for a specific timestamp (in milliseconds since Unix epoch)
+public fun is_valid_for_timestamp(cap: &Capability, timestamp_ms: u64): bool {
     let valid_from_ok = if (cap.valid_from.is_some()) {
         let from = cap.valid_from.borrow();
-        timestamp_secs >= *from
+        timestamp_ms >= *from
     } else {
         true
     };
     let valid_until_ok = if (cap.valid_until.is_some()) {
         let until = cap.valid_until.borrow();
-        timestamp_secs <= *until
+        timestamp_ms <= *until
     } else {
         true
     };
