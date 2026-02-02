@@ -39,7 +39,7 @@ const ECapabilityHasBeenRevoked: vector<u8> =
     b"The provided capability has been revoked and is no longer valid";
 #[error]
 const ECapabilitySecurityVaultIdMismatch: vector<u8> =
-    b"The security_vault_id associated with the provided capability does not match the security_vault_id of the `RoleMap`";
+    b"The target_key associated with the provided capability does not match the target_key of the `RoleMap`";
 #[error]
 const ECapabilityTimeConstraintsNotMet: vector<u8> =
     b"The capability's time constraints are not currently met either due to `valid_from` or `valid_until` restrictions";
@@ -54,7 +54,7 @@ const ECapabilityPermissionDenied: vector<u8> =
 
 /// Emitted when a capability is issued
 public struct CapabilityIssued has copy, drop {
-    security_vault_id: ID,
+    target_key: ID,
     capability_id: ID,
     role: String,
     issued_to: Option<address>,
@@ -64,7 +64,7 @@ public struct CapabilityIssued has copy, drop {
 
 /// Emitted when a capability is destroyed
 public struct CapabilityDestroyed has copy, drop {
-    security_vault_id: ID,
+    target_key: ID,
     capability_id: ID,
     role: String,
     issued_to: Option<address>,
@@ -74,7 +74,7 @@ public struct CapabilityDestroyed has copy, drop {
 
 /// Emitted when a capability is revoked or destroyed
 public struct CapabilityRevoked has copy, drop {
-    security_vault_id: ID,
+    target_key: ID,
     capability_id: ID,
 }
 
@@ -102,10 +102,12 @@ public struct CapabilityAdminPermissions<P: copy + drop> has copy, drop, store {
 
 /// The RoleMap structure mapping role names to their associated permissions
 /// Generic parameter P defines the permission type used by the integrating module
-/// (i.e. tf_components::Permission)
+/// (i.e. tf_components::CounterPermission or audit_trail::Permission)
 public struct RoleMap<P: copy + drop> has copy, drop, store {
-    /// The ObjectID of the onchain object integrating this RoleMap
-    security_vault_id: ID,
+    /// Identifies the scope (or domain) managed by the RoleMap.  Usually this is the ID of the managed onchain object
+    /// (i.e. an audit trail). You can also derive an arbitrary ID value reused by several managed onchain objects
+    /// to share the used roles and capabilities between these objects.
+    target_key: ID,
     /// Mapping of role names to their associated permissions
     roles: VecMap<std::string::String, VecSet<P>>,
     /// Allowlist of all issued capability IDs
@@ -146,14 +148,15 @@ public fun new_capability_admin_permissions<P: copy + drop>(
 /// The initial admin role is created with the specified name and permissions
 /// An initial admin capability is created and returned alongside the RoleMap
 /// The initial admin capability has no restrictions (no address, valid_from, or valid_until)
-/// The security_vault_id is associated with both the RoleMap and the initial admin capability
+/// The target_key is associated with both the RoleMap and the initial admin capability
 /// Returns the newly created RoleMap and the initial admin capability
 ///
 /// Parameters
 /// ----------
-/// - security_vault_id:
-///   The security_vault_id to associate this RoleMap with the initial admin capability
-///   and all other created capabilities. Set this to the ID of the onchain object that integrates the RoleMap.
+/// - target_key:
+///   The target_key to associate this RoleMap with the initial admin capability
+///   and all other created capabilities. Usually this is the ID of the managed onchain object
+///   (i.e. an audit_trail::AuditTrail or the tf_components::Counter).
 /// - initial_admin_role_name:
 ///   The name of the initial admin role
 /// - initial_admin_role_permissions:
@@ -165,7 +168,7 @@ public fun new_capability_admin_permissions<P: copy + drop>(
 /// - ctx:
 ///   The transaction context for capability creation
 public fun new<P: copy + drop>(
-    security_vault_id: ID,
+    target_key: ID,
     initial_admin_role_name: String,
     initial_admin_role_permissions: VecSet<P>,
     role_admin_permissions: RoleAdminPermissions<P>,
@@ -177,7 +180,7 @@ public fun new<P: copy + drop>(
 
     let admin_cap = capability::new_capability_without_restrictions(
         initial_admin_role_name,
-        security_vault_id,
+        target_key,
         ctx,
     );
     let mut issued_capabilities = vec_set::empty<ID>();
@@ -186,7 +189,7 @@ public fun new<P: copy + drop>(
         roles,
         role_admin_permissions,
         capability_admin_permissions,
-        security_vault_id,
+        target_key,
         issued_capabilities,
     };
 
@@ -277,7 +280,7 @@ public fun has_role<P: copy + drop>(role_map: &RoleMap<P>, role: &String): bool 
 /// Indicates if a provided capability is valid.
 ///
 /// A capability is considered valid if:
-/// - The capability's security_vault_id matches the RoleMap's security_vault_id.
+/// - The capability's target_key matches the RoleMap's target_key.
 ///   Aborts with ECapabilitySecurityVaultIdMismatch if not matching.
 /// - The role value specified by the capability exists in the `RoleMap` mapping.
 ///   Aborts with ERoleDoesNotExist if the role does not exist.
@@ -309,7 +312,7 @@ public fun is_capability_valid<P: copy + drop>(
     ctx: &TxContext,
 ): bool {
     assert!(
-        role_map.security_vault_id == cap.security_vault_id(),
+        role_map.target_key == cap.target_key(),
         ECapabilitySecurityVaultIdMismatch,
     );
 
@@ -375,7 +378,7 @@ public fun new_capability<P: copy + drop>(
     assert!(role_map.roles.contains(role), ERoleDoesNotExist);
     let new_cap = capability::new_capability(
         *role,
-        role_map.security_vault_id,
+        role_map.target_key,
         issued_to,
         valid_from,
         valid_until,
@@ -415,7 +418,7 @@ public fun new_capability_without_restrictions<P: copy + drop>(
     assert!(role_map.roles.contains(role), ERoleDoesNotExist);
     let new_cap = capability::new_capability_without_restrictions(
         *role,
-        role_map.security_vault_id,
+        role_map.target_key,
         ctx,
     );
 
@@ -453,7 +456,7 @@ public fun new_capability_valid_until<P: copy + drop>(
     assert!(role_map.roles.contains(role), ERoleDoesNotExist);
     let new_cap = capability::new_capability_valid_until(
         *role,
-        role_map.security_vault_id,
+        role_map.target_key,
         valid_until,
         ctx,
     );
@@ -494,7 +497,7 @@ public fun new_capability_for_address<P: copy + drop>(
     assert!(role_map.roles.contains(role), ERoleDoesNotExist);
     let new_cap = capability::new_capability_for_address(
         *role,
-        role_map.security_vault_id,
+        role_map.target_key,
         issued_to,
         valid_until,
         ctx,
@@ -517,7 +520,7 @@ public fun destroy_capability<P: copy + drop>(
     cap_to_destroy: Capability,
 ) {
     assert!(
-        role_map.security_vault_id == cap_to_destroy.security_vault_id(),
+        role_map.target_key == cap_to_destroy.target_key(),
         ECapabilitySecurityVaultIdMismatch,
     );
 
@@ -527,7 +530,7 @@ public fun destroy_capability<P: copy + drop>(
     };
 
     event::emit(CapabilityDestroyed {
-        security_vault_id: role_map.security_vault_id,
+        target_key: role_map.target_key,
         capability_id: cap_to_destroy.id(),
         role: *cap_to_destroy.role(),
         issued_to: *cap_to_destroy.issued_to(),
@@ -566,7 +569,7 @@ public fun revoke_capability<P: copy + drop>(
     role_map.issued_capabilities.remove(&cap_to_revoke);
 
     event::emit(CapabilityRevoked {
-        security_vault_id: role_map.security_vault_id,
+        target_key: role_map.target_key,
         capability_id: cap_to_revoke,
     });
 }
@@ -575,7 +578,7 @@ fun register_new_capability<P: copy + drop>(role_map: &mut RoleMap<P>, new_cap: 
     role_map.issued_capabilities.insert(new_cap.id());
 
     event::emit(CapabilityIssued {
-        security_vault_id: role_map.security_vault_id,
+        target_key: role_map.target_key,
         capability_id: new_cap.id(),
         role: *new_cap.role(),
         issued_to: *new_cap.issued_to(),
@@ -591,9 +594,9 @@ public fun size<P: copy + drop>(role_map: &RoleMap<P>): u64 {
     vec_map::size(&role_map.roles)
 }
 
-/// Returns the security_vault_id associated with the role_map
-public fun security_vault_id<P: copy + drop>(role_map: &RoleMap<P>): ID {
-    role_map.security_vault_id
+/// Returns the target_key associated with the role_map
+public fun target_key<P: copy + drop>(role_map: &RoleMap<P>): ID {
+    role_map.target_key
 }
 
 //Returns the role admin permissions associated with the role_map

@@ -18,8 +18,8 @@ const EValidityPeriodInconsistent: vector<u8> =
 /// Capability granting role-based access to a managed onchain object (i.e. an audit trail)
 public struct Capability has key, store {
     id: UID,
-    /// The ID of the onchain object this capability applies to
-    security_vault_id: ID,
+    /// The target_key of the RoleMap instance this capability applies to.
+    target_key: ID,
     /// The role granted by this capability
     /// Arbitrary string specifying a role contained in the `role_map::RoleMap` mapping
     role: String,
@@ -41,7 +41,7 @@ public struct Capability has key, store {
 ///
 /// Parameters:
 /// * role: The role granted by this capability
-/// * security_vault_id: The ID of onchain object (i.e. an audit trail) this capability applies to
+/// * target_key: The target_key of the RoleMap instance this capability applies to. Usually the ID of the managed onchain object (i.e. an audit trail).
 /// * issued_to: Optional address restriction; if Some(address), the capability is bound to that specific address
 /// * valid_from: Optional validity period start timestamp (in seconds since Unix epoch); if Some(ts), the capability is valid from that timestamp onwards
 /// * valid_until: Optional validity period end timestamp (in seconds since Unix epoch); if Some(ts), the capability is valid until that timestamp
@@ -53,7 +53,7 @@ public struct Capability has key, store {
 /// * EValidityPeriodInconsistent: If both valid_from and valid_until are provided and valid_from >= valid_until
 public(package) fun new_capability(
     role: String,
-    security_vault_id: ID,
+    target_key: ID,
     issued_to: Option<address>,
     valid_from: Option<u64>,
     valid_until: Option<u64>,
@@ -67,7 +67,7 @@ public(package) fun new_capability(
     Capability {
         id: object::new(ctx),
         role,
-        security_vault_id,
+        target_key,
         issued_to,
         valid_from,
         valid_until,
@@ -77,13 +77,13 @@ public(package) fun new_capability(
 /// Create a new unrestricted capability with a specific role
 public(package) fun new_capability_without_restrictions(
     role: String,
-    security_vault_id: ID,
+    target_key: ID,
     ctx: &mut TxContext,
 ): Capability {
     Capability {
         id: object::new(ctx),
         role,
-        security_vault_id,
+        target_key,
         issued_to: std::option::none(),
         valid_from: std::option::none(),
         valid_until: std::option::none(),
@@ -93,14 +93,14 @@ public(package) fun new_capability_without_restrictions(
 /// Create a new capability with a specific role and validity period, valid until the given timestamp
 public(package) fun new_capability_valid_until(
     role: String,
-    security_vault_id: ID,
+    target_key: ID,
     valid_until: u64,
     ctx: &mut TxContext,
 ): Capability {
     Capability {
         id: object::new(ctx),
         role,
-        security_vault_id,
+        target_key,
         issued_to: std::option::none(),
         valid_from: std::option::none(),
         valid_until: std::option::some(valid_until),
@@ -111,7 +111,7 @@ public(package) fun new_capability_valid_until(
 /// validity period, valid until the given timestamp
 public(package) fun new_capability_for_address(
     role: String,
-    security_vault_id: ID,
+    target_key: ID,
     issued_to: address,
     valid_until: Option<u64>,
     ctx: &mut TxContext,
@@ -119,7 +119,7 @@ public(package) fun new_capability_for_address(
     Capability {
         id: object::new(ctx),
         role,
-        security_vault_id,
+        target_key,
         issued_to: std::option::some(issued_to),
         valid_from: std::option::none(),
         valid_until,
@@ -136,9 +136,9 @@ public fun role(cap: &Capability): &String {
     &cap.role
 }
 
-/// Get the capability's security_vault_id
-public fun security_vault_id(cap: &Capability): ID {
-    cap.security_vault_id
+/// Get the capability's target_key
+public fun target_key(cap: &Capability): ID {
+    cap.target_key
 }
 
 /// Check if the capability has a specific role
@@ -189,7 +189,7 @@ public(package) fun destroy(cap: Capability) {
     let Capability {
         id,
         role: _role,
-        security_vault_id: _trail_id,
+        target_key: _target_key,
         issued_to: _issued_to,
         valid_from: _valid_from,
         valid_until: _valid_until,

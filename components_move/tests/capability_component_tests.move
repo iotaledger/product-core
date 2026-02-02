@@ -14,14 +14,14 @@ fun test_capability_created_with_correct_field_values() {
     let admin_user = @0xAD;
     let mut scenario = ts::begin(admin_user);
 
-    let (mut role_map, admin_cap, security_vault_id) = test_utils::create_test_role_map(
+    let (mut role_map, admin_cap, target_key) = test_utils::create_test_role_map(
         ts::ctx(&mut scenario),
     );
 
     // Verify capability has correct role
     assert!(admin_cap.role() == &initial_admin_role_name(), 0);
-    // Verify capability has correct security_vault_id
-    assert!(admin_cap.security_vault_id() == security_vault_id, 1);
+    // Verify capability has correct target_key
+    assert!(admin_cap.target_key() == target_key, 1);
     // Initial admin capability should have no address restriction
     assert!(admin_cap.issued_to().is_none(), 2);
     // Initial admin capability should have no validity restrictions
@@ -417,7 +417,7 @@ fun test_capability_with_all_restrictions() {
     let target_user = @0xCAFE;
     let mut scenario = ts::begin(admin_user);
 
-    let (mut role_map, admin_cap, security_vault_id) = test_utils::create_test_role_map(
+    let (mut role_map, admin_cap, target_key) = test_utils::create_test_role_map(
         ts::ctx(&mut scenario),
     );
 
@@ -440,7 +440,7 @@ fun test_capability_with_all_restrictions() {
 
     // Verify all fields
     assert!(restricted_cap.role() == &initial_admin_role_name(), 0);
-    assert!(restricted_cap.security_vault_id() == security_vault_id, 1);
+    assert!(restricted_cap.target_key() == target_key, 1);
     assert!(restricted_cap.issued_to().is_some(), 2);
     assert!(*restricted_cap.issued_to().borrow() == target_user, 3);
     assert!(restricted_cap.valid_from().is_some(), 4);

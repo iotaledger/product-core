@@ -20,7 +20,7 @@ fun test_role_based_permission_delegation() {
     let admin_user = @0xAD;
     let mut scenario = ts::begin(admin_user);
 
-    let security_vault_id = test_utils::fake_object_id_from_string(
+    let target_key = test_utils::fake_object_id_from_string(
         &b"This is a test Vault ID String".to_string(),
     );
     let initial_admin_role_name = b"SuperAdmin".to_string();
@@ -28,7 +28,7 @@ fun test_role_based_permission_delegation() {
     // Step 1: admin_user creates the audit trail
     let (mut role_map, admin_cap) = {
         let (role_map, admin_cap) = role_map::new(
-            security_vault_id,
+            target_key,
             initial_admin_role_name,
             test_utils::super_admin_permissions(),
             role_admin_permissions,
@@ -38,7 +38,7 @@ fun test_role_based_permission_delegation() {
 
         // Verify admin capability was created with correct role and trail reference
         assert!(admin_cap.role() == initial_admin_role_name, 0);
-        assert!(admin_cap.security_vault_id() == security_vault_id, 1);
+        assert!(admin_cap.target_key() == target_key, 1);
 
         (role_map, admin_cap)
     };
