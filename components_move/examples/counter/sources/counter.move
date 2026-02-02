@@ -7,7 +7,7 @@ module tf_components::counter;
 
 use iota::clock::Clock;
 use tf_components::capability::Capability;
-use tf_components::permission::{Self, CounterPermission};
+use tf_components::counter_permission::{Self as permission, CounterPermission};
 use tf_components::role_map;
 
 #[error]

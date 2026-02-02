@@ -3,7 +3,7 @@
 
 /// Simple example Permissions for a shared counter
 #[test_only]
-module tf_components::permission;
+module tf_components::counter_permission;
 
 use iota::vec_set::{Self, VecSet};
 

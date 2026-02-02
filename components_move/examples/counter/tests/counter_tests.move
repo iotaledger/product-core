@@ -8,7 +8,7 @@ use iota::test_scenario as ts;
 use std::string;
 use tf_components::capability::Capability;
 use tf_components::counter::{Self, Counter};
-use tf_components::permission;
+use tf_components::counter_permission as permission;
 
 /// Test capability lifecycle: creation, usage, revocation and destruction in a complete workflow.
 ///
