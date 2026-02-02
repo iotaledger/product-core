@@ -178,9 +178,12 @@ public fun new<P: copy + drop>(
     let mut roles = vec_map::empty<String, VecSet<P>>();
     roles.insert(initial_admin_role_name, initial_admin_role_permissions);
 
-    let admin_cap = capability::new_capability_without_restrictions(
+    let admin_cap = capability::new_capability(
         initial_admin_role_name,
         target_key,
+        std::option::none(),
+        std::option::none(),
+        std::option::none(),
         ctx,
     );
     let mut issued_capabilities = vec_set::empty<ID>();
@@ -384,125 +387,6 @@ public fun new_capability<P: copy + drop>(
         valid_until,
         ctx,
     );
-    register_new_capability(role_map, &new_cap);
-    new_cap
-}
-
-/// Create a new unrestricted capability with a specific role without any
-/// address, valid_from, or valid_until restrictions.
-///
-/// Returns the newly created capability.
-///
-/// Sends a CapabilityIssued event upon successful creation.
-///
-/// Errors:
-/// - Aborts with EPermissionDenied if the provided capability does not have the permission specified with `CapabilityAdminPermissions::add`.
-/// - Aborts with ERoleDoesNotExist if the specified role does not exist in the role_map.
-public fun new_capability_without_restrictions<P: copy + drop>(
-    role_map: &mut RoleMap<P>,
-    cap: &Capability,
-    role: &String,
-    clock: &Clock,
-    ctx: &mut TxContext,
-): Capability {
-    assert!(
-        role_map.is_capability_valid(
-            cap,
-            &role_map.capability_admin_permissions.add,
-            clock,
-            ctx,
-        ),
-        EPermissionDenied,
-    );
-
-    assert!(role_map.roles.contains(role), ERoleDoesNotExist);
-    let new_cap = capability::new_capability_without_restrictions(
-        *role,
-        role_map.target_key,
-        ctx,
-    );
-
-    register_new_capability(role_map, &new_cap);
-    new_cap
-}
-
-/// Create a new capability with a specific role that expires at a given timestamp (milliseconds since Unix epoch).
-///
-/// Returns the newly created capability.
-///
-/// Sends a CapabilityIssued event upon successful creation.
-///
-/// Errors:
-/// - Aborts with EPermissionDenied if the provided capability does not have the permission specified with `CapabilityAdminPermissions::add`.
-/// - Aborts with ERoleDoesNotExist if the specified role does not exist in the role_map.
-public fun new_capability_valid_until<P: copy + drop>(
-    role_map: &mut RoleMap<P>,
-    cap: &Capability,
-    role: &String,
-    valid_until: u64,
-    clock: &Clock,
-    ctx: &mut TxContext,
-): Capability {
-    assert!(
-        role_map.is_capability_valid(
-            cap,
-            &role_map.capability_admin_permissions.add,
-            clock,
-            ctx,
-        ),
-        EPermissionDenied,
-    );
-
-    assert!(role_map.roles.contains(role), ERoleDoesNotExist);
-    let new_cap = capability::new_capability_valid_until(
-        *role,
-        role_map.target_key,
-        valid_until,
-        ctx,
-    );
-
-    register_new_capability(role_map, &new_cap);
-    new_cap
-}
-
-/// Create a new capability with a specific role restricted to an address.
-/// Optionally set an expiration time (milliseconds since Unix epoch).
-///
-/// Returns the newly created capability.
-///
-/// Sends a CapabilityIssued event upon successful creation.
-///
-/// Errors:
-/// - Aborts with EPermissionDenied if the provided capability does not have the permission specified with `CapabilityAdminPermissions::add`.
-/// - Aborts with ERoleDoesNotExist if the specified role does not exist in the role_map.
-public fun new_capability_for_address<P: copy + drop>(
-    role_map: &mut RoleMap<P>,
-    cap: &Capability,
-    role: &String,
-    issued_to: address,
-    valid_until: Option<u64>,
-    clock: &Clock,
-    ctx: &mut TxContext,
-): Capability {
-    assert!(
-        role_map.is_capability_valid(
-            cap,
-            &role_map.capability_admin_permissions.add,
-            clock,
-            ctx,
-        ),
-        EPermissionDenied,
-    );
-
-    assert!(role_map.roles.contains(role), ERoleDoesNotExist);
-    let new_cap = capability::new_capability_for_address(
-        *role,
-        role_map.target_key,
-        issued_to,
-        valid_until,
-        ctx,
-    );
-
     register_new_capability(role_map, &new_cap);
     new_cap
 }

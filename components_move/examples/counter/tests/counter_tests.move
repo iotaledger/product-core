@@ -63,9 +63,12 @@ fun test_capability_lifecycle() {
         let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
         let counter_cap = counter
             .access_mut()
-            .new_capability_without_restrictions(
+            .new_capability(
                 &super_admin_cap,
                 &string::utf8(b"counter-admin"),
+                std::option::none(),
+                std::option::none(),
+                std::option::none(),
                 &clock,
                 ts::ctx(&mut scenario),
             );

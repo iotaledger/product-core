@@ -75,58 +75,6 @@ public(package) fun new_capability(
     }
 }
 
-/// Create a new unrestricted capability with a specific role
-public(package) fun new_capability_without_restrictions(
-    role: String,
-    target_key: ID,
-    ctx: &mut TxContext,
-): Capability {
-    Capability {
-        id: object::new(ctx),
-        role,
-        target_key,
-        issued_to: std::option::none(),
-        valid_from: std::option::none(),
-        valid_until: std::option::none(),
-    }
-}
-
-/// Create a new capability with a specific role and validity period, valid until the given timestamp (inclusive)
-public(package) fun new_capability_valid_until(
-    role: String,
-    target_key: ID,
-    valid_until: u64,
-    ctx: &mut TxContext,
-): Capability {
-    Capability {
-        id: object::new(ctx),
-        role,
-        target_key,
-        issued_to: std::option::none(),
-        valid_from: std::option::none(),
-        valid_until: std::option::some(valid_until),
-    }
-}
-
-/// Create a new capability with a specific role, exclusively usable by a specific address and an optional
-/// validity period, valid until the given timestamp (inclusive)
-public(package) fun new_capability_for_address(
-    role: String,
-    target_key: ID,
-    issued_to: address,
-    valid_until: Option<u64>,
-    ctx: &mut TxContext,
-): Capability {
-    Capability {
-        id: object::new(ctx),
-        role,
-        target_key,
-        issued_to: std::option::some(issued_to),
-        valid_from: std::option::none(),
-        valid_until,
-    }
-}
-
 /// Get the capability's ID
 public fun id(cap: &Capability): ID {
     object::uid_to_inner(&cap.id)

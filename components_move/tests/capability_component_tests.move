@@ -68,10 +68,11 @@ fun test_capability_issued_to_specific_address() {
     let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
 
     // Create capability for specific address
-    let user_cap = role_map.new_capability_for_address(
+    let user_cap = role_map.new_capability(
         &admin_cap,
         &initial_admin_role_name(),
-        target_user,
+        std::option::some(target_user),
+        std::option::none(),
         std::option::none(),
         &clock,
         ts::ctx(&mut scenario),
