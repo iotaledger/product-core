@@ -343,7 +343,7 @@ public fun is_capability_valid<P: copy + drop>(
 /// - role: The role to be assigned to the new capability.
 /// - issued_to: Optional address restriction for the new capability.
 /// - valid_from: Optional start time (in seconds since Unix epoch) for the new capability.
-/// - valid_until: Optional end time (in seconds since Unix epoch) for the new capability.
+/// - valid_until: Optional. Last point in time where the capability is valid (in seconds since Unix epoch).
 /// - clock: Reference to a Clock instance for time-based validation.
 /// - ctx: Reference to the transaction context.
 ///

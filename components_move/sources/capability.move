@@ -11,28 +11,29 @@ use std::string::String;
 
 #[error]
 const EValidityPeriodInconsistent: vector<u8> =
-    b"Validity period is inconsistent: valid_from must be before valid_until";
+    b"Validity period is inconsistent: valid_from must be before or equal to valid_until";
 
 // ===== Core Structures =====
 
-/// Capability granting role-based access to a managed onchain object (i.e. an audit trail)
+/// Capability granting role-based access to a managed onchain object (i.e. an audit trail).
 public struct Capability has key, store {
     id: UID,
     /// The target_key of the RoleMap instance this capability applies to.
     target_key: ID,
-    /// The role granted by this capability
-    /// Arbitrary string specifying a role contained in the `role_map::RoleMap` mapping
+    /// The role granted by this capability.
+    /// Arbitrary string specifying a role contained in the `role_map::RoleMap` mapping.
     role: String,
-    /// For whom has this capability been issued
+    /// For whom has this capability been issued.
     /// * If Some(address), the capability is bound to that specific address
     /// * If None, the capability is not bound to a specific address
     issued_to: Option<address>,
-    /// Optional validity period start timestamp (in seconds since Unix epoch)
+    /// Optional validity period start timestamp (in seconds since Unix epoch).
     /// * The specified timestamp is included in the validity period
     /// * If None, the capability is valid from creation time
     valid_from: Option<u64>,
-    /// Optional validity period end timestamp (in seconds since Unix epoch)
-    /// * The specified timestamp is excluded in the validity period
+    /// Optional validity period end timestamp (in seconds since Unix epoch).
+    /// Last point in time where the capability is valid.
+    /// * The specified timestamp is included in the validity period
     /// * If None, the capability does not expire
     valid_until: Option<u64>,
 }
@@ -43,14 +44,14 @@ public struct Capability has key, store {
 /// * role: The role granted by this capability
 /// * target_key: The target_key of the RoleMap instance this capability applies to. Usually the ID of the managed onchain object (i.e. an audit trail).
 /// * issued_to: Optional address restriction; if Some(address), the capability is bound to that specific address
-/// * valid_from: Optional validity period start timestamp (in seconds since Unix epoch); if Some(ts), the capability is valid from that timestamp onwards
-/// * valid_until: Optional validity period end timestamp (in seconds since Unix epoch); if Some(ts), the capability is valid until that timestamp
+/// * valid_from: Optional. First point in time where the capability is valid (in seconds since Unix epoch). If Some(ts), the capability is valid from that timestamp onwards (inclusive)
+/// * valid_until: Optional. Last point in time where the capability is valid (in seconds since Unix epoch). If Some(ts), the capability is valid until that timestamp (inclusive)
 /// * ctx: The transaction context
 ///
 /// Returns: The newly created Capability
 ///
 /// Errors:
-/// * EValidityPeriodInconsistent: If both valid_from and valid_until are provided and valid_from >= valid_until
+/// * EValidityPeriodInconsistent: If both valid_from and valid_until are provided and valid_from > valid_until
 public(package) fun new_capability(
     role: String,
     target_key: ID,
@@ -62,7 +63,7 @@ public(package) fun new_capability(
     if (valid_from.is_some() && valid_until.is_some()) {
         let from = valid_from.borrow();
         let until = valid_until.borrow();
-        assert!(*from < *until, EValidityPeriodInconsistent);
+        assert!(*from <= *until, EValidityPeriodInconsistent);
     };
     Capability {
         id: object::new(ctx),
@@ -90,7 +91,7 @@ public(package) fun new_capability_without_restrictions(
     }
 }
 
-/// Create a new capability with a specific role and validity period, valid until the given timestamp
+/// Create a new capability with a specific role and validity period, valid until the given timestamp (inclusive)
 public(package) fun new_capability_valid_until(
     role: String,
     target_key: ID,
@@ -108,7 +109,7 @@ public(package) fun new_capability_valid_until(
 }
 
 /// Create a new capability with a specific role, exclusively usable by a specific address and an optional
-/// validity period, valid until the given timestamp
+/// validity period, valid until the given timestamp (inclusive)
 public(package) fun new_capability_for_address(
     role: String,
     target_key: ID,
@@ -177,7 +178,7 @@ public fun is_valid_for_timestamp(cap: &Capability, timestamp_secs: u64): bool {
     };
     let valid_until_ok = if (cap.valid_until.is_some()) {
         let until = cap.valid_until.borrow();
-        timestamp_secs < *until
+        timestamp_secs <= *until
     } else {
         true
     };

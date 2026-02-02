@@ -216,8 +216,8 @@ fun test_is_valid_for_timestamp_with_valid_until() {
 
     // Should be valid before valid_until
     assert!(timed_cap.is_valid_for_timestamp(1999), 0);
-    // Should be invalid at valid_until (exclusive)
-    assert!(!timed_cap.is_valid_for_timestamp(2000), 1);
+    // Should be valid at valid_until (inclusive)
+    assert!(timed_cap.is_valid_for_timestamp(2000), 1);
     // Should be invalid after valid_until
     assert!(!timed_cap.is_valid_for_timestamp(2001), 2);
 
@@ -260,8 +260,8 @@ fun test_is_valid_for_timestamp_with_both_restrictions() {
     assert!(timed_cap.is_valid_for_timestamp(1000), 1);
     // Should be valid between valid_from and valid_until
     assert!(timed_cap.is_valid_for_timestamp(1500), 2);
-    // Should be invalid at valid_until (exclusive)
-    assert!(!timed_cap.is_valid_for_timestamp(2000), 3);
+    // Should be valid at valid_until (inclusive)
+    assert!(timed_cap.is_valid_for_timestamp(2000), 3);
     // Should be invalid after valid_until
     assert!(!timed_cap.is_valid_for_timestamp(2001), 4);
 
