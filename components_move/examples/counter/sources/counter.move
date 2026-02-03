@@ -1,7 +1,7 @@
 // Copyright (c) 2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-/// Simple example Permissions for a shared counter
+/// Simple shared counter to demonstrate role_mao::RoleMap integration
 #[test_only]
 module tf_components::counter;
 
@@ -25,7 +25,7 @@ public fun create(ctx: &mut TxContext): (Capability, ID) {
     let counter_id = object::uid_to_inner(&counter_uid);
 
     // Create a `CapabilityAdminPermissions` instance to configure the permissions
-    // that will be needed by users to issue and revoke cabilities with the `RoleMap`.
+    // that will be needed by users to issue and revoke capabilities with the `RoleMap`.
     //
     // There are two actions that need to be configured with a permission of your choice:
     // * `add`: Permission required to add (issue) a new capability
@@ -48,8 +48,8 @@ public fun create(ctx: &mut TxContext): (Capability, ID) {
     //
     // In this example we allow to use all three actions with the `ManageRoles` permission
     // for the sake of simplicity. In a real world application you would probably have action
-    // specific permissiions like `AddRoles`, `DeleteRoles` and `UpdateRoles` like we did
-    // above to specifify the `CapabilityAdminPermissions`.
+    // specific permissions like `AddRoles`, `DeleteRoles` and `UpdateRoles` like we did
+    // above to specify the `CapabilityAdminPermissions`.
     //
     let role_admin_permissions = role_map::new_role_admin_permissions(
         permission::manage_roles(),

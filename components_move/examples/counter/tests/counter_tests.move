@@ -11,12 +11,6 @@ use tf_components::counter::{Self, Counter};
 use tf_components::counter_permission as permission;
 
 /// Test capability lifecycle: creation, usage, revocation and destruction in a complete workflow.
-///
-/// This test validates:
-/// - A capability can be created for the `counter-admin` role
-/// - The Capability can be used to perform authorized actions
-/// - The Capability can be revoked
-/// - The Capability can be destroyed thereafter
 #[test]
 fun test_capability_lifecycle() {
     let super_admin_user = @0xAD;

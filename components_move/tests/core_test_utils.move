@@ -1,6 +1,7 @@
 // Copyright (c) 2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+#[test_only]
 module tf_components::core_test_utils;
 
 use iota::object::id_from_bytes;
@@ -116,4 +117,4 @@ public fun create_test_role_map(
     (role_map, admin_cap, target_key)
 }
 
-// --------------------------- Helper Fuctions -------------------------------------------------------------------
+// --------------------------- Helper Functions -------------------------------------------------------------------

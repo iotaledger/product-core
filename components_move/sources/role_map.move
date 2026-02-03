@@ -1,22 +1,22 @@
 // Copyright (c) 2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-/// A role-based access control helper mapping unique role identifiers to their associated permissions.
+/// A role-based access control helper, mapping unique role identifiers to their associated permissions.
 ///
-/// Provides the following functionalities:
-/// - Define an initial role with a custom set of permissions (i.e. an Admin role).
-/// - Use custom permission types defined by the integrating module using the generic parameter `P`.
-/// - Create, delete, and update roles and their permissions
-/// - Issue, revoke, and destroy `tf_components::capability`s associated with a specific role.
-/// - Validate `tf_components::capability`s against the defined roles to facilitate proper access control by other modules
+/// A `RoleMap<P>` provides the following functionalities:
+/// - Uses custom permission-types, defined by the integrating module, using the generic argument `P`
+/// - Defines an initial role with a custom set of permissions (i.e. for an Admin role) and creates an initial
+///   `Capability` for this role to allow later access control administration by the creator of the integrating module
+/// - Allows to create, delete, and update roles and their permissions
+/// - Allows to issue, revoke, and destroy `Capability`s associated with a specific role
+/// - Validates `Capability`s against the defined roles to facilitate proper access control by the integrating module
 ///   (function `RoleMap.is_capability_valid()`)
-/// - All functions are access restricted by custom permissions defined during `RoleMap` instantiation.
+/// - All functions are access restricted by custom permissions defined during `RoleMap` instantiation
 ///
 /// Examples:
 /// - The TF product Audit Trails uses `RoleMap` to manage access to the audit trail records and their operations.
-/// - The `tf_components` package README provides a "Hello World" like simple usage example
-///   ([Counter Example](../README.md#rolemap-integration-example)).
-
+/// - The `TfComponents` package provides a "Hello World" like simple [`Counter` example](../examples/counter/README.md).
+///
 module tf_components::role_map;
 
 use iota::clock::Clock;

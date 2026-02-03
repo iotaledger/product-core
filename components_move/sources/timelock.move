@@ -4,12 +4,7 @@
 /// # Timelock Unlock Condition Module
 ///
 /// This module implements a timelock mechanism that restricts access to resources
-/// until a specified time has passed. It provides functionality to create and validate
-/// different types of time-based locks:
-///
-/// - Simple time locks that unlock at a specific Unix timestamp
-/// - UntilDestroyed lock that never unlocks until the locked object is destroyed
-/// - None lock that is not locked
+/// until a specified time has passed.
 module tf_components::timelock;
 
 use iota::clock::{Self, Clock};
@@ -188,7 +183,7 @@ public fun is_valid_period_ms(unix_time: u64, current_time: u64): bool {
 }
 
 #[test_only]
-/// Test helper to delete a TimeLock for testing purposes, especially usefull for Infinite locks.
+/// Test helper to delete a TimeLock for testing purposes, especially useful for Infinite locks.
 public fun destroy_for_testing(lock: TimeLock) {
     match (lock) {
         TimeLock::UnlockAt(_time) => {},
