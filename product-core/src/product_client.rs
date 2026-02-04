@@ -1,3 +1,6 @@
+// Copyright 2020-2026 IOTA Stiftung
+// SPDX-License-Identifier: Apache-2.0
+
 use std::ops::Deref;
 
 use iota_sdk::{graphql_client::Client as IotaClient, types::ObjectId};

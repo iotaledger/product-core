@@ -1,3 +1,6 @@
+// Copyright 2020-2026 IOTA Stiftung
+// SPDX-License-Identifier: Apache-2.0
+
 use std::fmt::Display;
 
 /// The size of the hex-encoded first 4 bytes of an IOTA network's genesis

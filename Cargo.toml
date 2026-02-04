@@ -14,6 +14,7 @@ iota-sdk = { git = "https://github.com/iotaledger/iota-rust-sdk.git" }
 thiserror = "2.0.17"
 url = "2.5.7"
 http = "1.4.0"
+serde = { version = "1", features = ["derive"]}
 secret-storage = { git = "https://github.com/iotaledger/secret-storage.git", branch = "prototype/new-signer-api", features = [
   "iota",
 ] }
