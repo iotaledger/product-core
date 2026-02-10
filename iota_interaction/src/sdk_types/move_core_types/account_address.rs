@@ -13,7 +13,10 @@ use rand::Rng;
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-/// A struct that represents an account address.
+/// Represents an address.
+///
+/// Contrary to its name an [AccountAddress] may be used to identify an object
+/// or an account, depending on the usage.
 #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone, Copy)]
 pub struct AccountAddress([u8; AccountAddress::LENGTH]);
 

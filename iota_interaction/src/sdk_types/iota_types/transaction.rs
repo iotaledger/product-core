@@ -8,14 +8,15 @@ use std::vec::Vec;
 
 use enum_dispatch::enum_dispatch;
 use super::type_input::TypeInput;
-use nonempty::NonEmpty;
+use nonempty::{NonEmpty, nonempty};
 use serde::{Deserialize, Serialize};
 use strum::IntoStaticStr;
+use crate::{fp_ensure, fp_bail};
 
 use super::super::move_core_types::identifier::Identifier;
 use super::super::move_core_types::language_storage::TypeTag;
 use super::base_types::{EpochId, IotaAddress, ObjectID, ObjectRef, SequenceNumber};
-use super::error::UserInputError;
+use super::error::{UserInputError, UserInputResult};
 use super::{
     IOTA_AUTHENTICATOR_STATE_OBJECT_ID, IOTA_AUTHENTICATOR_STATE_OBJECT_SHARED_VERSION, IOTA_CLOCK_OBJECT_ID,
     IOTA_CLOCK_OBJECT_SHARED_VERSION, IOTA_SYSTEM_STATE_OBJECT_ID, IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION,
@@ -214,7 +215,7 @@ impl Display for Argument {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Hash, Debug, PartialEq, Eq)]
 pub struct SharedInputObject {
     pub id: ObjectID,
     pub initial_shared_version: SequenceNumber,
@@ -403,7 +404,7 @@ impl TransactionDataAPI for TransactionDataV1 {
 
     /// Transaction signer and Gas owner
     fn signers(&self) -> NonEmpty<IotaAddress> {
-        let mut signers = NonEmpty::new(self.sender);
+        let mut signers = nonempty![self.sender];
         if self.gas_owner() != self.sender {
             signers.push(self.gas_owner());
         }
@@ -496,5 +497,95 @@ impl InputObjectKind {
             Self::ImmOrOwnedMoveObject((_, _, _)) => true,
             Self::SharedMoveObject { mutable, .. } => *mutable,
         }
+    }
+
+    /// Merges another InputObjectKind into self.
+    ///
+    /// For shared objects, if either is mutable, the result is mutable. Fails
+    /// if the IDs or initial versions do not match.
+    /// For non-shared objects, fails if they are not equal.
+    pub fn left_union_with_checks(&mut self, other: &InputObjectKind) -> UserInputResult<()> {
+        match self {
+            InputObjectKind::MovePackage(_) | InputObjectKind::ImmOrOwnedMoveObject(_) => {
+                fp_ensure!(
+                    self == other,
+                    UserInputError::InconsistentInput {
+                        object_id: other.object_id(),
+                    }
+                );
+            }
+            InputObjectKind::SharedMoveObject {
+                id,
+                initial_shared_version,
+                mutable,
+            } => match other {
+                InputObjectKind::MovePackage(_) | InputObjectKind::ImmOrOwnedMoveObject(_) => {
+                    fp_bail!(UserInputError::NotSharedObject)
+                }
+                InputObjectKind::SharedMoveObject {
+                    id: other_id,
+                    initial_shared_version: other_initial_shared_version,
+                    mutable: other_mutable,
+                } => {
+                    fp_ensure!(id == other_id, UserInputError::SharedObjectIdMismatch);
+                    fp_ensure!(
+                        initial_shared_version == other_initial_shared_version,
+                        UserInputError::SharedObjectStartingVersionMismatch
+                    );
+
+                    if !*mutable && *other_mutable {
+                        *mutable = *other_mutable;
+                    }
+                }
+            },
+        }
+
+        Ok(())
+    }
+
+    /// Checks that `self` and `other` are equal for non-shared objects.
+    /// For shared objects, checks that IDs and initial versions match while
+    /// mutability can be different.
+    pub fn check_consistency_for_authentication(
+        &self,
+        other: &InputObjectKind,
+    ) -> UserInputResult<()> {
+        match self {
+            InputObjectKind::MovePackage(_) | InputObjectKind::ImmOrOwnedMoveObject(_) => {
+                fp_ensure!(
+                    self == other,
+                    UserInputError::InconsistentInput {
+                        object_id: self.object_id()
+                    }
+                );
+            }
+            InputObjectKind::SharedMoveObject {
+                id,
+                initial_shared_version,
+                mutable: _,
+            } => match other {
+                InputObjectKind::MovePackage(_) | InputObjectKind::ImmOrOwnedMoveObject(_) => {
+                    fp_bail!(UserInputError::InconsistentInput {
+                        object_id: self.object_id()
+                    })
+                }
+                InputObjectKind::SharedMoveObject {
+                    id: other_id,
+                    initial_shared_version: other_initial_shared_version,
+                    mutable: _,
+                } => {
+                    fp_ensure!(
+                        id == other_id,
+                        UserInputError::InconsistentInput { object_id: *id }
+                    );
+                    fp_ensure!(
+                        initial_shared_version == other_initial_shared_version,
+                        UserInputError::InconsistentInput { object_id: *id }
+                    );
+                }
+            },
+        }
+
+        Ok(())
     }
 }
