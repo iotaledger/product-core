@@ -1,6 +1,6 @@
 /*
 /// Module: parent
-module parent::parent;
+module borrow_non_store_obj_poc::parent;
 */
 
 // For Move coding conventions, see
