@@ -55,3 +55,13 @@ can be seen as a more complex example:
   their operations. See [audit_trail.move](https://github.com/iotaledger/notarization/blob/main/audit-trail-move/sources/audit_trail.move#L208) for an example.
 * The `RoleMap` is created by the `AuditTrail` in it's [create function](https://github.com/iotaledger/notarization/blob/main/audit-trail-move/sources/audit_trail.move#L114).
 * An example for the Move user experience can be found in the [capability_tests.move](https://github.com/iotaledger/notarization/blob/main/audit-trail-move/tests/capability_tests.move) file.
+
+## Timelock
+
+The `TimeLock` enum represents different types of time-based locks that can be applied to
+onchain objects.
+
+### Usage Examples
+
+The Trust Framework product *Notarization* uses `Timelock` to manage several restrictions for
+Locked and Dynamic Notarizations.
