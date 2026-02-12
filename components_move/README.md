@@ -14,6 +14,15 @@ Modules Overview:
 
 ## Role-Based Access Control - The `role_map` and the `capability` Module
 
+> [!WARNING]
+> 
+> The current implementation of the `RoleMap` and `Capability` modules is a first iteration and is expected
+> to undergo significant changes in the future. The public interface is not yet stable, and we anticipate breaking changes
+> as we refine the design and implementation based on feedback and evolving requirements.
+>
+> The final design and API of these modules will be released as part of the Audit Trail product, which will be
+> the first product to integrate these components.
+
 The `role_map` module provides the `RoleMap<P>` struct, which is
 a role-based access control helper that maps unique role identifiers to their associated permissions.
 
