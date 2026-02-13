@@ -3,14 +3,66 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::fmt::{Display, Formatter};
+use std::sync::Arc;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_with::{Bytes, serde_as};
 
-use super::base_types::{IotaAddress, ObjectID, SequenceNumber};
+use super::base_types::{IotaAddress, MoveObjectType, ObjectID, SequenceNumber, TransactionDigest};
+use super::move_package::MovePackage;
 use super::error::{IotaError, IotaResult};
 
 pub const OBJECT_START_VERSION: SequenceNumber = SequenceNumber::from_u64(1);
+
+#[serde_as]
+#[derive(Eq, PartialEq, Debug, Clone, Deserialize, Serialize, Hash)]
+pub struct MoveObject {
+    /// The type of this object. Immutable
+    pub(crate) type_: MoveObjectType,
+    /// Number that increases each time a tx takes this object as a mutable
+    /// input This is a lamport timestamp, not a sequentially increasing
+    /// version
+    pub(crate) version: SequenceNumber,
+    /// BCS bytes of a Move struct value
+    #[serde_as(as = "Bytes")]
+    pub(crate) contents: Vec<u8>,
+}
+
+/// Index marking the end of the object's ID + the beginning of its version
+pub const ID_END_INDEX: usize = ObjectID::LENGTH;
+
+impl MoveObject {
+    pub fn type_(&self) -> &MoveObjectType {
+        &self.type_
+    }
+
+
+    pub fn contents(&self) -> &[u8] {
+        &self.contents
+    }
+
+    pub fn into_contents(self) -> Vec<u8> {
+        self.contents
+    }
+
+    pub fn into_type(self) -> MoveObjectType {
+        self.type_
+    }
+
+    pub fn into_inner(self) -> (MoveObjectType, Vec<u8>) {
+        (self.type_, self.contents)
+    }
+}
+
+#[derive(Eq, PartialEq, Debug, Clone, Deserialize, Serialize, Hash)]
+pub enum Data {
+    /// An object whose governing logic lives in a published Move module
+    Move(MoveObject),
+    /// Map from each module name to raw serialized Move module bytes
+    Package(MovePackage),
+    // ... IOTA "native" types go here
+}
 
 #[derive(
 Eq, PartialEq, Debug, Clone, Copy, Deserialize, Serialize, Hash, Ord, PartialOrd, JsonSchema)]
@@ -105,5 +157,60 @@ impl Display for Owner {
                 write!(f, "Shared( {} )", initial_shared_version.value())
             }
         }
+    }
+}
+
+#[derive(Eq, PartialEq, Debug, Clone, Deserialize, Serialize, Hash)]
+#[serde(rename = "Object")]
+pub struct ObjectInner {
+    /// The meat of the object
+    pub data: Data,
+    /// The owner that unlocks this object
+    pub owner: Owner,
+    /// The digest of the transaction that created or last mutated this object
+    pub previous_transaction: TransactionDigest,
+    /// The amount of IOTA we would rebate if this object gets deleted.
+    /// This number is re-calculated each time the object is mutated based on
+    /// the present storage gas price.
+    pub storage_rebate: u64,
+}
+
+#[derive(Eq, PartialEq, Debug, Clone, Deserialize, Serialize, Hash)]
+#[serde(from = "ObjectInner")]
+pub struct Object(Arc<ObjectInner>);
+
+impl From<ObjectInner> for Object {
+    fn from(inner: ObjectInner) -> Self {
+        Self(Arc::new(inner))
+    }
+}
+
+impl Object {
+    pub fn into_inner(self) -> ObjectInner {
+        match Arc::try_unwrap(self.0) {
+            Ok(inner) => inner,
+            Err(inner_arc) => (*inner_arc).clone(),
+        }
+    }
+
+    pub fn as_inner(&self) -> &ObjectInner {
+        &self.0
+    }
+
+    pub fn owner(&self) -> &Owner {
+        &self.0.owner
+    }
+}
+
+impl std::ops::Deref for Object {
+    type Target = ObjectInner;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for Object {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Arc::make_mut(&mut self.0)
     }
 }

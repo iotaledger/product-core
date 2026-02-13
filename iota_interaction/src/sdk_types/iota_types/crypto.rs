@@ -659,6 +659,7 @@ pub enum SignatureScheme {
     MultiSig,
     ZkLoginAuthenticator,
     PasskeyAuthenticator,
+    MoveAuthenticator,
 }
 
 impl SignatureScheme {
@@ -672,6 +673,7 @@ impl SignatureScheme {
             // Address.
             SignatureScheme::ZkLoginAuthenticator => 0x05,
             SignatureScheme::PasskeyAuthenticator => 0x06,
+            SignatureScheme::MoveAuthenticator => 0x07,
         }
     }
 
@@ -700,6 +702,7 @@ impl SignatureScheme {
             0x04 => Ok(SignatureScheme::BLS12381),
             0x05 => Ok(SignatureScheme::ZkLoginAuthenticator),
             0x06 => Ok(SignatureScheme::PasskeyAuthenticator),
+            0x07 => Ok(SignatureScheme::MoveAuthenticator),
             _ => Err(IotaError::KeyConversion("Invalid key scheme".to_string())),
         }
     }

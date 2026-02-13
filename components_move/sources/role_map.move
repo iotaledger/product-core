@@ -3,6 +3,15 @@
 
 /// A role-based access control helper, mapping unique role identifiers to their associated permissions.
 ///
+/// [!WARNING]
+///
+/// The current implementation of the `RoleMap` and `Capability` modules is a first iteration and is expected
+/// to undergo significant changes in the future. The public interface is not yet stable, and we anticipate breaking changes
+/// as we refine the design and implementation based on feedback and evolving requirements.
+///
+/// The final design and API of these modules will be released as part of the Audit Trail product, which will be
+/// the first product to integrate these components.
+///
 /// A `RoleMap<P>` provides the following functionalities:
 /// - Uses custom permission-types, defined by the integrating module, using the generic argument `P`
 /// - Defines an initial role with a custom set of permissions (i.e. for an Admin role) and creates an initial

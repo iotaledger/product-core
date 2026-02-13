@@ -22,7 +22,7 @@ impl Nft {
     /// [`Nft`] in its move package.
     pub fn tag() -> StructTag {
         StructTag {
-            address: STARDUST_ADDRESS.into(),
+            address: STARDUST_ADDRESS,
             module: NFT_MODULE_NAME.to_owned(),
             name: NFT_STRUCT_NAME.to_owned(),
             type_params: Vec::new(),
