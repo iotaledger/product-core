@@ -76,7 +76,7 @@ public fun create(ctx: &mut TxContext): (Capability, ID) {
     (admin_cap, counter_id)
 }
 
-public fun increment(counter: &mut Counter, cap: &Capability, clock: &Clock, ctx: &TxContext) {
+public fun increment(counter: &mut Counter, cap: &Capability, clock: &Clock, ctx: &mut TxContext) {
     assert!(
         counter
             .access

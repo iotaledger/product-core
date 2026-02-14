@@ -21,11 +21,8 @@ public struct Capability has key, store {
     /// The target_key of the RoleMap instance this capability applies to.
     target_key: ID,
     /// The role granted by this capability.
-    /// Arbitrary string specifying a role contained in the `role_map::RoleMap` mapping.
     role: String,
-    /// For whom has this capability been issued.
-    /// * If Some(address), the capability is bound to that specific address
-    /// * If None, the capability is not bound to a specific address
+    /// For whom has this capability been issued (optional)
     issued_to: Option<address>,
     /// Optional validity period start timestamp (in milliseconds since Unix epoch).
     /// * The specified timestamp is included in the validity period
@@ -76,56 +73,56 @@ public(package) fun new_capability(
 }
 
 /// Get the capability's ID
-public fun id(cap: &Capability): ID {
-    object::uid_to_inner(&cap.id)
+public fun id(self: &Capability): ID {
+    object::uid_to_inner(&self.id)
 }
 
 /// Get the capability's role
-public fun role(cap: &Capability): &String {
-    &cap.role
+public fun role(self: &Capability): &String {
+    &self.role
 }
 
 /// Get the capability's target_key
-public fun target_key(cap: &Capability): ID {
-    cap.target_key
+public fun target_key(self: &Capability): ID {
+    self.target_key
 }
 
 /// Check if the capability has a specific role
-public fun has_role(cap: &Capability, role: &String): bool {
-    &cap.role == role
+public fun has_role(self: &Capability, role: &String): bool {
+    &self.role == role
 }
 
 // Get the capability's issued_to address
-public fun issued_to(cap: &Capability): &Option<address> {
-    &cap.issued_to
+public fun issued_to(self: &Capability): &Option<address> {
+    &self.issued_to
 }
 
 // Get the capability's valid_from timestamp
-public fun valid_from(cap: &Capability): &Option<u64> {
-    &cap.valid_from
+public fun valid_from(self: &Capability): &Option<u64> {
+    &self.valid_from
 }
 
 // Get the capability's valid_until timestamp
-public fun valid_until(cap: &Capability): &Option<u64> {
-    &cap.valid_until
+public fun valid_until(self: &Capability): &Option<u64> {
+    &self.valid_until
 }
 
 // Check if the capability is currently valid for `clock::timestamp_ms(clock)`
-public fun is_currently_valid(cap: &Capability, clock: &Clock): bool {
+public fun is_currently_valid(self: &Capability, clock: &Clock): bool {
     let current_ts = clock::timestamp_ms(clock);
-    cap.is_valid_for_timestamp(current_ts)
+    self.is_valid_for_timestamp(current_ts)
 }
 
 // Check if the capability is valid for a specific timestamp (in milliseconds since Unix epoch)
-public fun is_valid_for_timestamp(cap: &Capability, timestamp_ms: u64): bool {
-    let valid_from_ok = if (cap.valid_from.is_some()) {
-        let from = cap.valid_from.borrow();
+public fun is_valid_for_timestamp(self: &Capability, timestamp_ms: u64): bool {
+    let valid_from_ok = if (self.valid_from.is_some()) {
+        let from = self.valid_from.borrow();
         timestamp_ms >= *from
     } else {
         true
     };
-    let valid_until_ok = if (cap.valid_until.is_some()) {
-        let until = cap.valid_until.borrow();
+    let valid_until_ok = if (self.valid_until.is_some()) {
+        let until = self.valid_until.borrow();
         timestamp_ms <= *until
     } else {
         true
@@ -134,7 +131,7 @@ public fun is_valid_for_timestamp(cap: &Capability, timestamp_ms: u64): bool {
 }
 
 /// Destroy a capability
-public(package) fun destroy(cap: Capability) {
+public(package) fun destroy(self: Capability) {
     let Capability {
         id,
         role: _role,
@@ -142,11 +139,11 @@ public(package) fun destroy(cap: Capability) {
         issued_to: _issued_to,
         valid_from: _valid_from,
         valid_until: _valid_until,
-    } = cap;
+    } = self;
     object::delete(id);
 }
 
 #[test_only]
-public fun destroy_for_testing(cap: Capability) {
-    destroy(cap);
+public fun destroy_for_testing(self: Capability) {
+    destroy(self);
 }
