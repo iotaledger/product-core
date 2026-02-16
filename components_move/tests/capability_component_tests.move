@@ -1,6 +1,7 @@
 // Copyright (c) 2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+#[allow(lint(abort_without_constant))]
 #[test_only]
 module tf_components::capability_component_tests;
 
