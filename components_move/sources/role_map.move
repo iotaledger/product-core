@@ -19,10 +19,7 @@
 ///
 module tf_components::role_map;
 
-use iota::clock::Clock;
-use iota::event;
-use iota::vec_map::{Self, VecMap};
-use iota::vec_set::{Self, VecSet};
+use iota::{clock::Clock, event, vec_map::{Self, VecMap}, vec_set::{Self, VecSet}};
 use std::string::String;
 use tf_components::capability::{Self, Capability};
 
@@ -584,10 +581,7 @@ public fun revoke_initial_admin_capability<P: copy + drop>(
     );
 
     assert!(self.issued_capabilities.contains(&cap_to_revoke), ECapabilityNotIssued);
-    assert!(
-        self.initial_admin_cap_ids.contains(&cap_to_revoke),
-        ECapabilityIsNotInitialAdmin,
-    );
+    assert!(self.initial_admin_cap_ids.contains(&cap_to_revoke), ECapabilityIsNotInitialAdmin);
 
     self.issued_capabilities.remove(&cap_to_revoke);
     self.initial_admin_cap_ids.remove(&cap_to_revoke);

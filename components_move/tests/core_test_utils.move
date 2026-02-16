@@ -4,8 +4,7 @@
 #[test_only]
 module tf_components::core_test_utils;
 
-use iota::object::id_from_bytes;
-use iota::vec_set::{Self, VecSet};
+use iota::{object::id_from_bytes, vec_set::{Self, VecSet}};
 use std::string::String;
 
 /// Simple Permission set for RoleMap tests

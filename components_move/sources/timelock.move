@@ -79,7 +79,6 @@ public fun is_unlock_at(lock_time: &TimeLock): bool {
     }
 }
 
-
 /// Checks if the provided lock time is a UnlockAt lock.
 public fun is_unlock_at_ms(lock_time: &TimeLock): bool {
     match (lock_time) {

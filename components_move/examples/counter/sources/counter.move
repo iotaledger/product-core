@@ -6,9 +6,11 @@
 module tf_components::counter;
 
 use iota::clock::Clock;
-use tf_components::capability::Capability;
-use tf_components::counter_permission::{Self as permission, CounterPermission};
-use tf_components::role_map;
+use tf_components::{
+    capability::Capability,
+    counter_permission::{Self as permission, CounterPermission},
+    role_map
+};
 
 #[error]
 const EPermissionDenied: vector<u8> =
