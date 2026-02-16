@@ -55,8 +55,11 @@ const EInitialAdminPermissionsInconsistent: vector<u8> =
 #[error]
 const EInitialAdminRoleCannotBeDeleted: vector<u8> = b"The initial admin role cannot be deleted";
 #[error]
-const ELastInitialAdminCapability: vector<u8> =
-    b"Cannot revoke or destroy the last issued capability of the initial admin role";
+const EInitialAdminCapabilityMustBeExplicitlyDestroyed: vector<u8> =
+    b"Initial admin capabilities cannot be revoked or destroyed via this function. Use revoke_initial_admin_capability or destroy_initial_admin_capability instead";
+#[error]
+const ECapabilityIsNotInitialAdmin: vector<u8> =
+    b"This capability is not an initial admin capability";
 
 // =============== Events ====================
 
@@ -448,17 +451,19 @@ public fun new_capability<P: copy + drop>(
 /// Every owner of a capability is allowed to destroy it when no longer needed.
 /// This operation is intentionally not gated by `CapabilityAdminPermissions::revoke`.
 ///
+/// Initial admin capabilities cannot be destroyed via this function.
+/// Use `destroy_initial_admin_capability` instead.
+///
 /// Sends a `CapabilityDestroyed` event upon successful destruction.
 public fun destroy_capability<P: copy + drop>(self: &mut RoleMap<P>, cap_to_destroy: Capability) {
     assert!(self.target_key == cap_to_destroy.target_key(), ECapabilitySecurityVaultIdMismatch);
+    assert!(
+        !self.initial_admin_cap_ids.contains(&cap_to_destroy.id()),
+        EInitialAdminCapabilityMustBeExplicitlyDestroyed,
+    );
 
     if (self.issued_capabilities.contains(&cap_to_destroy.id())) {
-        assert_can_remove_initial_admin_capability(self, &cap_to_destroy.id());
-        // Capability has not been revoked before destroying, so let's remove it now
         self.issued_capabilities.remove(&cap_to_destroy.id());
-        if (self.initial_admin_cap_ids.contains(&cap_to_destroy.id())) {
-            self.initial_admin_cap_ids.remove(&cap_to_destroy.id());
-        };
     };
 
     event::emit(CapabilityDestroyed {
@@ -475,11 +480,15 @@ public fun destroy_capability<P: copy + drop>(self: &mut RoleMap<P>, cap_to_dest
 
 /// Revoke an existing capability
 ///
+/// Initial admin capabilities cannot be revoked via this function.
+/// Use `revoke_initial_admin_capability` instead.
+///
 /// Sends a `CapabilityRevoked` event upon successful revocation.
 ///
 /// Errors:
 /// - Aborts with any error documented by `is_capability_valid` if the provided capability fails authorization checks.
 /// - Aborts with `ECapabilityNotIssued` if `cap_to_revoke` is not currently issued by this `RoleMap`.
+/// - Aborts with `EInitialAdminCapabilityMustBeExplicitlyDestroyed` if `cap_to_revoke` is an initial admin capability.
 public fun revoke_capability<P: copy + drop>(
     self: &mut RoleMap<P>,
     cap: &Capability,
@@ -495,11 +504,93 @@ public fun revoke_capability<P: copy + drop>(
     );
 
     assert!(self.issued_capabilities.contains(&cap_to_revoke), ECapabilityNotIssued);
-    assert_can_remove_initial_admin_capability(self, &cap_to_revoke);
+    assert!(
+        !self.initial_admin_cap_ids.contains(&cap_to_revoke),
+        EInitialAdminCapabilityMustBeExplicitlyDestroyed,
+    );
     self.issued_capabilities.remove(&cap_to_revoke);
-    if (self.initial_admin_cap_ids.contains(&cap_to_revoke)) {
-        self.initial_admin_cap_ids.remove(&cap_to_revoke);
-    };
+
+    event::emit(CapabilityRevoked {
+        target_key: self.target_key,
+        capability_id: cap_to_revoke,
+    });
+}
+
+/// Destroy an initial admin capability.
+///
+/// This is the only way to destroy a capability associated with the initial admin role.
+/// Every owner of an initial admin capability is allowed to destroy it when no longer needed.
+/// This operation is intentionally not gated by `CapabilityAdminPermissions::revoke`.
+///
+/// WARNING: If all initial admin capabilities are destroyed, the RoleMap will be permanently
+/// sealed with no admin access possible.
+///
+/// Sends a `CapabilityDestroyed` event upon successful destruction.
+///
+/// Errors:
+/// - Aborts with `ECapabilitySecurityVaultIdMismatch` if the capability's target_key does not match.
+/// - Aborts with `ECapabilityIsNotInitialAdmin` if the capability is not an initial admin capability.
+public fun destroy_initial_admin_capability<P: copy + drop>(
+    self: &mut RoleMap<P>,
+    cap_to_destroy: Capability,
+) {
+    assert!(self.target_key == cap_to_destroy.target_key(), ECapabilitySecurityVaultIdMismatch);
+    assert!(
+        self.initial_admin_cap_ids.contains(&cap_to_destroy.id()),
+        ECapabilityIsNotInitialAdmin,
+    );
+
+    self.issued_capabilities.remove(&cap_to_destroy.id());
+    self.initial_admin_cap_ids.remove(&cap_to_destroy.id());
+
+    event::emit(CapabilityDestroyed {
+        target_key: self.target_key,
+        capability_id: cap_to_destroy.id(),
+        role: *cap_to_destroy.role(),
+        issued_to: *cap_to_destroy.issued_to(),
+        valid_from: *cap_to_destroy.valid_from(),
+        valid_until: *cap_to_destroy.valid_until(),
+    });
+
+    cap_to_destroy.destroy();
+}
+
+/// Revoke an initial admin capability.
+///
+/// This is the only way to revoke a capability associated with the initial admin role.
+/// Requires `CapabilityAdminPermissions::revoke` permission.
+///
+/// WARNING: If all initial admin capabilities are revoked, the RoleMap will be permanently
+/// sealed with no admin access possible.
+///
+/// Sends a `CapabilityRevoked` event upon successful revocation.
+///
+/// Errors:
+/// - Aborts with any error documented by `is_capability_valid` if the provided capability fails authorization checks.
+/// - Aborts with `ECapabilityNotIssued` if `cap_to_revoke` is not currently issued by this `RoleMap`.
+/// - Aborts with `ECapabilityIsNotInitialAdmin` if `cap_to_revoke` is not an initial admin capability.
+public fun revoke_initial_admin_capability<P: copy + drop>(
+    self: &mut RoleMap<P>,
+    cap: &Capability,
+    cap_to_revoke: ID,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    self.is_capability_valid(
+        cap,
+        &self.capability_admin_permissions.revoke,
+        clock,
+        ctx,
+    );
+
+    assert!(self.issued_capabilities.contains(&cap_to_revoke), ECapabilityNotIssued);
+    assert!(
+        self.initial_admin_cap_ids.contains(&cap_to_revoke),
+        ECapabilityIsNotInitialAdmin,
+    );
+
+    self.issued_capabilities.remove(&cap_to_revoke);
+    self.initial_admin_cap_ids.remove(&cap_to_revoke);
 
     event::emit(CapabilityRevoked {
         target_key: self.target_key,
@@ -520,16 +611,6 @@ fun has_required_admin_permissions<P: copy + drop>(
         permissions.contains(&role_admin_permissions.update) &&
         permissions.contains(&capability_admin_permissions.add) &&
         permissions.contains(&capability_admin_permissions.revoke)
-}
-
-/// Asserts that the initial admin capability can be removed
-///
-/// Errors:
-/// - Aborts with `ELastInitialAdminCapability` if the initial admin capability cannot be removed.
-fun assert_can_remove_initial_admin_capability<P: copy + drop>(self: &RoleMap<P>, cap_id: &ID) {
-    if (self.initial_admin_cap_ids.contains(cap_id)) {
-        assert!(self.initial_admin_cap_ids.size() > 1, ELastInitialAdminCapability);
-    };
 }
 
 /// Issues a new capability

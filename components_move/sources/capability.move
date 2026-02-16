@@ -134,11 +134,11 @@ public fun is_valid_for_timestamp(self: &Capability, timestamp_ms: u64): bool {
 public(package) fun destroy(self: Capability) {
     let Capability {
         id,
-        role: _role,
-        target_key: _target_key,
-        issued_to: _issued_to,
-        valid_from: _valid_from,
-        valid_until: _valid_until,
+        role: _,
+        target_key: _,
+        issued_to: _,
+        valid_from: _,
+        valid_until: _,
     } = self;
     object::delete(id);
 }
