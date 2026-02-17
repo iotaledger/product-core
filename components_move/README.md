@@ -14,6 +14,15 @@ Modules Overview:
 
 ## Role-Based Access Control - The `role_map` and the `capability` Module
 
+> [!WARNING]
+> 
+> The current implementation of the `RoleMap` and `Capability` modules is a first iteration and is expected
+> to undergo significant changes in the future. The public interface is not yet stable, and we anticipate breaking changes
+> as we refine the design and implementation based on feedback and evolving requirements.
+>
+> The final design and API of these modules will be released as part of the Audit Trail product, which will be
+> the first product to integrate these components.
+
 The `role_map` module provides the `RoleMap<P>` struct, which is
 a role-based access control helper that maps unique role identifiers to their associated permissions.
 
@@ -46,3 +55,13 @@ can be seen as a more complex example:
   their operations. See [audit_trail.move](https://github.com/iotaledger/notarization/blob/main/audit-trail-move/sources/audit_trail.move#L208) for an example.
 * The `RoleMap` is created by the `AuditTrail` in it's [create function](https://github.com/iotaledger/notarization/blob/main/audit-trail-move/sources/audit_trail.move#L114).
 * An example for the Move user experience can be found in the [capability_tests.move](https://github.com/iotaledger/notarization/blob/main/audit-trail-move/tests/capability_tests.move) file.
+
+## Timelock
+
+The `TimeLock` enum represents different types of time-based locks that can be applied to
+onchain objects.
+
+### Usage Examples
+
+The Trust Framework product *Notarization* uses `Timelock` to manage several restrictions for
+Locked and Dynamic Notarizations.

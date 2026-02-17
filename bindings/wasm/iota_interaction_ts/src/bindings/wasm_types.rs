@@ -33,6 +33,7 @@ const TS_SDK_TYPES: &str = r#"
     ExecuteTransactionBlockParams,
     GetCoinsParams,
     GetDynamicFieldObjectParams,
+    GetDynamicFieldObjectV2Params,
     GetObjectParams,
     GetOwnedObjectsParams,
     GetTransactionBlockParams,
@@ -108,6 +109,10 @@ extern "C" {
   #[wasm_bindgen(typescript_type = "GetDynamicFieldObjectParams")]
   #[derive(Clone)]
   pub type WasmGetDynamicFieldObjectParams;
+
+  #[wasm_bindgen(typescript_type = "GetDynamicFieldObjectV2Params")]
+  #[derive(Clone)]
+  pub type WasmGetDynamicFieldObjectV2Params;
 
   #[wasm_bindgen(typescript_type = "GetObjectParams")]
   #[derive(Clone)]

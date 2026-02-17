@@ -2,6 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /// Role Based Capabilities for access control management
+///
+/// [!WARNING]
+///
+/// The current implementation of the `RoleMap` and `Capability` modules is a first iteration and is expected
+/// to undergo significant changes in the future. The public interface is not yet stable, and we anticipate breaking changes
+/// as we refine the design and implementation based on feedback and evolving requirements.
+///
+/// The final design and API of these modules will be released as part of the Audit Trail product, which will be
+/// the first product to integrate these components.
 module tf_components::capability;
 
 use iota::clock::{Self, Clock};

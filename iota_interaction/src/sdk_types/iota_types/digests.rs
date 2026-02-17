@@ -468,3 +468,37 @@ impl fmt::Debug for ObjectDigest {
         write!(f, "o#{}", self.0)
     }
 }
+
+
+/// A digest of a ZkLoginInputs, which commits to the signatures as well as the
+/// tx.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ZKLoginInputsDigest(Digest);
+
+impl ZKLoginInputsDigest {
+    pub const fn new(digest: [u8; 32]) -> Self {
+        Self(Digest::new(digest))
+    }
+}
+
+
+/// MoveAuthenticatorDigest is the hash (digest) of the `GenericSignature`
+/// payload when the transaction uses a `MoveAuthenticator` as its signature
+/// scheme. It is evaluated during the authentication phase of a transaction and
+/// is part of the `AuthContext`.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema)]
+pub struct MoveAuthenticatorDigest(Digest);
+
+impl fmt::Display for MoveAuthenticatorDigest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl fmt::Debug for MoveAuthenticatorDigest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("MoveAuthenticatorDigest")
+          .field(&self.0)
+          .finish()
+    }
+}

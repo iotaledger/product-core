@@ -25,6 +25,7 @@ use Result;
 use super::super::move_core_types::account_address::AccountAddress;
 use super::super::move_core_types::identifier::IdentStr;
 use super::super::move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
+use super::account_abstraction::authenticator_function::AuthenticatorFunctionRefV1;
 use super::balance::Balance;
 use super::coin::{Coin, CoinMetadata, TreasuryCap, COIN_MODULE_NAME, COIN_STRUCT_NAME};
 use super::crypto::{AuthorityPublicKeyBytes, DefaultHash, IotaPublicKey, PublicKey};
@@ -323,6 +324,17 @@ impl MoveObjectType {
                 false
             }
             MoveObjectType_::Other(s) => TimelockedStakedIota::is_timelocked_staked_iota(s),
+        }
+    }
+
+    pub fn is_authenticator_function_ref_v1(&self) -> bool {
+        match &self.0 {
+            MoveObjectType_::GasCoin | MoveObjectType_::StakedIota | MoveObjectType_::Coin(_) => {
+                false
+            }
+            MoveObjectType_::Other(s) => {
+                AuthenticatorFunctionRefV1::is_authenticator_function_ref_v1(s)
+            }
         }
     }
 
