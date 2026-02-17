@@ -1,6 +1,7 @@
 // Copyright (c) 2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+#[allow(lint(abort_without_constant))]
 #[test_only]
 module tf_components::capability_component_tests;
 
@@ -14,7 +15,7 @@ fun test_capability_created_with_correct_field_values() {
     let admin_user = @0xAD;
     let mut scenario = ts::begin(admin_user);
 
-    let (mut role_map, admin_cap, target_key) = test_utils::create_test_role_map(
+    let (_role_map, admin_cap, target_key) = test_utils::create_test_role_map(
         ts::ctx(&mut scenario),
     );
 
@@ -29,7 +30,7 @@ fun test_capability_created_with_correct_field_values() {
     assert!(admin_cap.valid_until().is_none(), 4);
 
     // Cleanup
-    role_map.destroy_capability(admin_cap);
+    transfer::public_transfer(admin_cap, admin_user);
     ts::end(scenario);
 }
 
@@ -38,7 +39,7 @@ fun test_has_role_returns_correct_values() {
     let admin_user = @0xAD;
     let mut scenario = ts::begin(admin_user);
 
-    let (mut role_map, admin_cap, _security_vault_id) = test_utils::create_test_role_map(
+    let (_role_map, admin_cap, _security_vault_id) = test_utils::create_test_role_map(
         ts::ctx(&mut scenario),
     );
 
@@ -48,7 +49,7 @@ fun test_has_role_returns_correct_values() {
     assert!(!admin_cap.has_role(&b"User".to_string()), 0);
 
     // Cleanup
-    role_map.destroy_capability(admin_cap);
+    transfer::public_transfer(admin_cap, admin_user);
     ts::end(scenario);
 }
 
@@ -84,8 +85,8 @@ fun test_capability_issued_to_specific_address() {
 
     // Cleanup
     iota::clock::destroy_for_testing(clock);
-    role_map.destroy_capability(admin_cap);
-    role_map.destroy_capability(user_cap);
+    transfer::public_transfer(admin_cap, admin_user);
+    role_map.destroy_initial_admin_capability(user_cap);
     ts::end(scenario);
 }
 
@@ -125,8 +126,8 @@ fun test_capability_valid_from_and_valid_until() {
 
     // Cleanup
     iota::clock::destroy_for_testing(clock);
-    role_map.destroy_capability(admin_cap);
-    role_map.destroy_capability(timed_cap);
+    transfer::public_transfer(admin_cap, admin_user);
+    role_map.destroy_initial_admin_capability(timed_cap);
     ts::end(scenario);
 }
 
@@ -137,7 +138,7 @@ fun test_is_valid_for_timestamp_no_restrictions() {
     let admin_user = @0xAD;
     let mut scenario = ts::begin(admin_user);
 
-    let (mut role_map, admin_cap, _security_vault_id) = test_utils::create_test_role_map(
+    let (_role_map, admin_cap, _security_vault_id) = test_utils::create_test_role_map(
         ts::ctx(&mut scenario),
     );
 
@@ -147,7 +148,7 @@ fun test_is_valid_for_timestamp_no_restrictions() {
     assert!(admin_cap.is_valid_for_timestamp(999999999), 2);
 
     // Cleanup
-    role_map.destroy_capability(admin_cap);
+    transfer::public_transfer(admin_cap, admin_user);
     ts::end(scenario);
 }
 
@@ -184,8 +185,8 @@ fun test_is_valid_for_timestamp_with_valid_from() {
     assert!(timed_cap.is_valid_for_timestamp(1000001), 2);
     // Cleanup
     iota::clock::destroy_for_testing(clock);
-    role_map.destroy_capability(admin_cap);
-    role_map.destroy_capability(timed_cap);
+    transfer::public_transfer(admin_cap, admin_user);
+    role_map.destroy_initial_admin_capability(timed_cap);
     ts::end(scenario);
 }
 
@@ -223,8 +224,8 @@ fun test_is_valid_for_timestamp_with_valid_until() {
 
     // Cleanup
     iota::clock::destroy_for_testing(clock);
-    role_map.destroy_capability(admin_cap);
-    role_map.destroy_capability(timed_cap);
+    transfer::public_transfer(admin_cap, admin_user);
+    role_map.destroy_initial_admin_capability(timed_cap);
     ts::end(scenario);
 }
 
@@ -267,8 +268,8 @@ fun test_is_valid_for_timestamp_with_both_restrictions() {
 
     // Cleanup
     iota::clock::destroy_for_testing(clock);
-    role_map.destroy_capability(admin_cap);
-    role_map.destroy_capability(timed_cap);
+    transfer::public_transfer(admin_cap, admin_user);
+    role_map.destroy_initial_admin_capability(timed_cap);
     ts::end(scenario);
 }
 
@@ -279,7 +280,7 @@ fun test_is_currently_valid_no_restrictions() {
     let admin_user = @0xAD;
     let mut scenario = ts::begin(admin_user);
 
-    let (mut role_map, admin_cap, _security_vault_id) = test_utils::create_test_role_map(
+    let (_role_map, admin_cap, _security_vault_id) = test_utils::create_test_role_map(
         ts::ctx(&mut scenario),
     );
 
@@ -291,7 +292,7 @@ fun test_is_currently_valid_no_restrictions() {
 
     // Cleanup
     iota::clock::destroy_for_testing(clock);
-    role_map.destroy_capability(admin_cap);
+    transfer::public_transfer(admin_cap, admin_user);
     ts::end(scenario);
 }
 
@@ -328,8 +329,8 @@ fun test_is_currently_valid_within_validity_period() {
 
     // Cleanup
     iota::clock::destroy_for_testing(clock);
-    role_map.destroy_capability(admin_cap);
-    role_map.destroy_capability(timed_cap);
+    transfer::public_transfer(admin_cap, admin_user);
+    role_map.destroy_initial_admin_capability(timed_cap);
     ts::end(scenario);
 }
 
@@ -366,8 +367,8 @@ fun test_is_currently_valid_before_validity_period() {
 
     // Cleanup
     iota::clock::destroy_for_testing(clock);
-    role_map.destroy_capability(admin_cap);
-    role_map.destroy_capability(timed_cap);
+    transfer::public_transfer(admin_cap, admin_user);
+    role_map.destroy_initial_admin_capability(timed_cap);
     ts::end(scenario);
 }
 
@@ -404,8 +405,8 @@ fun test_is_currently_valid_after_validity_period() {
 
     // Cleanup
     iota::clock::destroy_for_testing(clock);
-    role_map.destroy_capability(admin_cap);
-    role_map.destroy_capability(timed_cap);
+    transfer::public_transfer(admin_cap, admin_user);
+    role_map.destroy_initial_admin_capability(timed_cap);
     ts::end(scenario);
 }
 
@@ -450,7 +451,7 @@ fun test_capability_with_all_restrictions() {
 
     // Cleanup
     iota::clock::destroy_for_testing(clock);
-    role_map.destroy_capability(admin_cap);
-    role_map.destroy_capability(restricted_cap);
+    transfer::public_transfer(admin_cap, admin_user);
+    role_map.destroy_initial_admin_capability(restricted_cap);
     ts::end(scenario);
 }
