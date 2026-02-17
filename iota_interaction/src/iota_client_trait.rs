@@ -124,6 +124,13 @@ pub trait ReadTrait {
     name: DynamicFieldName,
   ) -> IotaRpcResult<IotaObjectResponse>;
 
+  async fn get_dynamic_field_object_v2(
+    &self,
+    parent_object_id: ObjectID,
+    name: DynamicFieldName,
+    options: Option<IotaObjectDataOptions>,
+  ) -> IotaRpcResult<IotaObjectResponse>;
+
   async fn get_object_with_options(
     &self,
     object_id: ObjectID,

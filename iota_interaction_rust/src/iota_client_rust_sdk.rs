@@ -180,6 +180,18 @@ impl ReadTrait for ReadAdapter<'_> {
     self.api.get_dynamic_field_object(parent_object_id, name).await
   }
 
+  async fn get_dynamic_field_object_v2(
+    &self,
+    parent_object_id: ObjectID,
+    name: DynamicFieldName,
+    options: Option<IotaObjectDataOptions>,
+  ) -> IotaRpcResult<IotaObjectResponse> {
+    self
+      .api
+      .get_dynamic_field_object_v2(parent_object_id, name, options)
+      .await
+  }
+
   async fn get_object_with_options(
     &self,
     object_id: ObjectID,

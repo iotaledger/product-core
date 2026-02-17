@@ -74,6 +74,30 @@ impl GetDynamicFieldObjectParams {
   }
 }
 
+/// Return the dynamic field object information for a specified object
+/// with explicit object content options.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetDynamicFieldObjectV2Params {
+  /// The ID of the queried parent object
+  parent_id: String,
+  /// The Name of the dynamic field
+  name: DynamicFieldName,
+  /// options for specifying the content to be returned
+  #[serde(skip_serializing_if = "Option::is_none")]
+  options: Option<IotaObjectDataOptions>,
+}
+
+impl GetDynamicFieldObjectV2Params {
+  pub fn new(parent_id: String, name: DynamicFieldName, options: Option<IotaObjectDataOptions>) -> Self {
+    GetDynamicFieldObjectV2Params {
+      parent_id,
+      name,
+      options,
+    }
+  }
+}
+
 /// Return the object information for a specified object
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
