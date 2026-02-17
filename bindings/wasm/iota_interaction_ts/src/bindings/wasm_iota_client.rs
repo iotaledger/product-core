@@ -4,8 +4,8 @@
 use iota_interaction::error::{Error as IotaRpcError, IotaRpcResult};
 use iota_interaction::generated_types::{
   DevInspectTransactionBlockParams, ExecuteTransactionBlockParams, GetCoinsParams, GetDynamicFieldObjectParams,
-  GetObjectParams, GetOwnedObjectsParams, GetTransactionBlockParams, QueryEventsParams, SortOrder,
-  WaitForTransactionParams,
+  GetDynamicFieldObjectV2Params, GetObjectParams, GetOwnedObjectsParams, GetTransactionBlockParams, QueryEventsParams,
+  SortOrder, WaitForTransactionParams,
 };
 use iota_interaction::rpc_types::{
   CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaObjectDataOptions, IotaObjectResponse,
@@ -33,8 +33,9 @@ use super::{
 };
 use crate::bindings::{
   PromiseIotaObjectResponse, PromiseObjectRead, PromisePaginatedCoins, PromisePaginatedEvents,
-  PromisePaginatedObjectsResponse, WasmGetCoinsParams, WasmGetDynamicFieldObjectParams, WasmGetObjectParams,
-  WasmGetOwnedObjectsParams, WasmGetTransactionBlockParams, WasmQueryEventsParams, WasmTryGetPastObjectParams,
+  PromisePaginatedObjectsResponse, WasmGetCoinsParams, WasmGetDynamicFieldObjectParams,
+  WasmGetDynamicFieldObjectV2Params, WasmGetObjectParams, WasmGetOwnedObjectsParams, WasmGetTransactionBlockParams,
+  WasmQueryEventsParams, WasmTryGetPastObjectParams,
 };
 use crate::common::macros::console_log;
 use crate::common::types::PromiseString;
@@ -75,6 +76,12 @@ extern "C" {
   pub fn get_dynamic_field_object(
     this: &WasmIotaClient,
     input: &WasmGetDynamicFieldObjectParams,
+  ) -> PromiseIotaObjectResponse;
+
+  #[wasm_bindgen(method, js_name = getDynamicFieldObjectV2)]
+  pub fn get_dynamic_field_object_v2(
+    this: &WasmIotaClient,
+    input: &WasmGetDynamicFieldObjectV2Params,
   ) -> PromiseIotaObjectResponse;
 
   #[wasm_bindgen(method, js_name = getObject)]
@@ -208,6 +215,39 @@ impl ManagedWasmIotaClient {
         .into();
 
     let promise: Promise = Promise::resolve(&WasmIotaClient::get_dynamic_field_object(&self.0, &params));
+    let result: JsValue = JsFuture::from(promise).await.map_err(|e| {
+      console_log!("Error executing JsFuture::from(promise): {:?}", e);
+      IotaRpcError::FfiError(format!("{e:?}"))
+    })?;
+
+    #[allow(deprecated)] // will be refactored
+    Ok(result.into_serde()?)
+  }
+
+  /**
+   * Return the dynamic field object information for a specified object
+   */
+  pub async fn get_dynamic_field_object_v2(
+    &self,
+    parent_object_id: ObjectID,
+    name: DynamicFieldName,
+    options: Option<IotaObjectDataOptions>,
+  ) -> IotaRpcResult<IotaObjectResponse> {
+    let params: WasmGetDynamicFieldObjectV2Params = serde_wasm_bindgen::to_value(&GetDynamicFieldObjectV2Params::new(
+      parent_object_id.to_string(),
+      name,
+      options,
+    ))
+    .map_err(|e| {
+      console_log!(
+        "Error executing serde_wasm_bindgen::to_value(WasmGetDynamicFieldObjectV2Params): {:?}",
+        e
+      );
+      IotaRpcError::FfiError(format!("{e:?}"))
+    })?
+    .into();
+
+    let promise: Promise = Promise::resolve(&WasmIotaClient::get_dynamic_field_object_v2(&self.0, &params));
     let result: JsValue = JsFuture::from(promise).await.map_err(|e| {
       console_log!("Error executing JsFuture::from(promise): {:?}", e);
       IotaRpcError::FfiError(format!("{e:?}"))
