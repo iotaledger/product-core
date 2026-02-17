@@ -1,8 +1,3 @@
-/*
-/// Module: parent
-module borrow_non_store_obj_poc::parent;
-*/
-
 // For Move coding conventions, see
 // https://docs.iota.org/developer/iota-101/move-overview/conventions
 module borrow_non_store_obj_poc::parent;
