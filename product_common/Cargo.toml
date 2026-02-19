@@ -43,7 +43,7 @@ iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.11" 
 tempfile.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-hyper.workspace = true # Fix for iota-sdk 1.13 issue with axum-server.
+hyper.workspace = true
 iota_interaction = { path = "../iota_interaction", version = "0.8.11", features = ["keytool"] }
 iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.11", optional = true }
 iota-sdk.workspace = true
