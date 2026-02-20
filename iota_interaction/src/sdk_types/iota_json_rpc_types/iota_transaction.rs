@@ -431,7 +431,7 @@ impl Display for IotaExecutionStatus {
 
 impl IotaExecutionStatus {
     pub fn is_ok(&self) -> bool {
-        matches!(self, IotaExecutionStatus::Success { .. })
+        matches!(self, IotaExecutionStatus::Success)
     }
     pub fn is_err(&self) -> bool {
         matches!(self, IotaExecutionStatus::Failure { .. })
@@ -446,13 +446,13 @@ impl From<ExecutionStatus> for IotaExecutionStatus {
                 error,
                 command: None,
             } => Self::Failure {
-                error: format!("{error:?}"),
+                error: error.to_string(),
             },
             ExecutionStatus::Failure {
                 error,
                 command: Some(idx),
             } => Self::Failure {
-                error: format!("{error:?} in command {idx}"),
+                error: format!("{error} in command {idx}"),
             },
         }
     }
