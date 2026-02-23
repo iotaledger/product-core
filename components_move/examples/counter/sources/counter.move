@@ -17,7 +17,7 @@ const EPermissionDenied: vector<u8> =
 public struct Counter has key {
     id: UID,
     value: u64,
-    access: role_map::RoleMap<CounterPermission>,
+    access: role_map::RoleMap<CounterPermission, bool>,
 }
 
 public fun create(ctx: &mut TxContext): (Capability, ID) {
@@ -91,11 +91,11 @@ public fun increment(counter: &mut Counter, cap: &Capability, clock: &Clock, ctx
     counter.value = counter.value + 1;
 }
 
-public fun access(counter: &Counter): &role_map::RoleMap<CounterPermission> {
+public fun access(counter: &Counter): &role_map::RoleMap<CounterPermission, bool> {
     &counter.access
 }
 
-public fun access_mut(counter: &mut Counter): &mut role_map::RoleMap<CounterPermission> {
+public fun access_mut(counter: &mut Counter): &mut role_map::RoleMap<CounterPermission, bool> {
     &mut counter.access
 }
 

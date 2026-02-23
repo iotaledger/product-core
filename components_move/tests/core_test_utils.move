@@ -100,7 +100,7 @@ public fun initial_admin_role_name(): String {
 /// Returns the RoleMap, admin capability, and the target_key
 public fun create_test_role_map(
     ctx: &mut iota::tx_context::TxContext,
-): (tf_components::role_map::RoleMap<Permission>, tf_components::capability::Capability, ID) {
+): (tf_components::role_map::RoleMap<Permission, bool>, tf_components::capability::Capability, ID) {
     let target_key = fake_object_id_from_string(&SECURITY_VAULT_ID_STRING.to_string());
     let initial_admin_role = INITIAL_ADMIN_ROLE_NAME.to_string();
     let (role_admin_permissions, capability_admin_permissions) = get_admin_permissions();

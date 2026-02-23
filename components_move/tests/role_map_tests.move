@@ -27,7 +27,7 @@ fun test_role_based_permission_delegation() {
 
     // Step 1: admin_user creates the audit trail
     let (mut role_map, admin_cap) = {
-        let (role_map, admin_cap) = role_map::new(
+        let (role_map, admin_cap) = role_map::new<_, bool>(
             target_key,
             initial_admin_role_name,
             test_utils::super_admin_permissions(),

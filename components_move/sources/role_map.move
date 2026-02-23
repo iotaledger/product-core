@@ -12,7 +12,7 @@
 /// The final design and API of these modules will be released as part of the Audit Trail product, which will be
 /// the first product to integrate these components.
 ///
-/// A `RoleMap<P>` provides the following functionalities:
+/// A `RoleMap<P, D>` provides the following functionalities:
 /// - Uses custom permission-types, defined by the integrating module, using the generic argument `P`
 /// - Defines an initial role with a custom set of permissions (i.e. for an Admin role) and creates an initial
 ///   `Capability` for this role to allow later access control administration by the creator of the integrating module
@@ -21,6 +21,8 @@
 /// - Validates `Capability`s against the defined roles to facilitate proper access control by the integrating module
 ///   (function `RoleMap.is_capability_valid()`)
 /// - All functions are access restricted by custom permissions defined during `RoleMap` instantiation
+/// - Using the generic argument `D`, custom role-data can be stored as part of each role definition, to allow extended
+///    access authorization by modules integrating the RoleMap
 ///
 /// Examples:
 /// - The TF product Audit Trails uses `RoleMap` to manage access to the audit trail records and their operations.
@@ -109,22 +111,35 @@ public struct CapabilityAdminPermissions<P: copy + drop> has copy, drop, store {
     revoke: P,
 }
 
-/// The RoleMap structure mapping role names to their associated permissions
-/// Generic parameter P defines the permission type used by the integrating module
-/// (i.e. tf_components::CounterPermission or audit_trail::Permission)
-public struct RoleMap<P: copy + drop> has copy, drop, store {
+/// The RoleMap structure mapping role names to their associated permissions and role-data
+/// Generic parameters:
+/// * P defines the permission type used by the integrating module
+///   (i.e. audit_trail::Permission)
+/// * D defines the role-data type. Each role has role-data which can be used by integrating modules to provide
+///   explanations or to perform additional access control constraints, performed by additional access control checks.
+///   To perform additional access control checks, integrating modules need to wrap the `RoleMap::is_capability_valid()` call
+///   in their own `is_capability_valid()` implementation, use this wrapper function for evaluating the additional checks
+///   and use the role-data to store role specific variables. `RoleMap::is_capability_valid()` itself will ignore the role-data.
+public struct RoleMap<P: copy + drop, D: copy + drop> has copy, drop, store {
     /// Identifies the scope (or domain) managed by the RoleMap.  Usually this is the ID of the managed onchain object
     /// (i.e. an audit trail). You can also derive an arbitrary ID value reused by several managed onchain objects
     /// to share the used roles and capabilities between these objects.
     target_key: ID,
     /// Mapping of role names to their associated permissions
-    roles: VecMap<std::string::String, VecSet<P>>,
+    roles: VecMap<std::string::String, Role<P, D>>,
     /// Allowlist of all issued capability IDs
     issued_capabilities: VecSet<ID>,
     /// Permissions required to administer roles in this RoleMap
     role_admin_permissions: RoleAdminPermissions<P>,
     /// Permissions required to administer capabilities in this RoleMap
     capability_admin_permissions: CapabilityAdminPermissions<P>,
+}
+
+// Definition of role specific access permissions and role-data
+// See `RoleMap<P, D>` above for more details
+public struct Role<P: copy + drop, D: copy + drop> has copy, drop, store {
+    permissions: VecSet<P>,
+    data: Option<D>,
 }
 
 // =============== Role & Capability AdminPermissions Functions ====================
@@ -176,16 +191,16 @@ public fun new_capability_admin_permissions<P: copy + drop>(
 ///   The permissions required to administer capabilities in this RoleMap
 /// - ctx:
 ///   The transaction context for capability creation
-public fun new<P: copy + drop>(
+public fun new<P: copy + drop, D: copy + drop>(
     target_key: ID,
     initial_admin_role_name: String,
     initial_admin_role_permissions: VecSet<P>,
     role_admin_permissions: RoleAdminPermissions<P>,
     capability_admin_permissions: CapabilityAdminPermissions<P>,
     ctx: &mut TxContext,
-): (RoleMap<P>, Capability) {
-    let mut roles = vec_map::empty<String, VecSet<P>>();
-    roles.insert(initial_admin_role_name, initial_admin_role_permissions);
+): (RoleMap<P,D>, Capability) {
+    let mut roles = vec_map::empty<String, Role<P, D>>();
+    roles.insert(initial_admin_role_name, new_role_with_permissions(initial_admin_role_permissions, std::option::none()));
 
     let admin_cap = capability::new_capability(
         initial_admin_role_name,
@@ -210,14 +225,14 @@ public fun new<P: copy + drop>(
 
 /// Get the permissions associated with a specific role.
 /// Aborts with ERoleDoesNotExist if the role does not exist.
-public fun get_role_permissions<P: copy + drop>(role_map: &RoleMap<P>, role: &String): &VecSet<P> {
+public fun get_role_permissions<P: copy + drop, D: copy + drop>(role_map: &RoleMap<P, D>, role: &String): &VecSet<P> {
     assert!(vec_map::contains(&role_map.roles, role), ERoleDoesNotExist);
-    vec_map::get(&role_map.roles, role)
+    &vec_map::get(&role_map.roles, role).permissions
 }
 
 /// Create a new role consisting of a role name and associated permissions
-public fun create_role<P: copy + drop>(
-    role_map: &mut RoleMap<P>,
+public fun create_role<P: copy + drop, D: copy + drop>(
+    role_map: &mut RoleMap<P, D>,
     cap: &Capability,
     role: String,
     permissions: VecSet<P>,
@@ -234,12 +249,12 @@ public fun create_role<P: copy + drop>(
         EPermissionDenied,
     );
 
-    vec_map::insert(&mut role_map.roles, role, permissions);
+    vec_map::insert(&mut role_map.roles, role, new_role_with_permissions(permissions, std::option::none()));
 }
 
 /// Delete an existing role
-public fun delete_role<P: copy + drop>(
-    role_map: &mut RoleMap<P>,
+public fun delete_role<P: copy + drop, D: copy + drop>(
+    role_map: &mut RoleMap<P, D>,
     cap: &Capability,
     role: &String,
     clock: &Clock,
@@ -259,8 +274,8 @@ public fun delete_role<P: copy + drop>(
 }
 
 /// Update permissions associated with an existing role
-public fun update_role_permissions<P: copy + drop>(
-    role_map: &mut RoleMap<P>,
+public fun update_role_permissions<P: copy + drop, D: copy + drop>(
+    role_map: &mut RoleMap<P, D>,
     cap: &Capability,
     role: &String,
     new_permissions: VecSet<P>,
@@ -279,12 +294,22 @@ public fun update_role_permissions<P: copy + drop>(
 
     assert!(vec_map::contains(&role_map.roles, role), ERoleDoesNotExist);
     vec_map::remove(&mut role_map.roles, role);
-    vec_map::insert(&mut role_map.roles, *role, new_permissions);
+    vec_map::insert(&mut role_map.roles, *role, new_role_with_permissions(new_permissions, std::option::none()));
 }
 
 /// Indicates if the specified role exists in the role_map
-public fun has_role<P: copy + drop>(role_map: &RoleMap<P>, role: &String): bool {
+public fun has_role<P: copy + drop, D: copy + drop>(role_map: &RoleMap<P, D>, role: &String): bool {
     vec_map::contains(&role_map.roles, role)
+}
+
+public(package) fun new_role_with_permissions<P: copy + drop, D: copy + drop>(
+    permissions: VecSet<P>,
+    data: Option<D>,
+): Role<P, D> {
+    Role {
+        permissions,
+        data,
+    }
 }
 
 // =============== Capability related Functions ====================================
@@ -316,17 +341,14 @@ public fun has_role<P: copy + drop>(role_map: &RoleMap<P>, role: &String): bool 
 /// Returns
 /// -------
 /// - bool: true if the capability is valid, otherwise aborts with the relevant error.
-public fun is_capability_valid<P: copy + drop>(
-    role_map: &RoleMap<P>,
+public fun is_capability_valid<P: copy + drop, D: copy + drop>(
+    role_map: &RoleMap<P, D>,
     cap: &Capability,
     permission: &P,
     clock: &Clock,
     ctx: &TxContext,
 ): bool {
-    assert!(
-        role_map.target_key == cap.target_key(),
-        ECapabilitySecurityVaultIdMismatch,
-    );
+    assert!(role_map.target_key == cap.target_key(), ECapabilitySecurityVaultIdMismatch);
 
     let permissions = role_map.get_role_permissions(cap.role());
     assert!(vec_set::contains(permissions, permission), ECapabilityPermissionDenied);
@@ -367,8 +389,8 @@ public fun is_capability_valid<P: copy + drop>(
 /// - Aborts with EPermissionDenied if the provided capability does not have the permission specified with `CapabilityAdminPermissions::add`.
 /// - Aborts with ERoleDoesNotExist if the specified role does not exist in the role_map.
 /// - Aborts with tf_components::capability::EValidityPeriodInconsistent if the provided valid_from and valid_until are inconsistent.
-public fun new_capability<P: copy + drop>(
-    role_map: &mut RoleMap<P>,
+public fun new_capability<P: copy + drop, D: copy + drop>(
+    role_map: &mut RoleMap<P, D>,
     cap: &Capability,
     role: &String,
     issued_to: Option<address>,
@@ -408,14 +430,11 @@ public fun new_capability<P: copy + drop>(
 /// TODO: Clarify if we need to restrict access with the `CapabilitiesRevoke` permission here.
 ///       If yes, we also need a destroy function for Admin capabilities (without the need of another Admin capability).
 ///       Otherwise the last Admin capability holder will block the role_map forever by not being able to destroy it.
-public fun destroy_capability<P: copy + drop>(
-    role_map: &mut RoleMap<P>,
+public fun destroy_capability<P: copy + drop, D: copy + drop>(
+    role_map: &mut RoleMap<P, D>,
     cap_to_destroy: Capability,
 ) {
-    assert!(
-        role_map.target_key == cap_to_destroy.target_key(),
-        ECapabilitySecurityVaultIdMismatch,
-    );
+    assert!(role_map.target_key == cap_to_destroy.target_key(), ECapabilitySecurityVaultIdMismatch);
 
     if (role_map.issued_capabilities.contains(&cap_to_destroy.id())) {
         // Capability has not been revoked before destroying, so let's remove it now
@@ -441,8 +460,8 @@ public fun destroy_capability<P: copy + drop>(
 /// Errors:
 /// - Aborts with EPermissionDenied if the provided capability does not have the permission specified with `CapabilityAdminPermissions::revoke`.
 /// - Aborts with ERoleDoesNotExist if the specified role does not exist in the `RoleMap.issued_capabilities()` list.
-public fun revoke_capability<P: copy + drop>(
-    role_map: &mut RoleMap<P>,
+public fun revoke_capability<P: copy + drop, D: copy + drop>(
+    role_map: &mut RoleMap<P, D>,
     cap: &Capability,
     cap_to_revoke: ID,
     clock: &Clock,
@@ -467,7 +486,7 @@ public fun revoke_capability<P: copy + drop>(
     });
 }
 
-fun register_new_capability<P: copy + drop>(role_map: &mut RoleMap<P>, new_cap: &Capability) {
+fun register_new_capability<P: copy + drop, D: copy + drop>(role_map: &mut RoleMap<P, D>, new_cap: &Capability) {
     role_map.issued_capabilities.insert(new_cap.id());
 
     event::emit(CapabilityIssued {
@@ -483,20 +502,26 @@ fun register_new_capability<P: copy + drop>(role_map: &mut RoleMap<P>, new_cap: 
 // =============== Getter Functions ================================================
 
 /// Returns the size of the role_map, the number of managed roles
-public fun size<P: copy + drop>(role_map: &RoleMap<P>): u64 {
+public fun size<P: copy + drop, D: copy + drop>(role_map: &RoleMap<P, D>): u64 {
     vec_map::size(&role_map.roles)
 }
 
 /// Returns the target_key associated with the role_map
-public fun target_key<P: copy + drop>(role_map: &RoleMap<P>): ID {
+public fun target_key<P: copy + drop, D: copy + drop>(role_map: &RoleMap<P, D>): ID {
     role_map.target_key
 }
 
 //Returns the role admin permissions associated with the role_map
-public fun role_admin_permissions<P: copy + drop>(role_map: &RoleMap<P>): &RoleAdminPermissions<P> {
+public fun role_admin_permissions<P: copy + drop, D: copy + drop>(role_map: &RoleMap<P, D>): &RoleAdminPermissions<P> {
     &role_map.role_admin_permissions
 }
 
-public fun issued_capabilities<P: copy + drop>(role_map: &RoleMap<P>): &VecSet<ID> {
+public fun issued_capabilities<P: copy + drop, D: copy + drop>(role_map: &RoleMap<P, D>): &VecSet<ID> {
     &role_map.issued_capabilities
+}
+
+  public fun get_role_data<P: copy + drop, M: copy + drop>(role_map: &RoleMap<P, M>, role: &String): &Option<M> {
+    assert!(vec_map::contains(&role_map.roles, role), ERoleDoesNotExist);
+    let role = vec_map::get(&role_map.roles, role);
+    &role.data
 }
