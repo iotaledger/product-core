@@ -198,9 +198,12 @@ public fun new<P: copy + drop, D: copy + drop>(
     role_admin_permissions: RoleAdminPermissions<P>,
     capability_admin_permissions: CapabilityAdminPermissions<P>,
     ctx: &mut TxContext,
-): (RoleMap<P,D>, Capability) {
+): (RoleMap<P, D>, Capability) {
     let mut roles = vec_map::empty<String, Role<P, D>>();
-    roles.insert(initial_admin_role_name, new_role_with_permissions(initial_admin_role_permissions, std::option::none()));
+    roles.insert(
+        initial_admin_role_name,
+        new_role(initial_admin_role_permissions, std::option::none()),
+    );
 
     let admin_cap = capability::new_capability(
         initial_admin_role_name,
@@ -225,9 +228,21 @@ public fun new<P: copy + drop, D: copy + drop>(
 
 /// Get the permissions associated with a specific role.
 /// Aborts with ERoleDoesNotExist if the role does not exist.
-public fun get_role_permissions<P: copy + drop, D: copy + drop>(role_map: &RoleMap<P, D>, role: &String): &VecSet<P> {
+public fun get_role_permissions<P: copy + drop, D: copy + drop>(
+    role_map: &RoleMap<P, D>,
+    role: &String,
+): &VecSet<P> {
     assert!(vec_map::contains(&role_map.roles, role), ERoleDoesNotExist);
     &vec_map::get(&role_map.roles, role).permissions
+}
+
+/// Get the role-data associated with a specific role.
+public fun get_role_data<P: copy + drop, D: copy + drop>(
+    role_map: &RoleMap<P, D>,
+    role: &String,
+): &Option<D> {
+    assert!(vec_map::contains(&role_map.roles, role), ERoleDoesNotExist);
+    &vec_map::get(&role_map.roles, role).data
 }
 
 /// Create a new role consisting of a role name and associated permissions
@@ -236,6 +251,7 @@ public fun create_role<P: copy + drop, D: copy + drop>(
     cap: &Capability,
     role: String,
     permissions: VecSet<P>,
+    data: Option<D>,
     clock: &Clock,
     ctx: &TxContext,
 ) {
@@ -249,7 +265,7 @@ public fun create_role<P: copy + drop, D: copy + drop>(
         EPermissionDenied,
     );
 
-    vec_map::insert(&mut role_map.roles, role, new_role_with_permissions(permissions, std::option::none()));
+    vec_map::insert(&mut role_map.roles, role, new_role(permissions, data));
 }
 
 /// Delete an existing role
@@ -273,12 +289,13 @@ public fun delete_role<P: copy + drop, D: copy + drop>(
     vec_map::remove(&mut role_map.roles, role);
 }
 
-/// Update permissions associated with an existing role
-public fun update_role_permissions<P: copy + drop, D: copy + drop>(
+/// Update permissions and role_data associated with an existing role
+public fun update_role<P: copy + drop, D: copy + drop>(
     role_map: &mut RoleMap<P, D>,
     cap: &Capability,
     role: &String,
     new_permissions: VecSet<P>,
+    data: Option<D>,
     clock: &Clock,
     ctx: &TxContext,
 ) {
@@ -293,8 +310,10 @@ public fun update_role_permissions<P: copy + drop, D: copy + drop>(
     );
 
     assert!(vec_map::contains(&role_map.roles, role), ERoleDoesNotExist);
-    vec_map::remove(&mut role_map.roles, role);
-    vec_map::insert(&mut role_map.roles, *role, new_role_with_permissions(new_permissions, std::option::none()));
+    let role = vec_map::get_mut(&mut role_map.roles, role);
+
+    role.permissions = new_permissions;
+    role.data = data;
 }
 
 /// Indicates if the specified role exists in the role_map
@@ -302,7 +321,7 @@ public fun has_role<P: copy + drop, D: copy + drop>(role_map: &RoleMap<P, D>, ro
     vec_map::contains(&role_map.roles, role)
 }
 
-public(package) fun new_role_with_permissions<P: copy + drop, D: copy + drop>(
+public(package) fun new_role<P: copy + drop, D: copy + drop>(
     permissions: VecSet<P>,
     data: Option<D>,
 ): Role<P, D> {
@@ -486,7 +505,10 @@ public fun revoke_capability<P: copy + drop, D: copy + drop>(
     });
 }
 
-fun register_new_capability<P: copy + drop, D: copy + drop>(role_map: &mut RoleMap<P, D>, new_cap: &Capability) {
+fun register_new_capability<P: copy + drop, D: copy + drop>(
+    role_map: &mut RoleMap<P, D>,
+    new_cap: &Capability,
+) {
     role_map.issued_capabilities.insert(new_cap.id());
 
     event::emit(CapabilityIssued {
@@ -512,16 +534,14 @@ public fun target_key<P: copy + drop, D: copy + drop>(role_map: &RoleMap<P, D>):
 }
 
 //Returns the role admin permissions associated with the role_map
-public fun role_admin_permissions<P: copy + drop, D: copy + drop>(role_map: &RoleMap<P, D>): &RoleAdminPermissions<P> {
+public fun role_admin_permissions<P: copy + drop, D: copy + drop>(
+    role_map: &RoleMap<P, D>,
+): &RoleAdminPermissions<P> {
     &role_map.role_admin_permissions
 }
 
-public fun issued_capabilities<P: copy + drop, D: copy + drop>(role_map: &RoleMap<P, D>): &VecSet<ID> {
+public fun issued_capabilities<P: copy + drop, D: copy + drop>(
+    role_map: &RoleMap<P, D>,
+): &VecSet<ID> {
     &role_map.issued_capabilities
-}
-
-  public fun get_role_data<P: copy + drop, M: copy + drop>(role_map: &RoleMap<P, M>, role: &String): &Option<M> {
-    assert!(vec_map::contains(&role_map.roles, role), ERoleDoesNotExist);
-    let role = vec_map::get(&role_map.roles, role);
-    &role.data
 }

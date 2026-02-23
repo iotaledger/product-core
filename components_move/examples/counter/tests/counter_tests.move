@@ -40,6 +40,7 @@ fun test_capability_lifecycle() {
                 &super_admin_cap,
                 string::utf8(b"counter-admin"),
                 permission::counter_admin_permissions(),
+                std::option::none(),
                 &clock,
                 ts::ctx(&mut scenario),
             );
