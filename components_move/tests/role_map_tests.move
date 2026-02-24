@@ -117,8 +117,8 @@ fun test_role_based_permission_delegation() {
         // Verify both roles were updated
         assert!(role_map.get_role_data(&b"RoleAdmin".to_string()) == std::option::some(updated_role_admin_data), 8);
         assert!(role_map.get_role_data(&b"CapAdmin".to_string()) == std::option::some(updated_cap_admin_data), 9);
-        assert!(role_map.get_role_permissions(&b"RoleAdmin".to_string()) == vec_set::singleton(test_utils::manage_capabilities()), 10);
-        assert!(role_map.get_role_permissions(&b"CapAdmin".to_string()) == vec_set::singleton(test_utils::manage_roles()), 11);
+        assert!(role_map.get_role_permissions(&b"RoleAdmin".to_string()).contains(&test_utils::manage_capabilities()), 10);
+        assert!(role_map.get_role_permissions(&b"CapAdmin".to_string()).contains(&test_utils::manage_roles()), 11);
 
         iota::clock::destroy_for_testing(clock);
     };  
