@@ -17,7 +17,7 @@ const ETimelockNotExpired: u64 = 1;
 
 /// Represents different types of time-based locks that can be applied to
 /// onchain objects.
-public enum TimeLock has store {
+public enum TimeLock has store, drop {
     /// A lock that unlocks at a specific Unix timestamp (seconds since Unix epoch)
     UnlockAt(u32),
     /// Same as UnlockAt (unlocks at specific timestamp) but using milliseconds since Unix epoch
