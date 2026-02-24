@@ -91,7 +91,7 @@ public struct CapabilityRevoked has copy, drop {
 
 /// Emitted when a role is created
 public struct RoleCreated<P: copy + drop, D: copy + drop> has copy, drop {
-    trail_id: ID,
+    target_key: ID,
     role: String,
     permissions: VecSet<P>,
     data: Option<D>,
@@ -101,7 +101,7 @@ public struct RoleCreated<P: copy + drop, D: copy + drop> has copy, drop {
 
 /// Emitted when a role's is updated
 public struct RoleUpdated<P: copy + drop, D: copy + drop> has copy, drop {
-    trail_id: ID,
+    target_key: ID,
     role: String,
     new_permissions: VecSet<P>,
     new_data: Option<D>,
@@ -111,7 +111,7 @@ public struct RoleUpdated<P: copy + drop, D: copy + drop> has copy, drop {
 
 /// Emitted when a role is deleted
 public struct RoleDeleted has copy, drop {
-    trail_id: ID,
+    target_key: ID,
     role: String,
     deleted_by: address,
     timestamp: u64,
@@ -294,7 +294,7 @@ public fun create_role<P: copy + drop, D: copy + drop>(
     vec_map::insert(&mut self.roles, role, new_role(permissions, data));
 
     event::emit(RoleCreated {
-        trail_id: self.target_key,
+        target_key: self.target_key,
         role,
         permissions,
         data,
@@ -324,7 +324,7 @@ public fun delete_role<P: copy + drop, D: copy + drop>(
     vec_map::remove(&mut self.roles, role);
 
     event::emit(RoleDeleted {
-        trail_id: self.target_key,
+        target_key: self.target_key,
         role: *role,
         deleted_by: ctx.sender(),
         timestamp: clock::timestamp_ms(clock),
@@ -358,7 +358,7 @@ public fun update_role<P: copy + drop, D: copy + drop>(
     role.data = data;
 
     event::emit(RoleUpdated {
-        trail_id: self.target_key,
+        target_key: self.target_key,
         role: *role_name,
         new_permissions,
         new_data: data,
