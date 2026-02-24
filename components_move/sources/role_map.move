@@ -89,7 +89,6 @@ public struct CapabilityRevoked has copy, drop {
     capability_id: ID,
 }
 
-
 /// Emitted when a role is created
 public struct RoleCreated<P: copy + drop, D: copy + drop> has copy, drop {
     trail_id: ID,
@@ -585,15 +584,13 @@ public fun target_key<P: copy + drop, D: copy + drop>(self: &RoleMap<P, D>): ID 
     self.target_key
 }
 
-//Returns the role admin permissions associated with the role_map
+// Returns the role admin permissions associated with the role_map
 public fun role_admin_permissions<P: copy + drop, D: copy + drop>(
     self: &RoleMap<P, D>,
 ): &RoleAdminPermissions<P> {
     &self.role_admin_permissions
 }
 
-public fun issued_capabilities<P: copy + drop, D: copy + drop>(
-    self: &RoleMap<P, D>,
-): &VecSet<ID> {
+public fun issued_capabilities<P: copy + drop, D: copy + drop>(self: &RoleMap<P, D>): &VecSet<ID> {
     &self.issued_capabilities
 }
