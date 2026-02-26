@@ -28,7 +28,7 @@ iota-sdk-types = { workspace = true, features = ["serde"] }
 itertools = { version = "0.13.0", optional = true }
 lazy_static = { version = "1.5.0", optional = true }
 phf.workspace = true
-reqwest = { version = "0.12", default-features = false, optional = true }
+reqwest = { version = "0.13", default-features = false, optional = true }
 secret-storage = { git = "https://github.com/iotaledger/secret-storage.git", tag = "v0.3.0", default-features = false, optional = true }
 serde.workspace = true
 serde_json.workspace = true
