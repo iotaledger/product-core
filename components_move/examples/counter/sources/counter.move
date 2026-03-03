@@ -12,10 +12,6 @@ use tf_components::{
     role_map
 };
 
-#[error]
-const EPermissionDenied: vector<u8> =
-    b"The role associated with the provided capability does not have the required permission";
-
 public struct Counter has key {
     id: UID,
     value: u64,
@@ -78,18 +74,15 @@ public fun create(ctx: &mut TxContext): (Capability, ID) {
     (admin_cap, counter_id)
 }
 
-public fun increment(counter: &mut Counter, cap: &Capability, clock: &Clock, ctx: &mut TxContext) {
-    assert!(
-        counter
-            .access
-            .is_capability_valid(
-                cap,
-                &permission::increment_counter(),
-                clock,
-                ctx,
-            ),
-        EPermissionDenied,
-    );
+public fun increment(counter: &mut Counter, cap: &Capability, clock: &Clock, ctx: &TxContext) {
+    counter
+        .access
+        .assert_capability_valid(
+            cap,
+            &permission::increment_counter(),
+            clock,
+            ctx,
+        );
     counter.value = counter.value + 1;
 }
 
