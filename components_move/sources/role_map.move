@@ -19,7 +19,7 @@
 /// - Allows to create, delete, and update roles and their permissions
 /// - Allows to issue, revoke, and destroy `Capability`s associated with a specific role
 /// - Validates `Capability`s against the defined roles to facilitate proper access control by the integrating module
-///   (function `RoleMap.is_capability_valid()`)
+///   (function `RoleMap.assert_capability_valid()`)
 /// - All functions are access restricted by custom permissions defined during `RoleMap` instantiation
 /// - Stores the initial admin role name in `initial_admin_role_name`
 /// - Tracks active initial admin capability IDs in `initial_admin_cap_ids`
@@ -98,22 +98,13 @@ public struct CapabilityRevoked has copy, drop {
     capability_id: ID,
 }
 
-/// Emitted when a role is created
-public struct RoleCreated has copy, drop {
+/// Emitted when a role is changed.
+///
+/// The action is one of: "create", "update", "delete".
+public struct RoleChanged has copy, drop {
     target_key: ID,
     role: String,
-}
-
-/// Emitted when a role is removed
-public struct RoleRemoved has copy, drop {
-    target_key: ID,
-    role: String,
-}
-
-/// Emitted when a role is updated
-public struct RoleUpdated has copy, drop {
-    target_key: ID,
-    role: String,
+    action: String,
 }
 
 // =============== Core Types ====================
@@ -270,18 +261,19 @@ public fun create_role<P: copy + drop>(
     role: String,
     permissions: VecSet<P>,
     clock: &Clock,
-    ctx: &mut TxContext,
+    ctx: &TxContext,
 ) {
-    self.is_capability_valid(
+    self.assert_capability_valid(
         cap,
         &self.role_admin_permissions.add,
         clock,
         ctx,
     );
 
-    event::emit(RoleCreated {
+    event::emit(RoleChanged {
         target_key: self.target_key,
         role: copy role,
+        action: b"create".to_string(),
     });
 
     vec_map::insert(&mut self.roles, role, permissions);
@@ -293,9 +285,9 @@ public fun delete_role<P: copy + drop>(
     cap: &Capability,
     role: &String,
     clock: &Clock,
-    ctx: &mut TxContext,
+    ctx: &TxContext,
 ) {
-    self.is_capability_valid(
+    self.assert_capability_valid(
         cap,
         &self.role_admin_permissions.delete,
         clock,
@@ -305,9 +297,10 @@ public fun delete_role<P: copy + drop>(
     assert!(*role != self.initial_admin_role_name, EInitialAdminRoleCannotBeDeleted);
     vec_map::remove(&mut self.roles, role);
 
-    event::emit(RoleRemoved {
+    event::emit(RoleChanged {
         target_key: self.target_key,
         role: *role,
+        action: b"delete".to_string(),
     });
 }
 
@@ -318,9 +311,9 @@ public fun update_role_permissions<P: copy + drop>(
     role: &String,
     new_permissions: VecSet<P>,
     clock: &Clock,
-    ctx: &mut TxContext,
+    ctx: &TxContext,
 ) {
-    self.is_capability_valid(
+    self.assert_capability_valid(
         cap,
         &self.role_admin_permissions.update,
         clock,
@@ -342,9 +335,10 @@ public fun update_role_permissions<P: copy + drop>(
     vec_map::remove(&mut self.roles, role);
     vec_map::insert(&mut self.roles, *role, new_permissions);
 
-    event::emit(RoleUpdated {
+    event::emit(RoleChanged {
         target_key: self.target_key,
         role: *role,
+        action: b"update".to_string(),
     });
 }
 
@@ -378,16 +372,14 @@ public fun has_role<P: copy + drop>(self: &RoleMap<P>, role: &String): bool {
 /// - clock: Reference to a Clock instance for time-based validation.
 /// - ctx: Reference to the transaction context for accessing the caller's address.
 ///
-/// Returns
-/// -------
-/// - bool: true if the capability is valid, otherwise aborts with the relevant error.
-public fun is_capability_valid<P: copy + drop>(
+/// Aborts if the capability is invalid for this RoleMap and permission.
+public fun assert_capability_valid<P: copy + drop>(
     self: &RoleMap<P>,
     cap: &Capability,
     permission: &P,
     clock: &Clock,
-    ctx: &mut TxContext,
-): bool {
+    ctx: &TxContext,
+) {
     assert!(self.target_key == cap.target_key(), ECapabilitySecurityVaultIdMismatch);
 
     let permissions = self.get_role_permissions(cap.role());
@@ -404,8 +396,6 @@ public fun is_capability_valid<P: copy + drop>(
         let issued_to_addr = cap.issued_to().borrow();
         assert!(*issued_to_addr == caller, ECapabilityIssuedToMismatch);
     };
-
-    true
 }
 
 /// Create a new capability
@@ -426,7 +416,7 @@ public fun is_capability_valid<P: copy + drop>(
 /// Sends a `CapabilityIssued` event upon successful creation.
 ///
 /// Errors:
-/// - Aborts with any error documented by `is_capability_valid` if the provided capability fails authorization checks.
+/// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
 /// - Aborts with `ERoleDoesNotExist` if the specified role does not exist in the role_map.
 /// - Aborts with `tf_components::capability::EValidityPeriodInconsistent` if the provided valid_from and valid_until are inconsistent.
 public fun new_capability<P: copy + drop>(
@@ -439,7 +429,7 @@ public fun new_capability<P: copy + drop>(
     clock: &Clock,
     ctx: &mut TxContext,
 ): Capability {
-    self.is_capability_valid(
+    self.assert_capability_valid(
         cap,
         &self.capability_admin_permissions.add,
         clock,
@@ -498,7 +488,7 @@ public fun destroy_capability<P: copy + drop>(self: &mut RoleMap<P>, cap_to_dest
 /// Sends a `CapabilityRevoked` event upon successful revocation.
 ///
 /// Errors:
-/// - Aborts with any error documented by `is_capability_valid` if the provided capability fails authorization checks.
+/// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
 /// - Aborts with `ECapabilityNotIssued` if `cap_to_revoke` is not currently issued by this `RoleMap`.
 /// - Aborts with `EInitialAdminCapabilityMustBeExplicitlyDestroyed` if `cap_to_revoke` is an initial admin capability.
 public fun revoke_capability<P: copy + drop>(
@@ -506,9 +496,9 @@ public fun revoke_capability<P: copy + drop>(
     cap: &Capability,
     cap_to_revoke: ID,
     clock: &Clock,
-    ctx: &mut TxContext,
+    ctx: &TxContext,
 ) {
-    self.is_capability_valid(
+    self.assert_capability_valid(
         cap,
         &self.capability_admin_permissions.revoke,
         clock,
@@ -578,7 +568,7 @@ public fun destroy_initial_admin_capability<P: copy + drop>(
 /// Sends a `CapabilityRevoked` event upon successful revocation.
 ///
 /// Errors:
-/// - Aborts with any error documented by `is_capability_valid` if the provided capability fails authorization checks.
+/// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
 /// - Aborts with `ECapabilityNotIssued` if `cap_to_revoke` is not currently issued by this `RoleMap`.
 /// - Aborts with `ECapabilityIsNotInitialAdmin` if `cap_to_revoke` is not an initial admin capability.
 public fun revoke_initial_admin_capability<P: copy + drop>(
@@ -586,9 +576,9 @@ public fun revoke_initial_admin_capability<P: copy + drop>(
     cap: &Capability,
     cap_to_revoke: ID,
     clock: &Clock,
-    ctx: &mut TxContext,
+    ctx: &TxContext,
 ) {
-    self.is_capability_valid(
+    self.assert_capability_valid(
         cap,
         &self.capability_admin_permissions.revoke,
         clock,
