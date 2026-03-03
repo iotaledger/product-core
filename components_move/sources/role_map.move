@@ -86,13 +86,9 @@ public struct CapabilityIssued has copy, drop {
 public struct CapabilityDestroyed has copy, drop {
     target_key: ID,
     capability_id: ID,
-    role: String,
-    issued_to: Option<address>,
-    valid_from: Option<u64>,
-    valid_until: Option<u64>,
 }
 
-/// Emitted when a capability is revoked or destroyed
+/// Emitted when a capability is revoked
 public struct CapabilityRevoked has copy, drop {
     target_key: ID,
     capability_id: ID,
@@ -477,10 +473,6 @@ public fun destroy_capability<P: copy + drop>(self: &mut RoleMap<P>, cap_to_dest
     event::emit(CapabilityDestroyed {
         target_key: self.target_key,
         capability_id: cap_to_destroy.id(),
-        role: *cap_to_destroy.role(),
-        issued_to: *cap_to_destroy.issued_to(),
-        valid_from: *cap_to_destroy.valid_from(),
-        valid_until: *cap_to_destroy.valid_until(),
     });
 
     cap_to_destroy.destroy();
@@ -554,10 +546,6 @@ public fun destroy_initial_admin_capability<P: copy + drop>(
     event::emit(CapabilityDestroyed {
         target_key: self.target_key,
         capability_id: cap_to_destroy.id(),
-        role: *cap_to_destroy.role(),
-        issued_to: *cap_to_destroy.issued_to(),
-        valid_from: *cap_to_destroy.valid_from(),
-        valid_until: *cap_to_destroy.valid_until(),
     });
 
     cap_to_destroy.destroy();
