@@ -21,6 +21,9 @@
 /// - Validates `Capability`s against the defined roles to facilitate proper access control by the integrating module
 ///   (function `RoleMap.is_capability_valid()`)
 /// - All functions are access restricted by custom permissions defined during `RoleMap` instantiation
+/// - Stores the initial admin role name in `initial_admin_role_name`
+/// - Tracks active initial admin capability IDs in `initial_admin_cap_ids`
+/// - Requires explicit initial-admin revoke/destroy APIs for those IDs
 ///
 /// Examples:
 /// - The TF product Audit Trails uses `RoleMap` to manage access to the audit trail records and their operations.
@@ -144,10 +147,13 @@ public struct RoleMap<P: copy + drop> has copy, drop, store {
     /// Mapping of role names to their associated permissions
     roles: VecMap<String, VecSet<P>>,
     /// Name of the initial admin role created by `new`.
+    /// The RoleMap uses this to protect that role from unsafe changes.
     initial_admin_role_name: String,
     /// Allowlist of all issued capability IDs
     issued_capabilities: VecSet<ID>,
-    /// Capability IDs currently issued for the initial admin role.
+    /// IDs of active capabilities for the initial admin role.
+    /// These IDs cannot be removed through generic revoke/destroy functions.
+    /// Use `revoke_initial_admin_capability` or `destroy_initial_admin_capability` instead.
     initial_admin_cap_ids: VecSet<ID>,
     /// Permissions required to administer roles in this RoleMap
     role_admin_permissions: RoleAdminPermissions<P>,
