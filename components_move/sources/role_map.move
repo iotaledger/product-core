@@ -98,13 +98,22 @@ public struct CapabilityRevoked has copy, drop {
     capability_id: ID,
 }
 
-/// Emitted when a role is changed.
-///
-/// The action is one of: "create", "update", "delete".
-public struct RoleChanged has copy, drop {
+/// Emitted when a role is created
+public struct RoleCreated has copy, drop {
     target_key: ID,
     role: String,
-    action: String,
+}
+
+/// Emitted when a role is removed
+public struct RoleRemoved has copy, drop {
+    target_key: ID,
+    role: String,
+}
+
+/// Emitted when a role is updated
+public struct RoleUpdated has copy, drop {
+    target_key: ID,
+    role: String,
 }
 
 // =============== Core Types ====================
@@ -270,10 +279,9 @@ public fun create_role<P: copy + drop>(
         ctx,
     );
 
-    event::emit(RoleChanged {
+    event::emit(RoleCreated {
         target_key: self.target_key,
         role: copy role,
-        action: b"create".to_string(),
     });
 
     vec_map::insert(&mut self.roles, role, permissions);
@@ -297,10 +305,9 @@ public fun delete_role<P: copy + drop>(
     assert!(*role != self.initial_admin_role_name, EInitialAdminRoleCannotBeDeleted);
     vec_map::remove(&mut self.roles, role);
 
-    event::emit(RoleChanged {
+    event::emit(RoleRemoved {
         target_key: self.target_key,
         role: *role,
-        action: b"delete".to_string(),
     });
 }
 
@@ -335,10 +342,9 @@ public fun update_role_permissions<P: copy + drop>(
     vec_map::remove(&mut self.roles, role);
     vec_map::insert(&mut self.roles, *role, new_permissions);
 
-    event::emit(RoleChanged {
+    event::emit(RoleUpdated {
         target_key: self.target_key,
         role: *role,
-        action: b"update".to_string(),
     });
 }
 
