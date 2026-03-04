@@ -91,6 +91,10 @@ public struct CapabilityIssued has copy, drop {
 public struct CapabilityDestroyed has copy, drop {
     target_key: ID,
     capability_id: ID,
+    role: String,
+    issued_to: Option<address>,
+    valid_from: Option<u64>,
+    valid_until: Option<u64>,
 }
 
 /// Emitted when a capability is revoked
@@ -109,6 +113,14 @@ public struct RoleCreated<P: copy + drop, D: copy + drop> has copy, drop {
     timestamp: u64,
 }
 
+/// Emitted when a role is deleted
+public struct RoleDeleted has copy, drop {
+    target_key: ID,
+    role: String,
+    deleted_by: address,
+    timestamp: u64,
+}
+
 /// Emitted when a role's is updated
 public struct RoleUpdated<P: copy + drop, D: copy + drop> has copy, drop {
     target_key: ID,
@@ -116,14 +128,6 @@ public struct RoleUpdated<P: copy + drop, D: copy + drop> has copy, drop {
     new_permissions: VecSet<P>,
     new_data: Option<D>,
     updated_by: address,
-    timestamp: u64,
-}
-
-/// Emitted when a role is deleted
-public struct RoleDeleted has copy, drop {
-    target_key: ID,
-    role: String,
-    deleted_by: address,
     timestamp: u64,
 }
 
@@ -148,6 +152,7 @@ public struct CapabilityAdminPermissions<P: copy + drop> has copy, drop, store {
 }
 
 /// The RoleMap structure mapping role names to their associated permissions and role-data
+///
 /// Generic parameters:
 /// * P defines the permission type used by the integrating module
 ///   (i.e. audit_trail::Permission)
@@ -162,7 +167,7 @@ public struct RoleMap<P: copy + drop, D: copy + drop> has copy, drop, store {
     /// to share the used roles and capabilities between these objects.
     target_key: ID,
     /// Mapping of role names to their associated permissions
-    roles: VecMap<std::string::String, Role<P, D>>,
+    roles: VecMap<String, Role<P, D>>,
     /// Name of the initial admin role created by `new`.
     /// The RoleMap uses this to protect that role from unsafe changes.
     initial_admin_role_name: String,
@@ -284,7 +289,7 @@ public fun new<P: copy + drop, D: copy + drop>(
 }
 
 /// Get the permissions associated with a specific role.
-/// Aborts with ERoleDoesNotExist if the role does not exist.
+/// Aborts with `ERoleDoesNotExist` if the role does not exist.
 public fun get_role_permissions<P: copy + drop, D: copy + drop>(
     self: &RoleMap<P, D>,
     role: &String,
@@ -294,6 +299,7 @@ public fun get_role_permissions<P: copy + drop, D: copy + drop>(
 }
 
 /// Get the role-data associated with a specific role.
+/// Aborts with `ERoleDoesNotExist` if the role does not exist.
 public fun get_role_data<P: copy + drop, D: copy + drop>(
     self: &RoleMap<P, D>,
     role: &String,
@@ -355,6 +361,7 @@ public fun delete_role<P: copy + drop, D: copy + drop>(
         ctx,
     );
 
+    assert!(vec_map::contains(&self.roles, role), ERoleDoesNotExist);
     assert!(*role != self.initial_admin_role_name, EInitialAdminRoleCannotBeDeleted);
     vec_map::remove(&mut self.roles, role);
 
@@ -370,6 +377,9 @@ public fun delete_role<P: copy + drop, D: copy + drop>(
 /// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
 /// - The provided capability needs to grant the `RoleAdminPermissions::update` permission.
 /// - Aborts with `ERoleDoesNotExist` if the specified role does not exist in the role_map.
+/// - Aborts with `EInitialAdminPermissionsInconsistent` if `new_permissions`
+///   does not include all permissions configured in `role_admin_permissions` and
+///   `capability_admin_permissions`.
 ///
 /// Sends a `RoleUpdated` event upon successful update.
 public fun update_role<P: copy + drop, D: copy + drop>(
@@ -496,13 +506,13 @@ public fun assert_capability_valid<P: copy + drop, D: copy + drop>(
 ///
 /// Returns the newly created capability.
 ///
-/// Sends a `CapabilityIssued` event upon successful creation.
-///
 /// Errors:
 /// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
 /// - The provided capability needs to grant the `CapabilityAdminPermissions::add` permission.
 /// - Aborts with `ERoleDoesNotExist` if the specified role does not exist in the role_map.
 /// - Aborts with `tf_components::capability::EValidityPeriodInconsistent` if the provided valid_from and valid_until are inconsistent.
+///
+/// Sends a `CapabilityIssued` event upon successful creation.
 public fun new_capability<P: copy + drop, D: copy + drop>(
     self: &mut RoleMap<P, D>,
     cap: &Capability,
@@ -555,7 +565,11 @@ public fun destroy_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap
     event::emit(CapabilityDestroyed {
         target_key: self.target_key,
         capability_id: cap_to_destroy.id(),
-    });
+        role: *cap_to_destroy.role(),
+        issued_to: *cap_to_destroy.issued_to(),
+        valid_from: *cap_to_destroy.valid_from(),
+        valid_until: *cap_to_destroy.valid_until(),
+     });
 
     cap_to_destroy.destroy();
 }
@@ -629,7 +643,11 @@ public fun destroy_initial_admin_capability<P: copy + drop, D: copy + drop>(
     event::emit(CapabilityDestroyed {
         target_key: self.target_key,
         capability_id: cap_to_destroy.id(),
-    });
+        role: *cap_to_destroy.role(),
+        issued_to: *cap_to_destroy.issued_to(),
+        valid_from: *cap_to_destroy.valid_from(),
+        valid_until: *cap_to_destroy.valid_until(),
+     });
 
     cap_to_destroy.destroy();
 }
@@ -673,6 +691,7 @@ public fun revoke_initial_admin_capability<P: copy + drop, D: copy + drop>(
         capability_id: cap_to_revoke,
     });
 }
+
 /// Checks if the provided permissions include all required admin permissions
 ///
 /// Returns true if the provided permissions include all required admin
