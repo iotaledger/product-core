@@ -6,13 +6,11 @@
 module tf_components::counter;
 
 use iota::clock::Clock;
-use tf_components::capability::Capability;
-use tf_components::counter_permission::{Self as permission, CounterPermission};
-use tf_components::role_map;
-
-#[error]
-const EPermissionDenied: vector<u8> =
-    b"The role associated with the provided capability does not have the required permission";
+use tf_components::{
+    capability::Capability,
+    counter_permission::{Self as permission, CounterPermission},
+    role_map
+};
 
 public struct Counter has key {
     id: UID,
@@ -77,17 +75,14 @@ public fun create(ctx: &mut TxContext): (Capability, ID) {
 }
 
 public fun increment(counter: &mut Counter, cap: &Capability, clock: &Clock, ctx: &TxContext) {
-    assert!(
-        counter
-            .access
-            .is_capability_valid(
-                cap,
-                &permission::increment_counter(),
-                clock,
-                ctx,
-            ),
-        EPermissionDenied,
-    );
+    counter
+        .access
+        .assert_capability_valid(
+            cap,
+            &permission::increment_counter(),
+            clock,
+            ctx,
+        );
     counter.value = counter.value + 1;
 }
 
