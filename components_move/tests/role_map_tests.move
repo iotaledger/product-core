@@ -145,7 +145,7 @@ fun test_new_fails_with_empty_initial_admin_permissions() {
 
     let empty_permissions = vec_set::empty<test_utils::Permission>();
 
-    let (mut role_map, admin_cap) = role_map::new(
+    let (mut role_map, admin_cap) = role_map::new<_, String>(
         target_key,
         b"SuperAdmin".to_string(),
         empty_permissions,
@@ -196,10 +196,11 @@ fun test_update_initial_admin_role_removing_required_permissions_fails() {
     let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
     let initial_role = test_utils::initial_admin_role_name();
 
-    role_map.update_role_permissions(
+    role_map.update_role(
         &admin_cap,
         &initial_role,
         vec_set::singleton(test_utils::manage_roles()),
+        std::option::none(),
         &clock,
         ts::ctx(&mut scenario),
     );
@@ -494,6 +495,7 @@ fun test_destroy_initial_admin_capability_rejects_non_admin_cap() {
         &admin_cap,
         string::utf8(b"Reader"),
         vec_set::singleton(test_utils::manage_roles()),
+        std::option::none(),
         &clock,
         ts::ctx(&mut scenario),
     );
@@ -531,6 +533,7 @@ fun test_revoke_initial_admin_capability_rejects_non_admin_cap() {
         &admin_cap,
         string::utf8(b"Reader"),
         vec_set::singleton(test_utils::manage_roles()),
+        std::option::none(),
         &clock,
         ts::ctx(&mut scenario),
     );

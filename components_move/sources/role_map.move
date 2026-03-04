@@ -127,12 +127,6 @@ public struct RoleDeleted has copy, drop {
     timestamp: u64,
 }
 
-/// Emitted when a role is updated
-public struct RoleUpdated has copy, drop {
-    target_key: ID,
-    role: String,
-}
-
 // =============== Core Types ====================
 
 /// Defines the permissions required to administer roles in this RoleMap
@@ -248,7 +242,7 @@ public fun new<P: copy + drop, D: copy + drop>(
     role_admin_permissions: RoleAdminPermissions<P>,
     capability_admin_permissions: CapabilityAdminPermissions<P>,
     ctx: &mut TxContext,
-): (RoleMap<, DP>, Capability) {
+): (RoleMap<P, D>, Capability) {
     assert!(
         has_required_admin_permissions(
             &initial_admin_role_permissions,
@@ -342,6 +336,11 @@ public fun create_role<P: copy + drop, D: copy + drop>(
 }
 
 /// Delete an existing role
+/// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
+/// - The provided capability needs to grant the `RoleAdminPermissions::delete` permission.
+/// - Aborts with `ERoleDoesNotExist` if the specified role does not exist in the role_map.
+///
+/// Sends a `RoleDeleted` event upon successful update.
 public fun delete_role<P: copy + drop, D: copy + drop>(
     self: &mut RoleMap<P, D>,
     cap: &Capability,
@@ -349,7 +348,7 @@ public fun delete_role<P: copy + drop, D: copy + drop>(
     clock: &Clock,
     ctx: &TxContext,
 ) {
-    self.is_capability_valid(
+    self.assert_capability_valid(
         cap,
         &self.role_admin_permissions.delete,
         clock,
@@ -367,14 +366,14 @@ public fun delete_role<P: copy + drop, D: copy + drop>(
     });
 }
 
-/// Update permissions associated with an existing role
+/// Update permissions and role_data associated with an existing role
 /// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
 /// - The provided capability needs to grant the `RoleAdminPermissions::update` permission.
 /// - Aborts with `ERoleDoesNotExist` if the specified role does not exist in the role_map.
 ///
 /// Sends a `RoleUpdated` event upon successful update.
-public fun update_role_permissions<P: copy + drop>(
-    role_map: &mut RoleMap<P>,
+public fun update_role<P: copy + drop, D: copy + drop>(
+    self: &mut RoleMap<P, D>,
     cap: &Capability,
     role_name: &String,
     new_permissions: VecSet<P>,
@@ -389,7 +388,7 @@ public fun update_role_permissions<P: copy + drop>(
         ctx,
     );
 
-    if (*role == self.initial_admin_role_name) {
+    if (*role_name == self.initial_admin_role_name) {
         assert!(
             has_required_admin_permissions(
                 &new_permissions,
@@ -573,7 +572,7 @@ public fun destroy_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap
 /// - The provided capability needs to grant the `CapabilityAdminPermissions::revoke` permission.
 /// - Aborts with `ECapabilityNotIssued` if `cap_to_revoke` is not currently issued by this `RoleMap`.
 /// - Aborts with `EInitialAdminCapabilityMustBeExplicitlyDestroyed` if `cap_to_revoke` is an initial admin capability.
-public fun revoke_capability<P: copy + drop>(
+public fun revoke_capability<P: copy + drop, D: copy + drop>(
     self: &mut RoleMap<P, D>,
     cap: &Capability,
     cap_to_revoke: ID,

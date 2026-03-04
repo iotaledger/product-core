@@ -14,9 +14,6 @@ use tf_components::counter_permission::{Self as permission, CounterPermission};
 use tf_components::role_map;
 
 #[error]
-const EPermissionDenied: vector<u8> =
-    b"The role associated with the provided capability does not have the required permission";
-#[error]
 const EWeekDayMismatch: vector<u8> =
     b"The role associated with the provided capability is restricted to a specific weekday which does not match the current weekday";
 
@@ -139,7 +136,7 @@ public fun increment(self: &mut Counter, cap: &Capability, clock: &Clock, ctx: &
         clock,
         ctx,
     );
-    counter.value = counter.value + 1;
+    self.value = self.value + 1;
 }
 
 public fun assert_capability_valid(
@@ -163,6 +160,10 @@ public fun assert_capability_valid(
         assert!(false, EWeekDayMismatch);
     };
     true
+}
+
+public fun access(self: &Counter): &role_map::RoleMap<CounterPermission, Weekday> {
+    &self.access
 }
 
 public fun access_mut(self: &mut Counter): &mut role_map::RoleMap<CounterPermission, Weekday> {
