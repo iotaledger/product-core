@@ -6,9 +6,11 @@ module tf_components::example_counter_tests;
 
 use iota::test_scenario as ts;
 use std::string;
-use tf_components::capability::Capability;
-use tf_components::counter::{Self, Counter};
-use tf_components::counter_permission as permission;
+use tf_components::{
+    capability::Capability,
+    counter::{Self, Counter},
+    counter_permission as permission
+};
 
 /// Creates a Counter with a "counter-admin" role restricted to Wednesday,
 /// issues a capability for that role to `counter_admin_user`, and returns

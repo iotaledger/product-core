@@ -133,26 +133,28 @@ public fun create(ctx: &mut TxContext): (Capability, ID) {
 }
 
 public fun increment(self: &mut Counter, cap: &Capability, clock: &Clock, ctx: &TxContext) {
-    assert!(
-        self.is_capability_valid(
-            cap,
-            &permission::increment_counter(),
-            clock,
-            ctx,
-        ),
-        EPermissionDenied,
+    self.assert_capability_valid(
+        cap,
+        &permission::increment_counter(),
+        clock,
+        ctx,
     );
-    self.value = self.value + 1;
+    counter.value = counter.value + 1;
 }
 
-public fun is_capability_valid(
+public fun assert_capability_valid(
     self: &Counter,
     cap: &Capability,
     permission: &CounterPermission,
     clock: &Clock,
     ctx: &TxContext,
 ): bool {
-    assert!(self.access.is_capability_valid(cap, permission, clock, ctx), EPermissionDenied);
+    self.access.assert_capability_valid(
+        cap,
+        permission,
+        clock,
+        ctx
+    );
     let role_data_option = self.access.get_role_data(cap.role());
     if (role_data_option.is_some_and!(|required_weekday| {
             let current_weekday = to_weekday(clock);
@@ -161,10 +163,6 @@ public fun is_capability_valid(
         assert!(false, EWeekDayMismatch);
     };
     true
-}
-
-public fun access(self: &Counter): &role_map::RoleMap<CounterPermission, Weekday> {
-    &self.access
 }
 
 public fun access_mut(self: &mut Counter): &mut role_map::RoleMap<CounterPermission, Weekday> {
