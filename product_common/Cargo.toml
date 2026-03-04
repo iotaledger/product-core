@@ -1,6 +1,6 @@
 [package]
 name = "product_common"
-version = "0.8.11"
+version = "0.8.12"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
@@ -23,12 +23,12 @@ async-trait.workspace = true
 bcs = { workspace = true, optional = true }
 cfg-if.workspace = true
 fastcrypto = { workspace = true, optional = true }
-iota-keys = { package = "iota-keys", git = "https://github.com/iotaledger/iota.git", tag = "v1.16.2", optional = true }
+iota-keys = { package = "iota-keys", git = "https://github.com/iotaledger/iota.git", tag = "v1.17.2", optional = true }
 iota-sdk-types = { workspace = true, features = ["serde"] }
 itertools = { version = "0.13.0", optional = true }
 lazy_static = { version = "1.5.0", optional = true }
 phf.workspace = true
-reqwest = { version = "0.12", default-features = false, optional = true }
+reqwest = { version = "0.13", default-features = false, optional = true }
 secret-storage = { git = "https://github.com/iotaledger/secret-storage.git", tag = "v0.3.0", default-features = false, optional = true }
 serde.workspace = true
 serde_json.workspace = true
@@ -38,20 +38,20 @@ toml = { workspace = true } # , optional = true --- TODO see comment for `move-h
 url = { version = "2", default-features = false, features = ["serde"], optional = true }
 
 [dev-dependencies]
-iota_interaction = { path = "../iota_interaction", version = "0.8.11" }
-iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.11" }
+iota_interaction = { path = "../iota_interaction", version = "0.8.12" }
+iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.12" }
 tempfile.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-hyper.workspace = true # Fix for iota-sdk 1.13 issue with axum-server.
-iota_interaction = { path = "../iota_interaction", version = "0.8.11", features = ["keytool"] }
-iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.11", optional = true }
+hyper.workspace = true
+iota_interaction = { path = "../iota_interaction", version = "0.8.12", features = ["keytool"] }
+iota_interaction_rust = { path = "../iota_interaction_rust", version = "0.8.12", optional = true }
 iota-sdk.workspace = true
 tokio.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-iota_interaction = { path = "../iota_interaction", version = "0.8.11", default-features = false }
-iota_interaction_ts = { path = "../bindings/wasm/iota_interaction_ts", version = "0.8.11" }
+iota_interaction = { path = "../iota_interaction", version = "0.8.12", default-features = false }
+iota_interaction_ts = { path = "../bindings/wasm/iota_interaction_ts", version = "0.8.12" }
 js-sys = { version = "0.3", optional = true }
 serde-wasm-bindgen = { version = "0.6", optional = true }
 wasm-bindgen = { version = "0.2.100", optional = true }
