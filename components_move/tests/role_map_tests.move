@@ -4,6 +4,8 @@
 #[test_only]
 module tf_components::role_map_tests;
 
+use std::string::String;
+
 use iota::{test_scenario as ts, vec_set};
 use std::string;
 use tf_components::{core_test_utils as test_utils, role_map};
@@ -25,7 +27,7 @@ fun test_role_based_permission_delegation() {
 
     // Step 1: admin_user creates the audit trail
     let (mut role_map, admin_cap) = {
-        let (role_map, admin_cap) = role_map::new(
+        let (role_map, admin_cap) = role_map::new<_, String>(
             target_key,
             initial_admin_role_name,
             test_utils::super_admin_permissions(),
@@ -46,6 +48,9 @@ fun test_role_based_permission_delegation() {
     {
         let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
 
+        let role_admin_data = b"RoleAdmin role data".to_string();
+        let cap_admin_data = b"CapAdmin role data".to_string();
+
         // Verify initial state - should only have the initial admin role
         assert!(role_map.size() == 1, 2);
 
@@ -54,6 +59,7 @@ fun test_role_based_permission_delegation() {
             &admin_cap,
             string::utf8(b"RoleAdmin"),
             vec_set::singleton(test_utils::manage_roles()),
+            std::option::some(role_admin_data),
             &clock,
             ts::ctx(&mut scenario),
         );
@@ -63,14 +69,54 @@ fun test_role_based_permission_delegation() {
             &admin_cap,
             string::utf8(b"CapAdmin"),
             vec_set::singleton(test_utils::manage_capabilities()),
+            std::option::some(cap_admin_data),
             &clock,
             ts::ctx(&mut scenario),
         );
 
         // Verify both roles were created
         assert!(role_map.size() == 3, 3); // Initial admin + RoleAdmin + CapAdmin
-        assert!(role_map.has_role(&string::utf8(b"RoleAdmin")), 4);
-        assert!(role_map.has_role(&string::utf8(b"CapAdmin")), 5);
+        assert!(role_map.has_role(&b"RoleAdmin".to_string()), 4);
+        assert!(role_map.has_role(&b"CapAdmin".to_string()), 5);
+        assert!(role_map.get_role_data(&b"RoleAdmin".to_string()) == std::option::some(role_admin_data), 6);
+        assert!(role_map.get_role_data(&b"CapAdmin".to_string()) == std::option::some(cap_admin_data), 7);
+
+        iota::clock::destroy_for_testing(clock);
+    };
+
+    // Step 3: Admin updates RoleAdmin and CapAdmin roles
+    ts::next_tx(&mut scenario, admin_user);
+    {
+        let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+
+        let updated_role_admin_data = b"Updated RoleAdmin role data".to_string();
+        let updated_cap_admin_data = b"Updated CapAdmin role data".to_string();
+
+        // Update RoleAdmin role permissions and data - for simplicity, we swap the permissions to each other's permissions
+        role_map.update_role(
+            &admin_cap,
+            &b"RoleAdmin".to_string(),
+            vec_set::singleton(test_utils::manage_capabilities()),
+            std::option::some(updated_role_admin_data),
+            &clock,
+            ts::ctx(&mut scenario),
+        );
+
+        // Update CapAdmin role - for simplicity, we swap the permissions to each other's permissions
+        role_map.update_role(
+            &admin_cap,
+            &b"CapAdmin".to_string(),
+            vec_set::singleton(test_utils::manage_roles()),
+            std::option::some(updated_cap_admin_data),
+            &clock,
+            ts::ctx(&mut scenario),
+        );
+
+        // Verify both roles were updated
+        assert!(role_map.get_role_data(&b"RoleAdmin".to_string()) == std::option::some(updated_role_admin_data), 8);
+        assert!(role_map.get_role_data(&b"CapAdmin".to_string()) == std::option::some(updated_cap_admin_data), 9);
+        assert!(role_map.get_role_permissions(&b"RoleAdmin".to_string()).contains(&test_utils::manage_capabilities()), 10);
+        assert!(role_map.get_role_permissions(&b"CapAdmin".to_string()).contains(&test_utils::manage_roles()), 11);
 
         iota::clock::destroy_for_testing(clock);
     };
@@ -99,7 +145,7 @@ fun test_new_fails_with_empty_initial_admin_permissions() {
 
     let empty_permissions = vec_set::empty<test_utils::Permission>();
 
-    let (mut role_map, admin_cap) = role_map::new(
+    let (mut role_map, admin_cap) = role_map::new<_, String>(
         target_key,
         b"SuperAdmin".to_string(),
         empty_permissions,
@@ -150,10 +196,11 @@ fun test_update_initial_admin_role_removing_required_permissions_fails() {
     let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
     let initial_role = test_utils::initial_admin_role_name();
 
-    role_map.update_role_permissions(
+    role_map.update_role(
         &admin_cap,
         &initial_role,
         vec_set::singleton(test_utils::manage_roles()),
+        std::option::none(),
         &clock,
         ts::ctx(&mut scenario),
     );
@@ -448,6 +495,7 @@ fun test_destroy_initial_admin_capability_rejects_non_admin_cap() {
         &admin_cap,
         string::utf8(b"Reader"),
         vec_set::singleton(test_utils::manage_roles()),
+        std::option::none(),
         &clock,
         ts::ctx(&mut scenario),
     );
@@ -485,6 +533,7 @@ fun test_revoke_initial_admin_capability_rejects_non_admin_cap() {
         &admin_cap,
         string::utf8(b"Reader"),
         vec_set::singleton(test_utils::manage_roles()),
+        std::option::none(),
         &clock,
         ts::ctx(&mut scenario),
     );
