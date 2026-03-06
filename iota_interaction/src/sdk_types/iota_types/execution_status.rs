@@ -7,7 +7,7 @@ use std::fmt::{self, Display, Formatter};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use super::super::move_core_types::language_storage::ModuleId;
+use crate::move_core_types::language_storage::ModuleId;
 use super::base_types::{CodeOffset, IotaAddress, ObjectID, TypeParameterIndex};
 
 #[derive(Eq, PartialEq, Clone, Debug, Serialize, Deserialize)]

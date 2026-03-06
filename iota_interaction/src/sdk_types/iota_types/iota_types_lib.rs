@@ -5,8 +5,8 @@
 #[allow(unused)] // Kept in sync with original source, so keep as is.
 use serde::{Deserialize, Serialize};
 
-use super::super::move_core_types::account_address::AccountAddress;
-use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use crate::move_core_types::account_address::AccountAddress;
+use crate::move_core_types::language_storage::{StructTag, TypeTag};
 use super::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use super::object::OBJECT_START_VERSION;
 
@@ -64,7 +64,7 @@ const fn builtin_address(suffix: u16) -> AccountAddress {
 /// matches this format exactly, with no remaining input. This function is
 /// intended for use within the authority codebase.
 pub fn parse_iota_struct_tag(s: &str) -> anyhow::Result<StructTag> {
-    use super::super::move_core_types::parsing::types::ParsedStructType;
+    use crate::move_core_types::parsing::types::ParsedStructType;
     ParsedStructType::parse(s)?.into_struct_tag(&resolve_address)
 }
 
@@ -73,7 +73,7 @@ pub fn parse_iota_struct_tag(s: &str) -> anyhow::Result<StructTag> {
 /// only if `s` matches this format exactly, with no remaining input. This
 /// function is intended for use within the authority codebase.
 pub fn parse_iota_type_tag(s: &str) -> anyhow::Result<TypeTag> {
-    use super::super::move_core_types::parsing::types::ParsedType;
+    use crate::move_core_types::parsing::types::ParsedType;
     ParsedType::parse(s)?.into_type_tag(&resolve_address)
 }
 

@@ -13,8 +13,8 @@ use serde::{Deserialize, Serialize};
 use strum::IntoStaticStr;
 use crate::{fp_ensure, fp_bail};
 
-use super::super::move_core_types::identifier::Identifier;
-use super::super::move_core_types::language_storage::TypeTag;
+use crate::move_core_types::identifier::Identifier;
+use crate::move_core_types::language_storage::TypeTag;
 use super::base_types::{EpochId, IotaAddress, ObjectID, ObjectRef, SequenceNumber};
 use super::error::{UserInputError, UserInputResult};
 use super::{

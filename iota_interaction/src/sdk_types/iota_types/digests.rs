@@ -481,13 +481,22 @@ impl ZKLoginInputsDigest {
     }
 }
 
-
 /// MoveAuthenticatorDigest is the hash (digest) of the `GenericSignature`
 /// payload when the transaction uses a `MoveAuthenticator` as its signature
 /// scheme. It is evaluated during the authentication phase of a transaction and
 /// is part of the `AuthContext`.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct MoveAuthenticatorDigest(Digest);
+
+impl Default for MoveAuthenticatorDigest {
+    fn default() -> Self {
+        Self::ZERO
+    }
+}
+
+impl MoveAuthenticatorDigest {
+    pub const ZERO: Self = Self(Digest::ZERO);
+}
 
 impl fmt::Display for MoveAuthenticatorDigest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
