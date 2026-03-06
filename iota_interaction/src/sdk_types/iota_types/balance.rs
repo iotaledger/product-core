@@ -5,9 +5,9 @@
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use super::super::move_core_types::annotated_value::{MoveFieldLayout, MoveStructLayout, MoveTypeLayout};
-use super::super::move_core_types::identifier::IdentStr;
-use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use crate::move_core_types::annotated_value::{MoveFieldLayout, MoveStructLayout, MoveTypeLayout};
+use crate::move_core_types::identifier::IdentStr;
+use crate::move_core_types::language_storage::{StructTag, TypeTag};
 use super::error::{ExecutionError, ExecutionErrorKind};
 use super::iota_serde::{BigInt, Readable};
 use super::IOTA_FRAMEWORK_ADDRESS;
