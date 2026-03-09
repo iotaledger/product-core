@@ -24,11 +24,9 @@ pub use iota_verifiable_credential::*;
 pub use keypair_signer::*;
 #[cfg(feature = "keytool")]
 pub use keytool::*;
+pub use move_core_types as move_types;
 pub use move_type::*;
 pub use transaction_builder_trait::*;
-
-pub use move_core_types as move_types;
-pub use move_core_types as move_core_types;
 
 #[cfg(target_arch = "wasm32")]
 mod sdk_types;
