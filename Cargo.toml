@@ -27,9 +27,6 @@ iota-sdk-types = { git = "https://github.com/iotaledger/iota-rust-sdk.git", rev 
 move-binary-format = { git = "https://github.com/iotaledger/iota.git", package = "move-binary-format", tag = "v1.18.1-rc" }
 move-core-types = { git = "https://github.com/iotaledger/iota.git", package = "move-core-types", tag = "v1.18.1-rc" }
 move-bytecode-utils = { git = "https://github.com/iotaledger/iota.git", package = "move-bytecode-utils", tag = "v1.18.1-rc" }
-
-
-
 phf = { version = "0.11.2", features = ["macros"] }
 secret-storage = { git = "https://github.com/iotaledger/secret-storage.git", default-features = false, tag = "v0.3.0" }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive", "rc"] }
