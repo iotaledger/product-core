@@ -37,6 +37,7 @@ use iota::clock::{Self, Clock};
 use iota::event;
 use iota::vec_map::{Self, VecMap};
 use iota::vec_set::{Self, VecSet};
+use iota::linked_table::{Self, LinkedTable};
 use std::string::String;
 use tf_components::capability::{Self, Capability};
 
@@ -49,7 +50,7 @@ const ERoleDoesNotExist: vector<u8> =
 const ECapabilityHasBeenRevoked: vector<u8> =
     b"The provided capability has been revoked and is no longer valid";
 #[error]
-const ECapabilitySecurityVaultIdMismatch: vector<u8> =
+const ECapabilityTargetKeyMismatch: vector<u8> =
     b"The target_key associated with the provided capability does not match the target_key of the `RoleMap`";
 #[error]
 const ECapabilityTimeConstraintsNotMet: vector<u8> =
@@ -61,8 +62,8 @@ const ECapabilityIssuedToMismatch: vector<u8> =
 const ECapabilityPermissionDenied: vector<u8> =
     b"The role associated with provided capability does not have the required permission";
 #[error]
-const ECapabilityNotIssued: vector<u8> =
-    b"The specified capability is not currently issued by this `RoleMap`";
+const ECapabilityToRevokeHasAlreadyBeenRevoked: vector<u8> =
+    b"The capability that shall be revoked has already been revoked";
 #[error]
 const EInitialAdminPermissionsInconsistent: vector<u8> =
     b"The initial admin role must include all configured role and capability admin permissions";
@@ -101,6 +102,7 @@ public struct CapabilityDestroyed has copy, drop {
 public struct CapabilityRevoked has copy, drop {
     target_key: ID,
     capability_id: ID,
+    valid_until: u64,
 }
 
 /// Emitted when a role is created
@@ -161,7 +163,7 @@ public struct CapabilityAdminPermissions<P: copy + drop> has copy, drop, store {
 ///   To perform additional access control checks, integrating modules need to wrap the `RoleMap::is_capability_valid()` call
 ///   in their own `is_capability_valid()` implementation, use this wrapper function for evaluating the additional checks
 ///   and use the role-data to store role specific variables. `RoleMap::is_capability_valid()` itself will ignore the role-data.
-public struct RoleMap<P: copy + drop, D: copy + drop> has copy, drop, store {
+public struct RoleMap<P: copy + drop, D: copy + drop> has store {
     /// Identifies the scope (or domain) managed by the RoleMap.  Usually this is the ID of the managed onchain object
     /// (i.e. an audit trail). You can also derive an arbitrary ID value reused by several managed onchain objects
     /// to share the used roles and capabilities between these objects.
@@ -171,8 +173,11 @@ public struct RoleMap<P: copy + drop, D: copy + drop> has copy, drop, store {
     /// Name of the initial admin role created by `new`.
     /// The RoleMap uses this to protect that role from unsafe changes.
     initial_admin_role_name: String,
-    /// Allowlist of all issued capability IDs
-    issued_capabilities: VecSet<ID>,
+    /// Denylist of all revoked capability IDs mapped to their optional valid_until timestamp (if any).
+    /// If a revoked capability has no valid_until timestamp, its u64 value is set to 0.
+    /// The optional valid_until timestamp allows for automatic removal of expired capabilities to keep the list as
+    /// short as possible (see function `cleanup_revoked_capabilities_list()` for more details).
+    revoked_capabilities: LinkedTable<ID, u64>,
     /// IDs of active capabilities for the initial admin role.
     /// These IDs cannot be removed through generic revoke/destroy functions.
     /// Use `revoke_initial_admin_capability` or `destroy_initial_admin_capability` instead.
@@ -271,8 +276,6 @@ public fun new<P: copy + drop, D: copy + drop>(
         option::none(),
         ctx,
     );
-    let mut issued_capabilities = vec_set::empty<ID>();
-    issued_capabilities.insert(admin_cap.id());
     let mut initial_admin_cap_ids = vec_set::empty<ID>();
     initial_admin_cap_ids.insert(admin_cap.id());
     let role_map = RoleMap {
@@ -281,12 +284,33 @@ public fun new<P: copy + drop, D: copy + drop>(
         role_admin_permissions,
         capability_admin_permissions,
         target_key,
-        issued_capabilities,
+        revoked_capabilities: linked_table::new<ID, u64>(ctx),
         initial_admin_cap_ids,
     };
 
     (role_map, admin_cap)
 }
+
+/// Safely destroys a RoleMap.
+/// Will destroy all stored roles and capabilities.
+public fun destroy<P: copy + drop, D: copy + drop>(self: RoleMap<P, D>) {
+    let RoleMap {
+        roles: _,
+        initial_admin_role_name: _,
+        role_admin_permissions: _,
+        capability_admin_permissions: _,
+        target_key: _,
+        mut revoked_capabilities,
+        initial_admin_cap_ids: _,
+    } = self;
+
+    while (!revoked_capabilities.is_empty()) {
+       revoked_capabilities.pop_front();
+    };
+    revoked_capabilities.destroy_empty();
+}
+
+// ============ Role Functions ====================
 
 /// Get the permissions associated with a specific role.
 /// Aborts with `ERoleDoesNotExist` if the role does not exist.
@@ -441,11 +465,12 @@ public(package) fun new_role<P: copy + drop, D: copy + drop>(
 }
 
 /// ===== Capability Functions =======
+
 /// Indicates if a provided capability is valid.
 ///
 /// A capability is considered valid if:
 /// - The capability's target_key matches the RoleMap's target_key.
-///   Aborts with ECapabilitySecurityVaultIdMismatch if not matching.
+///   Aborts with ECapabilityTargetKeyMismatch if not matching.
 /// - The role value specified by the capability exists in the `RoleMap` mapping.
 ///   Aborts with `ERoleDoesNotExist` if the role does not exist.
 /// - The role associated with the capability contains the permission specified by the `permission` argument.
@@ -459,7 +484,6 @@ public(package) fun new_role<P: copy + drop, D: copy + drop>(
 ///
 /// Parameters
 /// ----------
-/// - self: Reference to the `RoleMap` mapping.
 /// - cap: Reference to the capability to be validated.
 /// - permission: The permission to check against the capability's role.
 /// - clock: Reference to a Clock instance for time-based validation.
@@ -473,12 +497,12 @@ public fun assert_capability_valid<P: copy + drop, D: copy + drop>(
     clock: &Clock,
     ctx: &TxContext,
 ) {
-    assert!(self.target_key == cap.target_key(), ECapabilitySecurityVaultIdMismatch);
+    assert!(self.target_key == cap.target_key(), ECapabilityTargetKeyMismatch);
 
     let permissions = self.get_role_permissions(cap.role());
     assert!(vec_set::contains(permissions, permission), ECapabilityPermissionDenied);
 
-    assert!(self.issued_capabilities.contains(&cap.id()), ECapabilityHasBeenRevoked);
+    assert!(!self.revoked_capabilities.contains(cap.id()), ECapabilityHasBeenRevoked);
 
     if (cap.valid_from().is_some() || cap.valid_until().is_some()) {
         assert!(cap.is_currently_valid(clock), ECapabilityTimeConstraintsNotMet);
@@ -495,8 +519,8 @@ public fun assert_capability_valid<P: copy + drop, D: copy + drop>(
 ///
 /// Parameters
 /// ----------
-/// - self: Reference to the `RoleMap` mapping.
 /// - cap: Reference to the capability used to authorize the creation of the new capability.
+///   Needs to grant the `CapabilityAdminPermissions::add` permission.
 /// - role: The role to be assigned to the new capability.
 /// - issued_to: Optional address restriction for the new capability.
 /// - valid_from: Optional start time (in milliseconds since Unix epoch) for the new capability.
@@ -508,7 +532,6 @@ public fun assert_capability_valid<P: copy + drop, D: copy + drop>(
 ///
 /// Errors:
 /// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
-/// - The provided capability needs to grant the `CapabilityAdminPermissions::add` permission.
 /// - Aborts with `ERoleDoesNotExist` if the specified role does not exist in the role_map.
 /// - Aborts with `tf_components::capability::EValidityPeriodInconsistent` if the provided valid_from and valid_until are inconsistent.
 ///
@@ -552,14 +575,14 @@ public fun new_capability<P: copy + drop, D: copy + drop>(
 ///
 /// Sends a `CapabilityDestroyed` event upon successful destruction.
 public fun destroy_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap<P, D>, cap_to_destroy: Capability) {
-    assert!(self.target_key == cap_to_destroy.target_key(), ECapabilitySecurityVaultIdMismatch);
+    assert!(self.target_key == cap_to_destroy.target_key(), ECapabilityTargetKeyMismatch);
     assert!(
         !self.initial_admin_cap_ids.contains(&cap_to_destroy.id()),
         EInitialAdminCapabilityMustBeExplicitlyDestroyed,
     );
 
-    if (self.issued_capabilities.contains(&cap_to_destroy.id())) {
-        self.issued_capabilities.remove(&cap_to_destroy.id());
+    if (self.revoked_capabilities.contains(cap_to_destroy.id())) {
+        self.revoked_capabilities.remove(cap_to_destroy.id());
     };
 
     event::emit(CapabilityDestroyed {
@@ -580,16 +603,36 @@ public fun destroy_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap
 /// Use `revoke_initial_admin_capability` instead.
 ///
 /// Sends a `CapabilityRevoked` event upon successful revocation.
-///
+/// 
+/// Parameters
+/// ----------
+/// - cap: Reference to the capability used to authorize the revocation of the `cap_to_revoke` capability.
+///   Needs to grant the `CapabilityAdminPermissions::revoke` permission.
+/// - cap_to_revoke: 
+///   The capability to be revoked is specified by its ID.
+///   The user of this function is responsible to only pass `cap_to_revoke` values that meet the following constraints:
+///   * A capability with the provided `cap_to_revoke` ID exists
+///   * The capability specified by `cap_to_revoke` has been issued by this RoleMap instance
+///   * The optional `valid_until` value of the capability specified by `cap_to_revoke` has not expired
+///     (in this case there would be no need to revoke it)
+///   These checks should be performed by the user of this function to prevent the internally managed `revoked_capabilities`
+///   list from being swamped with unnecessary capability ids. Although there is no maximum size to be taken into account
+///   the list should be held as small as possible. The function itself will not evaluate any of the above listed checks.
+/// - cap_to_revoke_valid_until: If specified, the `valid_until` value of the `cap_to_revoke`.
+///   This value will be stored in the internally managed `revoked_capabilities` list and can be used later on to 
+///   do automatic list cleanups by removing already expired capabilities from the list.
+/// - clock: Reference to a Clock instance for time-based validation.
+/// - ctx: Reference to the transaction context.
+/// 
 /// Errors:
 /// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
-/// - The provided capability needs to grant the `CapabilityAdminPermissions::revoke` permission.
-/// - Aborts with `ECapabilityNotIssued` if `cap_to_revoke` is not currently issued by this `RoleMap`.
+/// - Aborts with `ECapabilityToRevokeHasAlreadyBeenRevoked` if `cap_to_revoke` has already been revoked.
 /// - Aborts with `EInitialAdminCapabilityMustBeExplicitlyDestroyed` if `cap_to_revoke` is an initial admin capability.
 public fun revoke_capability<P: copy + drop, D: copy + drop>(
     self: &mut RoleMap<P, D>,
     cap: &Capability,
     cap_to_revoke: ID,
+    cap_to_revoke_valid_until: Option<u64>,
     clock: &Clock,
     ctx: &TxContext,
 ) {
@@ -600,17 +643,61 @@ public fun revoke_capability<P: copy + drop, D: copy + drop>(
         ctx,
     );
 
-    assert!(self.issued_capabilities.contains(&cap_to_revoke), ECapabilityNotIssued);
     assert!(
         !self.initial_admin_cap_ids.contains(&cap_to_revoke),
         EInitialAdminCapabilityMustBeExplicitlyDestroyed,
     );
-    self.issued_capabilities.remove(&cap_to_revoke);
 
-    event::emit(CapabilityRevoked {
-        target_key: self.target_key,
-        capability_id: cap_to_revoke,
-    });
+    self.add_cap_to_revoke_list(cap_to_revoke, cap_to_revoke_valid_until)
+}
+
+/// Remove expired entries from the `revoked_capabilities` denylist.
+///
+/// Iterates through the revoked capabilities list and removes every entry whose
+/// `valid_until` timestamp is **non-zero** and **less than** the current clock time,
+/// because those capabilities are already naturally expired and no longer need to
+/// occupy space in the denylist.
+///
+/// Entries with `valid_until == 0` (i.e. capabilities that had no expiry) are kept,
+/// since they remain potentially valid and must stay on the denylist.
+///
+/// Parameters
+/// ----------
+/// - cap: Reference to the capability used to authorize this operation.
+///   Needs to grant the `CapabilityAdminPermissions::revoke` permission.
+/// - clock: Reference to a Clock instance for obtaining the current timestamp.
+/// - ctx: Reference to the transaction context.
+///
+/// Errors:
+/// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
+public fun cleanup_revoked_capabilities_list<P: copy + drop, D: copy + drop>(
+    self: &mut RoleMap<P, D>,
+    cap: &Capability,
+    clock: &Clock,
+    ctx: &TxContext,
+) {
+    self.assert_capability_valid(
+        cap,
+        &self.capability_admin_permissions.revoke,
+        clock,
+        ctx,
+    );
+
+    let now = clock::timestamp_ms(clock);
+    let mut current_key = *self.revoked_capabilities.front();
+
+    while (current_key.is_some()) {
+        let key = *current_key.borrow();
+        let valid_until = *self.revoked_capabilities.borrow(key);
+        // Peek at the next key before potentially removing the current node.
+        let next_key = *self.revoked_capabilities.next(key);
+
+        if (valid_until > 0 && valid_until < now) {
+            self.revoked_capabilities.remove(key);
+        };
+
+        current_key = next_key;
+    };
 }
 
 /// Destroy an initial admin capability.
@@ -625,19 +712,21 @@ public fun revoke_capability<P: copy + drop, D: copy + drop>(
 /// Sends a `CapabilityDestroyed` event upon successful destruction.
 ///
 /// Errors:
-/// - Aborts with `ECapabilitySecurityVaultIdMismatch` if the capability's target_key does not match.
+/// - Aborts with `ECapabilityTargetKeyMismatch` if the capability's target_key does not match.
 /// - Aborts with `ECapabilityIsNotInitialAdmin` if the capability is not an initial admin capability.
 public fun destroy_initial_admin_capability<P: copy + drop, D: copy + drop>(
     self: &mut RoleMap<P, D>,
     cap_to_destroy: Capability,
 ) {
-    assert!(self.target_key == cap_to_destroy.target_key(), ECapabilitySecurityVaultIdMismatch);
+    assert!(self.target_key == cap_to_destroy.target_key(), ECapabilityTargetKeyMismatch);
     assert!(
         self.initial_admin_cap_ids.contains(&cap_to_destroy.id()),
         ECapabilityIsNotInitialAdmin,
     );
 
-    self.issued_capabilities.remove(&cap_to_destroy.id());
+    if (self.revoked_capabilities.contains(cap_to_destroy.id())) {
+            self.revoked_capabilities.remove(cap_to_destroy.id());
+    };
     self.initial_admin_cap_ids.remove(&cap_to_destroy.id());
 
     event::emit(CapabilityDestroyed {
@@ -661,15 +750,19 @@ public fun destroy_initial_admin_capability<P: copy + drop, D: copy + drop>(
 /// sealed with no admin access possible.
 ///
 /// Sends a `CapabilityRevoked` event upon successful revocation.
+/// 
+/// See function `revoke_capability()` for parameter documentation. 
 ///
 /// Errors:
 /// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
-/// - Aborts with `ECapabilityNotIssued` if `cap_to_revoke` is not currently issued by this `RoleMap`.
+/// - The provided capability needs to grant the `CapabilityAdminPermissions::revoke` permission.
+/// - Aborts with `ECapabilityToRevokeHasAlreadyBeenRevoked` if `cap_to_revoke` has already been revoked.
 /// - Aborts with `ECapabilityIsNotInitialAdmin` if `cap_to_revoke` is not an initial admin capability.
 public fun revoke_initial_admin_capability<P: copy + drop, D: copy + drop>(
     self: &mut RoleMap<P, D>,
     cap: &Capability,
     cap_to_revoke: ID,
+    cap_to_revoke_valid_until: Option<u64>,
     clock: &Clock,
     ctx: &TxContext,
 ) {
@@ -680,16 +773,10 @@ public fun revoke_initial_admin_capability<P: copy + drop, D: copy + drop>(
         ctx,
     );
 
-    assert!(self.issued_capabilities.contains(&cap_to_revoke), ECapabilityNotIssued);
     assert!(self.initial_admin_cap_ids.contains(&cap_to_revoke), ECapabilityIsNotInitialAdmin);
 
-    self.issued_capabilities.remove(&cap_to_revoke);
     self.initial_admin_cap_ids.remove(&cap_to_revoke);
-
-    event::emit(CapabilityRevoked {
-        target_key: self.target_key,
-        capability_id: cap_to_revoke,
-    });
+    self.add_cap_to_revoke_list(cap_to_revoke, cap_to_revoke_valid_until)
 }
 
 /// Checks if the provided permissions include all required admin permissions
@@ -709,7 +796,6 @@ fun has_required_admin_permissions<P: copy + drop>(
 
 /// Issues a new capability
 fun issue_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap<P, D>, new_cap: &Capability) {
-    self.issued_capabilities.insert(new_cap.id());
     if (new_cap.role() == &self.initial_admin_role_name) {
         self.initial_admin_cap_ids.insert(new_cap.id());
     };
@@ -721,6 +807,24 @@ fun issue_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap<P, D>, n
         issued_to: *new_cap.issued_to(),
         valid_from: *new_cap.valid_from(),
         valid_until: *new_cap.valid_until(),
+    });
+}
+
+/// Add a capability to the revoke list
+fun add_cap_to_revoke_list<P: copy + drop, D: copy + drop>(
+    self: &mut RoleMap<P, D>,
+    cap_to_revoke: ID,
+    cap_to_revoke_valid_until: Option<u64>
+) {
+    assert!(!self.revoked_capabilities.contains(cap_to_revoke), ECapabilityToRevokeHasAlreadyBeenRevoked);
+
+    let valid_until = cap_to_revoke_valid_until.borrow_with_default(&0);
+    self.revoked_capabilities.push_back(cap_to_revoke, *valid_until);
+
+    event::emit(CapabilityRevoked {
+        target_key: self.target_key,
+        capability_id: cap_to_revoke,
+        valid_until: *valid_until,
     });
 }
 
@@ -743,6 +847,6 @@ public fun role_admin_permissions<P: copy + drop, D: copy + drop>(
     &self.role_admin_permissions
 }
 
-public fun issued_capabilities<P: copy + drop, D: copy + drop>(self: &RoleMap<P, D>): &VecSet<ID> {
-    &self.issued_capabilities
+public fun revoked_capabilities<P: copy + drop, D: copy + drop>(self: &RoleMap<P, D>): &LinkedTable<ID,u64> {
+    &self.revoked_capabilities
 }
