@@ -21,8 +21,8 @@ use serde::{self, Deserialize, Serialize};
 use serde_with::{serde_as, DeserializeAs, DisplayFromStr, SerializeAs};
 use Result;
 
-use super::super::move_core_types::account_address::AccountAddress;
-use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use crate::move_core_types::account_address::AccountAddress;
+use crate::move_core_types::language_storage::{StructTag, TypeTag};
 use super::{parse_iota_struct_tag, parse_iota_type_tag};
 #[allow(unused)] // Kept in sync with original source, so keep as is.
 use super::{

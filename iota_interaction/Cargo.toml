@@ -1,6 +1,6 @@
 [package]
 name = "iota_interaction"
-version = "0.8.12"
+version = "0.8.13"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
@@ -20,6 +20,9 @@ fastcrypto = { git = "https://github.com/MystenLabs/fastcrypto", rev = "69d496c7
 indexmap = "2.11.0"
 iota-sdk-types = { workspace = true, features = ["serde"] }
 jsonpath-rust = { version = "0.5.1", optional = true }
+move-binary-format.workspace = true
+move-bytecode-utils.workspace = true
+move-core-types.workspace = true
 secret-storage.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -28,8 +31,8 @@ thiserror.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 hyper.workspace = true
-iota-sdk = { git = "https://github.com/iotaledger/iota.git", package = "iota-sdk", tag = "v1.17.2" }
-move-core-types = { git = "https://github.com/iotaledger/iota.git", package = "move-core-types", tag = "v1.17.2" }
+iota-sdk = { git = "https://github.com/iotaledger/iota.git", package = "iota-sdk", tag = "v1.18.1" }
+move-core-types = { git = "https://github.com/iotaledger/iota.git", package = "move-core-types", tag = "v1.18.1" }
 tokio = { workspace = true, optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

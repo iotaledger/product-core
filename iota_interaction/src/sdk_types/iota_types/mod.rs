@@ -20,7 +20,6 @@ pub mod governance;
 pub mod id;
 pub mod iota_serde;
 pub mod iota_types_lib;
-// pub mod move_authenticator;
 pub mod move_package;
 pub mod object;
 pub mod programmable_transaction_builder;
@@ -33,5 +32,5 @@ pub mod type_input;
 
 pub use iota_types_lib::*;
 
-pub use super::move_core_types::identifier::Identifier;
-pub use super::move_core_types::language_storage::TypeTag;
+pub use crate::move_core_types::identifier::Identifier;
+pub use crate::move_core_types::language_storage::TypeTag;

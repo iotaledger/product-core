@@ -12,9 +12,9 @@ use serde_json::{json, Value};
 use serde_with::serde_as;
 use tracing::warn;
 
-use super::super::move_core_types::annotated_value::{MoveStruct, MoveValue, MoveVariant};
-use super::super::move_core_types::identifier::Identifier;
-use super::super::move_core_types::language_storage::StructTag;
+use crate::move_core_types::annotated_value::{MoveStruct, MoveValue, MoveVariant};
+use crate::move_core_types::identifier::Identifier;
+use crate::move_core_types::language_storage::StructTag;
 use crate::types::base_types::{IotaAddress, ObjectID};
 use crate::types::iota_serde::IotaStructTag;
 

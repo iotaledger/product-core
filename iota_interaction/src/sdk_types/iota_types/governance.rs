@@ -4,8 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::super::move_core_types::identifier::IdentStr;
-use super::super::move_core_types::language_storage::StructTag;
+use crate::move_core_types::identifier::IdentStr;
+use crate::move_core_types::language_storage::StructTag;
 use super::balance::Balance;
 use super::base_types::{EpochId, ObjectID};
 use super::gas_coin::NANOS_PER_IOTA;
