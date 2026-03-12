@@ -403,14 +403,28 @@ public fun destroy<P: copy + drop, D: copy + drop>(self: RoleMap<P, D>) {
 /// Migrate a RoleMap to the latest package version
 ///
 /// This function needs to be called by the integrating modules `migrate` function.
+/// 
+/// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
+/// - The provided capability needs to grant the `RoleMapAdminPermissions::migrate` permission.
+/// - Aborts with `EMigrationUnexpectedPackageVersion` if the package version of the RoleMap instance is not lower than the
+///   current package version, as this would indicate an unexpected state and therefore migration
+///   should not be performed.
 public fun migrate<P: copy + drop, D: copy + drop>(
-    mut self: RoleMap<P, D>,
-    _clock: &Clock,
-    _ctx: &TxContext,
-): RoleMap<P, D> {
+    self: &mut RoleMap<P, D>,
+    cap: &Capability,
+    clock: &Clock,
+    ctx: &TxContext,
+) {
     assert!(self.version < PACKAGE_VERSION, EMigrationUnexpectedPackageVersion);
-    self.version = PACKAGE_VERSION;
     self
+        .assert_capability_valid(
+            cap,
+            &self.role_map_admin_permissions.migrate,
+            clock,
+            ctx,
+        );
+
+    self.version = PACKAGE_VERSION;
 }
 
 // ============ Role Functions ====================
