@@ -1,7 +1,7 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use anyhow::Context;
 use iota_interaction::types::base_types::ObjectID;
@@ -96,8 +96,8 @@ where
 /// that can be used to manage the `Move.history.json` file. See there for more details.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct PackageRegistry {
-  aliases: HashMap<String, String>,
-  envs: HashMap<String, Vec<ObjectID>>,
+  aliases: BTreeMap<String, String>,
+  envs: BTreeMap<String, Vec<ObjectID>>,
 }
 
 impl PackageRegistry {
@@ -135,12 +135,12 @@ impl PackageRegistry {
   }
 
   /// Returns the envs of this package registry.
-  pub fn envs(&self) -> &HashMap<String, Vec<ObjectID>> {
+  pub fn envs(&self) -> &BTreeMap<String, Vec<ObjectID>> {
     &self.envs
   }
 
   /// Returns the aliases of this package registry.
-  pub fn aliases(&self) -> &HashMap<String, String> {
+  pub fn aliases(&self) -> &BTreeMap<String, String> {
     &self.aliases
   }
 
@@ -532,6 +532,59 @@ mod tests {
     );
 
     assert_eq!(registry.aliases.get("mainnet"), Some(&"6364aad5".to_string()));
+  }
+
+  #[test]
+  fn serialize_produces_stable_sorted_order() {
+    let mut registry = PackageRegistry::default();
+    registry.insert_env_history(
+      Env::new_with_alias("e678123a", "testnet"),
+      vec![object_id!(
+        "0xe6fa03d273131066036f1d2d4c3d919b9abbca93910769f26a924c7a01811103"
+      )],
+    );
+    registry.insert_env_history(
+      Env::new_with_alias("6364aad5", "mainnet"),
+      vec![object_id!(
+        "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+      )],
+    );
+
+    let json1 = serde_json::to_string_pretty(&registry).unwrap();
+
+    let mut registry2 = PackageRegistry::default();
+    registry2.insert_env_history(
+      Env::new_with_alias("6364aad5", "mainnet"),
+      vec![object_id!(
+        "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+      )],
+    );
+    registry2.insert_env_history(
+      Env::new_with_alias("e678123a", "testnet"),
+      vec![object_id!(
+        "0xe6fa03d273131066036f1d2d4c3d919b9abbca93910769f26a924c7a01811103"
+      )],
+    );
+
+    let json2 = serde_json::to_string_pretty(&registry2).unwrap();
+    assert_eq!(
+      json1, json2,
+      "serialization order must be stable regardless of insertion order"
+    );
+
+    let pos_mainnet = json1.find("\"mainnet\"").unwrap();
+    let pos_testnet = json1.find("\"testnet\"").unwrap();
+    assert!(pos_mainnet < pos_testnet, "aliases must be sorted alphabetically");
+  }
+
+  #[test]
+  fn serialize_deserialize_roundtrip_is_stable() {
+    let registry = PackageRegistry::from_package_history_json_str(PACKAGE_HISTORY_JSON).unwrap();
+    let serialized = serde_json::to_string_pretty(&registry).unwrap();
+
+    let registry2 = PackageRegistry::from_package_history_json_str(&serialized).unwrap();
+    let serialized2 = serde_json::to_string_pretty(&registry2).unwrap();
+    assert_eq!(serialized, serialized2, "round-trip serialization must be stable");
   }
 
   #[test]
