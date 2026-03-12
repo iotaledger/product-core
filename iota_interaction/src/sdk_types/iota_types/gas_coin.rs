@@ -6,9 +6,9 @@ use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
-use super::super::move_core_types::annotated_value::MoveStructLayout;
-use super::super::move_core_types::identifier::IdentStr;
-use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use crate::move_core_types::annotated_value::MoveStructLayout;
+use crate::move_core_types::identifier::IdentStr;
+use crate::move_core_types::language_storage::{StructTag, TypeTag};
 use super::super::types::IOTA_FRAMEWORK_ADDRESS;
 use super::balance::{Balance, Supply};
 use super::base_types::ObjectID;

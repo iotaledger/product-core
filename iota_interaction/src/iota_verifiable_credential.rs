@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use crate::move_types::language_storage::TypeTag;
+use crate::move_core_types::language_storage::TypeTag;
 use crate::types::base_types::ObjectID;
 use crate::{MoveType, TypedValue};
 

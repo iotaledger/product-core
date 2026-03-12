@@ -6,7 +6,7 @@ use std::fmt::{Display, Formatter};
 
 use anyhow::Result;
 
-use super::super::move_core_types::{
+use crate::move_core_types::{
     account_address::AccountAddress,
     identifier::Identifier,
     language_storage::{StructTag, TypeTag},

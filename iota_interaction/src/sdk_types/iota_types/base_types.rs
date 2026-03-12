@@ -22,9 +22,10 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use Result;
 
-use super::super::move_core_types::account_address::AccountAddress;
-use super::super::move_core_types::identifier::IdentStr;
-use super::super::move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
+use crate::move_core_types::account_address::AccountAddress;
+use crate::move_core_types::identifier::IdentStr;
+use crate::move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
+
 use super::account_abstraction::authenticator_function::AuthenticatorFunctionRefV1;
 use super::balance::Balance;
 use super::coin::{Coin, CoinMetadata, TreasuryCap, COIN_MODULE_NAME, COIN_STRUCT_NAME};

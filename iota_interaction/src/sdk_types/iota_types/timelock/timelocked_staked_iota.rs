@@ -8,8 +8,8 @@ use super::super::governance::StakedIota;
 use super::super::id::UID;
 use super::super::IOTA_SYSTEM_ADDRESS;
 use crate::ident_str;
-use crate::sdk_types::move_types::identifier::IdentStr;
-use crate::sdk_types::move_types::language_storage::StructTag;
+use crate::move_core_types::identifier::IdentStr;
+use crate::move_core_types::language_storage::StructTag;
 
 pub const TIMELOCKED_STAKED_IOTA_MODULE_NAME: &IdentStr = ident_str!("timelocked_staking");
 pub const TIMELOCKED_STAKED_IOTA_STRUCT_NAME: &IdentStr = ident_str!("TimelockedStakedIota");
