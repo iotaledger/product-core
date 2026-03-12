@@ -189,6 +189,12 @@ public struct CapabilityAdminPermissions<P: copy + drop> has copy, drop, store {
     revoke: P,
 }
 
+/// Defines the permissions required to administer this RoleMap
+public struct RoleMapAdminPermissions<P: copy + drop> has copy, drop, store {
+    /// Permission required to migrate a RoleMap to a new package version
+    migrate: P,
+}
+
 /// The RoleMap structure mapping role names to their associated permissions and role-data
 ///
 /// Generic parameters:
@@ -222,6 +228,8 @@ public struct RoleMap<P: copy + drop, D: copy + drop> has store {
     role_admin_permissions: RoleAdminPermissions<P>,
     /// Permissions required to administer capabilities in this RoleMap
     capability_admin_permissions: CapabilityAdminPermissions<P>,
+    /// Permissions required to administer this RoleMap (e.g. for migration)
+    role_map_admin_permissions: RoleMapAdminPermissions<P>,
     /// Package version - See `PACKAGE_VERSION` above for more details
     version: u64,    
 }
@@ -282,6 +290,19 @@ public fun capability_admin_permissions_revoke<P: copy + drop>(self: &Capability
     &self.revoke
 }
 
+public fun new_role_map_admin_permissions<P: copy + drop>(
+    migrate: P,
+): RoleMapAdminPermissions<P> {
+    RoleMapAdminPermissions {
+        migrate,
+    }
+}
+
+/// Returns the `migrate` permission of the `RoleMapAdminPermissions`
+public fun role_map_admin_permissions_migrate<P: copy + drop>(self: &RoleMapAdminPermissions<P>): &P {
+    &self.migrate
+}
+
 // ============ RoleMap Functions ====================
 
 /// Create a new RoleMap with an initial admin role
@@ -300,8 +321,8 @@ public fun capability_admin_permissions_revoke<P: copy + drop>(self: &Capability
 /// - `initial_admin_role_name`: The name of the initial admin role
 /// - `initial_admin_role_permissions`: Permissions granted to that role.
 /// - `role_admin_permissions`: Permissions required to manage roles.
-/// - `capability_admin_permissions`: Permissions required to manage
-///    capabilities.
+/// - `capability_admin_permissions`: Permissions required to manage capabilities.
+/// - `role_map_admin_permissions`: Permissions required to administer this RoleMap (e.g. for migration).
 /// - `ctx`: The transaction context
 ///
 /// Errors:
@@ -314,6 +335,7 @@ public fun new<P: copy + drop, D: copy + drop>(
     initial_admin_role_permissions: VecSet<P>,
     role_admin_permissions: RoleAdminPermissions<P>,
     capability_admin_permissions: CapabilityAdminPermissions<P>,
+    role_map_admin_permissions: RoleMapAdminPermissions<P>,
     ctx: &mut TxContext,
 ): (RoleMap<P, D>, Capability) {
     assert!(
@@ -321,6 +343,7 @@ public fun new<P: copy + drop, D: copy + drop>(
             &initial_admin_role_permissions,
             &role_admin_permissions,
             &capability_admin_permissions,
+            &role_map_admin_permissions
         ),
         EInitialAdminPermissionsInconsistent,
     );
@@ -346,6 +369,7 @@ public fun new<P: copy + drop, D: copy + drop>(
         initial_admin_role_name,
         role_admin_permissions,
         capability_admin_permissions,
+        role_map_admin_permissions,
         target_key,
         revoked_capabilities: linked_table::new<ID, u64>(ctx),
         initial_admin_cap_ids,
@@ -363,6 +387,7 @@ public fun destroy<P: copy + drop, D: copy + drop>(self: RoleMap<P, D>) {
         initial_admin_role_name: _,
         role_admin_permissions: _,
         capability_admin_permissions: _,
+        role_map_admin_permissions: _,
         target_key: _,
         mut revoked_capabilities,
         initial_admin_cap_ids: _,
@@ -511,6 +536,7 @@ public fun update_role<P: copy + drop, D: copy + drop>(
                 &new_permissions,
                 &self.role_admin_permissions,
                 &self.capability_admin_permissions,
+                &self.role_map_admin_permissions,
             ),
             EInitialAdminPermissionsInconsistent,
         );
@@ -882,17 +908,19 @@ public fun revoke_initial_admin_capability<P: copy + drop, D: copy + drop>(
 
 /// Checks if the provided permissions include all required admin permissions
 ///
-/// Returns true if the provided permissions include all required admin
+/// Returns true if the provided permissions include all required admin permissions
 fun has_required_admin_permissions<P: copy + drop>(
     permissions: &VecSet<P>,
     role_admin_permissions: &RoleAdminPermissions<P>,
     capability_admin_permissions: &CapabilityAdminPermissions<P>,
+    role_map_admin_permissions: &RoleMapAdminPermissions<P>,
 ): bool {
     permissions.contains(&role_admin_permissions.add) &&
         permissions.contains(&role_admin_permissions.delete) &&
         permissions.contains(&role_admin_permissions.update) &&
         permissions.contains(&capability_admin_permissions.add) &&
-        permissions.contains(&capability_admin_permissions.revoke)
+        permissions.contains(&capability_admin_permissions.revoke) &&
+        permissions.contains(&role_map_admin_permissions.migrate)
 }
 
 /// Issues a new capability

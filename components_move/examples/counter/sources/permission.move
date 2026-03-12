@@ -12,6 +12,8 @@ public enum CounterPermission has copy, drop, store {
     // --- Used for a super-admin role who can do everything ---
     /// Destroy the Counter
     DeleteCounter,
+    /// Migrate a Counter instance to a new version in case of an upgraded counter Move package
+    MigrateCounter,
     /// Manage Capabilities: Adding new capabilities
     AddCapabilities,
     /// Manage Capabilities: Revoking existing capabilities
@@ -27,6 +29,10 @@ public enum CounterPermission has copy, drop, store {
 
 public fun delete_counter(): CounterPermission {
     CounterPermission::DeleteCounter
+}
+
+public fun migrate_counter(): CounterPermission {
+    CounterPermission::MigrateCounter
 }
 
 public fun add_capabilities(): CounterPermission {
@@ -55,6 +61,7 @@ public fun reset_counter(): CounterPermission {
 public fun super_admin_permissions(): VecSet<CounterPermission> {
     let mut perms = vec_set::empty();
     perms.insert(delete_counter());
+    perms.insert(migrate_counter());
     perms.insert(add_capabilities());
     perms.insert(revoke_capabilities());
     perms.insert(manage_roles());

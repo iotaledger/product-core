@@ -15,6 +15,7 @@ fun test_role_based_permission_delegation() {
     let (
         role_admin_permissions,
         capability_admin_permissions,
+        role_map_admin_permissions,
     ) = test_utils::get_admin_permissions();
 
     let admin_user = @0xAD;
@@ -33,6 +34,7 @@ fun test_role_based_permission_delegation() {
             test_utils::super_admin_permissions(),
             role_admin_permissions,
             capability_admin_permissions,
+            role_map_admin_permissions,
             ts::ctx(&mut scenario),
         );
 
@@ -135,6 +137,7 @@ fun test_new_fails_with_empty_initial_admin_permissions() {
     let (
         role_admin_permissions,
         capability_admin_permissions,
+        role_map_admin_permissions,
     ) = test_utils::get_admin_permissions();
 
     let admin_user = @0xAD;
@@ -152,6 +155,7 @@ fun test_new_fails_with_empty_initial_admin_permissions() {
         empty_permissions,
         role_admin_permissions,
         capability_admin_permissions,
+        role_map_admin_permissions,
         ts::ctx(&mut scenario),
     );
 
