@@ -12,7 +12,7 @@ use super::super::iota_types::{
     event::EventID,
     iota_serde::{BigInt, IotaStructTag}
 };
-use super::super::move_core_types::{
+use crate::move_core_types::{
     identifier::Identifier,
     language_storage::{StructTag},
 };

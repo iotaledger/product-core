@@ -24,6 +24,9 @@ pub use iota_verifiable_credential::*;
 pub use keypair_signer::*;
 #[cfg(feature = "keytool")]
 pub use keytool::*;
+pub use move_core_types;
+#[rustfmt::skip]
+pub use move_core_types as move_types;
 pub use move_type::*;
 pub use transaction_builder_trait::*;
 
@@ -31,8 +34,6 @@ pub use transaction_builder_trait::*;
 mod sdk_types;
 #[cfg(not(target_arch = "wasm32"))]
 pub use iota_sdk::*;
-#[cfg(not(target_arch = "wasm32"))]
-pub use move_core_types as move_types;
 #[cfg(target_arch = "wasm32")]
 pub use sdk_types::*;
 
@@ -93,7 +94,7 @@ macro_rules! ident_str {
 
     // Only valid identifier strings are allowed.
     // Note: Work-around hack to print an error message in a const block.
-    let is_valid = $crate::move_types::identifier::is_valid(s);
+    let is_valid = $crate::move_core_types::identifier::is_valid(s);
     ["String is not a valid Move identifier"][!is_valid as usize];
 
     // SAFETY: the following transmute is safe because
@@ -110,7 +111,7 @@ macro_rules! ident_str {
     // https://github.com/rust-lang/rust-clippy/issues/6372
     #[allow(clippy::transmute_ptr_to_ptr)]
     unsafe {
-      ::std::mem::transmute::<&'static str, &'static $crate::move_types::identifier::IdentStr>(s)
+      ::std::mem::transmute::<&'static str, &'static $crate::move_core_types::identifier::IdentStr>(s)
     }
   }};
 }

@@ -42,7 +42,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, Bytes};
 use crate::ident_str;
 use super::base_types::{ObjectID, SequenceNumber};
-use super::super::move_core_types::identifier::IdentStr;
+use crate::move_core_types::identifier::IdentStr;
 
 pub const PACKAGE_MODULE_NAME: &IdentStr = ident_str!("package");
 pub const UPGRADECAP_STRUCT_NAME: &IdentStr = ident_str!("UpgradeCap");

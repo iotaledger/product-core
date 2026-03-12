@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::ident_str;
-use super::super::super::move_core_types::{
+use crate::move_core_types::{
     identifier::IdentStr,
     language_storage::{StructTag, TypeTag},
 };
