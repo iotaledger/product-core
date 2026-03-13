@@ -9,6 +9,7 @@ use std::string::String;
 use iota::{test_scenario as ts, vec_set};
 use std::string;
 use tf_components::{core_test_utils as test_utils, role_map};
+use tf_components::capability::Capability;
 
 #[test]
 fun test_role_based_permission_delegation() {
@@ -873,6 +874,546 @@ fun test_cleanup_revoked_capabilities_list_removes_expired() {
     role_map.destroy_capability(cap_2);
     role_map.destroy_capability(cap_3);
     role_map.destroy_capability(cap_4);
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+// ===== Tests: assert_capability_valid error paths =====
+
+#[test]
+#[expected_failure(abort_code = role_map::ECapabilityTargetKeyMismatch)]
+fun test_assert_capability_valid_fails_on_target_key_mismatch() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    // Create two RoleMaps with different target keys
+    let (mut role_map_a, admin_cap_a, _target_key_a) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let target_key_b = test_utils::fake_object_id_from_string(
+        &b"DifferentVault".to_string(),
+    );
+    let (role_admin_permissions, capability_admin_permissions) = test_utils::get_admin_permissions();
+    let (mut role_map_b, admin_cap_b) = role_map::new<_, bool>(
+        target_key_b,
+        test_utils::initial_admin_role_name(),
+        test_utils::super_admin_permissions(),
+        role_admin_permissions,
+        capability_admin_permissions,
+        ts::ctx(&mut scenario),
+    );
+
+    let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+
+    // Use cap from role_map_b to try to create a role on role_map_a — target_key mismatch
+    role_map_a.create_role(
+        &admin_cap_b,
+        string::utf8(b"Reader"),
+        vec_set::singleton(test_utils::action_a()),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    iota::clock::destroy_for_testing(clock);
+    role_map_a.destroy_initial_admin_capability(admin_cap_a);
+    role_map_b.destroy_initial_admin_capability(admin_cap_b);
+    role_map_a.destroy();
+    role_map_b.destroy();
+    ts::end(scenario);
+}
+
+#[test]
+#[expected_failure(abort_code = role_map::ECapabilityPermissionDenied)]
+fun test_assert_capability_valid_fails_on_permission_denied() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+
+    // Create a role with only ActionA permission
+    role_map.create_role(
+        &admin_cap,
+        string::utf8(b"LimitedRole"),
+        vec_set::singleton(test_utils::action_a()),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    // Issue a capability for the LimitedRole
+    let limited_cap = role_map.new_capability(
+        &admin_cap,
+        &string::utf8(b"LimitedRole"),
+        std::option::none(),
+        std::option::none(),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    // Try to create a role using the limited cap — it lacks ManageRoles permission
+    role_map.create_role(
+        &limited_cap,
+        string::utf8(b"AnotherRole"),
+        vec_set::singleton(test_utils::action_b()),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    iota::clock::destroy_for_testing(clock);
+    role_map.destroy_capability(limited_cap);
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+#[test]
+#[expected_failure(abort_code = role_map::ECapabilityHasBeenRevoked)]
+fun test_assert_capability_valid_fails_on_revoked_capability() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+    let initial_role = test_utils::initial_admin_role_name();
+
+    // Issue a second admin cap, then revoke it
+    let second_admin_cap = role_map.new_capability(
+        &admin_cap,
+        &initial_role,
+        std::option::none(),
+        std::option::none(),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    role_map.revoke_initial_admin_capability(
+        &admin_cap,
+        second_admin_cap.id(),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    // Try to use the revoked capability to create a role
+    role_map.create_role(
+        &second_admin_cap,
+        string::utf8(b"NewRole"),
+        vec_set::singleton(test_utils::action_a()),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    iota::clock::destroy_for_testing(clock);
+    role_map.destroy_capability(second_admin_cap);
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+#[test]
+#[expected_failure(abort_code = role_map::ECapabilityTimeConstraintsNotMet)]
+fun test_assert_capability_valid_fails_on_not_yet_valid_capability() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+    // clock is at time 0
+
+    let initial_role = test_utils::initial_admin_role_name();
+
+    // Issue a cap that is valid_from = 1000 (not yet valid)
+    let future_cap = role_map.new_capability(
+        &admin_cap,
+        &initial_role,
+        std::option::none(),
+        std::option::some(1000),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    // Try to use the not-yet-valid capability
+    role_map.create_role(
+        &future_cap,
+        string::utf8(b"NewRole"),
+        vec_set::singleton(test_utils::action_a()),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    iota::clock::destroy_for_testing(clock);
+    role_map.destroy_initial_admin_capability(future_cap);
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+#[test]
+#[expected_failure(abort_code = role_map::ECapabilityTimeConstraintsNotMet)]
+fun test_assert_capability_valid_fails_on_expired_capability() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let mut clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+    let initial_role = test_utils::initial_admin_role_name();
+
+    // Issue a cap that valid_until = 100
+    let expiring_cap = role_map.new_capability(
+        &admin_cap,
+        &initial_role,
+        std::option::none(),
+        std::option::none(),
+        std::option::some(100),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    // Advance clock past expiry
+    iota::clock::set_for_testing(&mut clock, 200);
+
+    // Try to use the expired capability
+    role_map.create_role(
+        &expiring_cap,
+        string::utf8(b"NewRole"),
+        vec_set::singleton(test_utils::action_a()),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    iota::clock::destroy_for_testing(clock);
+    role_map.destroy_initial_admin_capability(expiring_cap);
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+#[test]
+#[expected_failure(abort_code = role_map::ECapabilityIssuedToMismatch)]
+fun test_assert_capability_valid_fails_on_issued_to_mismatch() {
+    let admin_user = @0xAD;
+    let other_user = @0xBE;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+    let initial_role = test_utils::initial_admin_role_name();
+
+    // Issue a cap restricted to other_user
+    let restricted_cap = role_map.new_capability(
+        &admin_cap,
+        &initial_role,
+        std::option::some(other_user),
+        std::option::none(),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    // admin_user (sender) tries to use the cap restricted to other_user
+    role_map.create_role(
+        &restricted_cap,
+        string::utf8(b"NewRole"),
+        vec_set::singleton(test_utils::action_a()),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    iota::clock::destroy_for_testing(clock);
+    role_map.destroy_initial_admin_capability(restricted_cap);
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+// ===== Tests: delete_role happy path and error paths =====
+
+#[test]
+fun test_delete_role_succeeds() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+
+    // Create a role
+    role_map.create_role(
+        &admin_cap,
+        string::utf8(b"Reader"),
+        vec_set::singleton(test_utils::action_a()),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    assert!(role_map.size() == 2, 0);
+    assert!(role_map.has_role(&b"Reader".to_string()), 1);
+
+    // Delete the role
+    role_map.delete_role(
+        &admin_cap,
+        &string::utf8(b"Reader"),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    assert!(role_map.size() == 1, 2);
+    assert!(!role_map.has_role(&b"Reader".to_string()), 3);
+
+    iota::clock::destroy_for_testing(clock);
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+#[test]
+#[expected_failure(abort_code = role_map::ERoleDoesNotExist)]
+fun test_delete_role_fails_on_nonexistent_role() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+
+    // Try to delete a role that doesn't exist
+    role_map.delete_role(
+        &admin_cap,
+        &string::utf8(b"NonExistent"),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    iota::clock::destroy_for_testing(clock);
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+// ===== Tests: get_role_permissions / get_role_data error paths =====
+
+#[test]
+#[expected_failure(abort_code = role_map::ERoleDoesNotExist)]
+fun test_get_role_permissions_fails_on_nonexistent_role() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let _perms = role_map.get_role_permissions<_, bool>(&b"NonExistent".to_string());
+
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+#[test]
+#[expected_failure(abort_code = role_map::ERoleDoesNotExist)]
+fun test_get_role_data_fails_on_nonexistent_role() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let _data = role_map.get_role_data<_, bool>(&b"NonExistent".to_string());
+
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+// ===== Tests: update_role error path for nonexistent role =====
+
+#[test]
+#[expected_failure(abort_code = role_map::ERoleDoesNotExist)]
+fun test_update_role_fails_on_nonexistent_role() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+
+    role_map.update_role(
+        &admin_cap,
+        &string::utf8(b"NonExistent"),
+        vec_set::singleton(test_utils::action_a()),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    iota::clock::destroy_for_testing(clock);
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+// ===== Tests: new_capability error path for nonexistent role =====
+
+#[test]
+#[expected_failure(abort_code = role_map::ERoleDoesNotExist)]
+fun test_new_capability_fails_on_nonexistent_role() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+
+    let bad_cap = role_map.new_capability(
+        &admin_cap,
+        &string::utf8(b"NonExistent"),
+        std::option::none(),
+        std::option::none(),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    iota::clock::destroy_for_testing(clock);
+    role_map.destroy_capability(bad_cap);
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+// ===== Tests: destroy RoleMap with non-empty revoked capabilities =====
+
+fun create_and_revoke_worker_capability<P: copy + drop, D: copy + drop>(
+    role_map: &mut role_map::RoleMap<P, D>,
+    admin_cap: &Capability,
+    clock: &iota::clock::Clock,
+    scenario: &mut ts::Scenario,
+): Capability {
+    let worker_cap = role_map.new_capability(
+        admin_cap,
+        &string::utf8(b"Worker"),
+        std::option::none(),
+        std::option::none(),
+        std::option::none(),
+        clock,
+        ts::ctx(scenario),
+    );
+    let worker_cap_id = worker_cap.id();
+    role_map.revoke_capability(
+        admin_cap,
+        worker_cap_id,
+        std::option::none(),
+        clock,
+        ts::ctx(scenario),
+    );
+    worker_cap
+}
+
+#[test]
+fun test_destroy_role_map_with_revoked_capabilities() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+
+    // Create a role and capability, then revoke it
+    role_map.create_role(
+        &admin_cap,
+        string::utf8(b"Worker"),
+        vec_set::singleton(test_utils::action_a()),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    let worker_cap_1 = create_and_revoke_worker_capability(&mut role_map, &admin_cap, &clock, &mut scenario);
+    let worker_cap_2 = create_and_revoke_worker_capability(&mut role_map, &admin_cap, &clock, &mut scenario);
+    let worker_cap_3 = create_and_revoke_worker_capability(&mut role_map, &admin_cap, &clock, &mut scenario);
+
+    assert!(role_map.revoked_capabilities().length() == 3, 0);
+
+    // Destroy the RoleMap while revoked_capabilities is non-empty
+    role_map.destroy();
+
+    // Cleanup the rest
+    transfer::public_transfer(admin_cap, admin_user);
+    transfer::public_transfer(worker_cap_1, admin_user);
+    transfer::public_transfer(worker_cap_2, admin_user);
+    transfer::public_transfer(worker_cap_3, admin_user);
+
+    iota::clock::destroy_for_testing(clock);
+    ts::end(scenario);
+}
+
+// ===== Tests: getter functions (target_key, role_admin_permissions) =====
+
+#[test]
+fun test_target_key_getter() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    assert!(role_map.target_key() == target_key, 0);
+
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+#[test]
+fun test_role_admin_permissions_getter() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    // Just verify it returns without abort — the getter was previously at 0% coverage
+    let _perms = role_map.role_admin_permissions();
+
     role_map.destroy_initial_admin_capability(admin_cap);
     role_map.destroy();
     ts::end(scenario);
