@@ -110,12 +110,21 @@ public fun create(ctx: &mut TxContext): (Capability, ID) {
         permission::manage_roles(),
     );
 
+    // Create a `RoleMapAdminPermissions` instance to configure the permissions
+    // that will be needed by users to administer the `RoleMap` itself.
+    // There is only one action that needs to be configured with a permission of your choice:
+    // * `migrate`: Permission required to migrate the `RoleMap` in case of an upgraded counter Move package
+    let role_map_admin_permissions = role_map::new_role_map_admin_permissions(
+        permission::migrate_counter(),
+    );
+
     let (access, admin_cap) = role_map::new(
         counter_id,
         b"super-admin".to_string(),
         permission::super_admin_permissions(),
         role_admin_permissions,
         capability_admin_permissions,
+        role_map_admin_permissions,
         ctx,
     );
 

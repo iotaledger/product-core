@@ -41,6 +41,36 @@ use iota::linked_table::{Self, LinkedTable};
 use std::string::String;
 use tf_components::capability::{Self, Capability};
 
+/// Package version, incremented when the package is updated
+///
+/// The RoleMap itself is not a shared object and therefore would not need to compare the package version of a
+/// stored object with the package-version of a called function (as been described
+/// [here](https://docs.iota.org/developer/iota-101/move-overview/package-upgrades/upgrade#managing-versioned-shared-objects)).
+/// 
+/// However, since the RoleMap is designed to be directly called via references provided by the integrating modules,
+/// we need to do these version checks also in functions of the `role_map` module. Otherwise we would need to implement
+/// wrapper functions for all called `role_map` functions in the integrating modules just to do the version checks, which would
+/// cause a lot of redundancy for code and docs, would be hard to maintain and error-prone.
+/// 
+/// The PACKAGE_VERSION value will differ from the package version of the integrating module but the `package_version` value
+/// serialized together with the RoleMap will identify the TfComponents package version used as a dependency when the integrating
+/// module has been published.
+/// 
+/// We need to distinguish three edge case situations here:
+/// * In case a function of the integrating module is called with an instance of the integrating shared object, that has the correct
+///   package version (function package version == object package version), the version check in the role_map module will also be ok.
+/// * In case an upgraded integrating package has been linked against an untempered TfComponents package (same version as been used
+///   when the integrating shared object has been stored) and a function of the integrating module is called with an outdated instance
+///   of the integrating shared object (function package version > object package version), the version check in the role_map module
+///   will still be ok.
+///   As this only happens during calls to functions of the `role_map` module, there is no risk of incompatibilities, meaning that there
+///   is no need to abort the call as Role & Capability management functionality has not been changed.
+/// * In case an upgraded integrating package has been linked against an upgraded TfComponents package and a function of the integrating
+///   module is called with an outdated instance of the integrating shared object (function package version > object package version),
+///   the version check in the role_map module will also fail and the aborting function will force users to migrate the shared object
+///   which is equivalent to failing version checks in the integrating module.
+const PACKAGE_VERSION: u64 = 1;
+
 // =============== Errors ======================
 
 #[error]
@@ -75,6 +105,12 @@ const EInitialAdminCapabilityMustBeExplicitlyDestroyed: vector<u8> =
 #[error]
 const ECapabilityIsNotInitialAdmin: vector<u8> =
     b"This capability is not an initial admin capability";
+#[error]
+const EPackageVersionMismatch: vector<u8> =
+    b"The package version of the RoleMap instance does not match the current package version";
+#[error]
+const EMigrationUnexpectedPackageVersion: vector<u8> =
+    b"To migrated RoleMap instances, the package version of the RoleMap instance needs to lower the current package version, which is not the case";
 
 // =============== Events ====================
 
@@ -153,6 +189,12 @@ public struct CapabilityAdminPermissions<P: copy + drop> has copy, drop, store {
     revoke: P,
 }
 
+/// Defines the permissions required to administer this RoleMap
+public struct RoleMapAdminPermissions<P: copy + drop> has copy, drop, store {
+    /// Permission required to migrate a RoleMap to a new package version
+    migrate: P,
+}
+
 /// The RoleMap structure mapping role names to their associated permissions and role-data
 ///
 /// Generic parameters:
@@ -186,6 +228,10 @@ public struct RoleMap<P: copy + drop, D: copy + drop> has store {
     role_admin_permissions: RoleAdminPermissions<P>,
     /// Permissions required to administer capabilities in this RoleMap
     capability_admin_permissions: CapabilityAdminPermissions<P>,
+    /// Permissions required to administer this RoleMap (e.g. for migration)
+    role_map_admin_permissions: RoleMapAdminPermissions<P>,
+    /// Package version - See `PACKAGE_VERSION` above for more details
+    version: u64,    
 }
 
 // Definition of role specific access permissions and role-data
@@ -209,6 +255,21 @@ public fun new_role_admin_permissions<P: copy + drop>(
     }
 }
 
+/// Returns the `add` permission of the `RoleAdminPermissions`
+public fun role_admin_permissions_add<P: copy + drop>(self: &RoleAdminPermissions<P>): &P {
+    &self.add
+}
+
+/// Returns the `delete` permission of the `RoleAdminPermissions`
+public fun role_admin_permissions_delete<P: copy + drop>(self: &RoleAdminPermissions<P>): &P {
+    &self.delete
+}
+
+/// Returns the `update` permission of the `RoleAdminPermissions`
+public fun role_admin_permissions_update<P: copy + drop>(self: &RoleAdminPermissions<P>): &P {
+    &self.update
+}
+
 public fun new_capability_admin_permissions<P: copy + drop>(
     add: P,
     revoke: P,
@@ -217,6 +278,29 @@ public fun new_capability_admin_permissions<P: copy + drop>(
         add,
         revoke,
     }
+}
+
+/// Returns the `add` permission of the `CapabilityAdminPermissions`
+public fun capability_admin_permissions_add<P: copy + drop>(self: &CapabilityAdminPermissions<P>): &P {
+    &self.add
+}
+
+/// Returns the `revoke` permission of the `CapabilityAdminPermissions`
+public fun capability_admin_permissions_revoke<P: copy + drop>(self: &CapabilityAdminPermissions<P>): &P {
+    &self.revoke
+}
+
+public fun new_role_map_admin_permissions<P: copy + drop>(
+    migrate: P,
+): RoleMapAdminPermissions<P> {
+    RoleMapAdminPermissions {
+        migrate,
+    }
+}
+
+/// Returns the `migrate` permission of the `RoleMapAdminPermissions`
+public fun role_map_admin_permissions_migrate<P: copy + drop>(self: &RoleMapAdminPermissions<P>): &P {
+    &self.migrate
 }
 
 // ============ RoleMap Functions ====================
@@ -237,8 +321,8 @@ public fun new_capability_admin_permissions<P: copy + drop>(
 /// - `initial_admin_role_name`: The name of the initial admin role
 /// - `initial_admin_role_permissions`: Permissions granted to that role.
 /// - `role_admin_permissions`: Permissions required to manage roles.
-/// - `capability_admin_permissions`: Permissions required to manage
-///    capabilities.
+/// - `capability_admin_permissions`: Permissions required to manage capabilities.
+/// - `role_map_admin_permissions`: Permissions required to administer this RoleMap (e.g. for migration).
 /// - `ctx`: The transaction context
 ///
 /// Errors:
@@ -251,6 +335,7 @@ public fun new<P: copy + drop, D: copy + drop>(
     initial_admin_role_permissions: VecSet<P>,
     role_admin_permissions: RoleAdminPermissions<P>,
     capability_admin_permissions: CapabilityAdminPermissions<P>,
+    role_map_admin_permissions: RoleMapAdminPermissions<P>,
     ctx: &mut TxContext,
 ): (RoleMap<P, D>, Capability) {
     assert!(
@@ -258,6 +343,7 @@ public fun new<P: copy + drop, D: copy + drop>(
             &initial_admin_role_permissions,
             &role_admin_permissions,
             &capability_admin_permissions,
+            &role_map_admin_permissions
         ),
         EInitialAdminPermissionsInconsistent,
     );
@@ -283,9 +369,11 @@ public fun new<P: copy + drop, D: copy + drop>(
         initial_admin_role_name,
         role_admin_permissions,
         capability_admin_permissions,
+        role_map_admin_permissions,
         target_key,
         revoked_capabilities: linked_table::new<ID, u64>(ctx),
         initial_admin_cap_ids,
+        version: PACKAGE_VERSION,
     };
 
     (role_map, admin_cap)
@@ -299,15 +387,44 @@ public fun destroy<P: copy + drop, D: copy + drop>(self: RoleMap<P, D>) {
         initial_admin_role_name: _,
         role_admin_permissions: _,
         capability_admin_permissions: _,
+        role_map_admin_permissions: _,
         target_key: _,
         mut revoked_capabilities,
         initial_admin_cap_ids: _,
+        version: _,
     } = self;
 
     while (!revoked_capabilities.is_empty()) {
        revoked_capabilities.pop_front();
     };
     revoked_capabilities.destroy_empty();
+}
+
+/// Migrate a RoleMap to the latest package version
+///
+/// This function needs to be called by the integrating modules `migrate` function.
+/// 
+/// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
+/// - The provided capability needs to grant the `RoleMapAdminPermissions::migrate` permission.
+/// - Aborts with `EMigrationUnexpectedPackageVersion` if the package version of the RoleMap instance is not lower than the
+///   current package version, as this would indicate an unexpected state and therefore migration
+///   should not be performed.
+public fun migrate<P: copy + drop, D: copy + drop>(
+    self: &mut RoleMap<P, D>,
+    cap: &Capability,
+    clock: &Clock,
+    ctx: &TxContext,
+) {
+    assert!(self.version < PACKAGE_VERSION, EMigrationUnexpectedPackageVersion);
+    self
+        .assert_capability_valid(
+            cap,
+            &self.role_map_admin_permissions.migrate,
+            clock,
+            ctx,
+        );
+
+    self.version = PACKAGE_VERSION;
 }
 
 // ============ Role Functions ====================
@@ -318,6 +435,7 @@ public fun get_role_permissions<P: copy + drop, D: copy + drop>(
     self: &RoleMap<P, D>,
     role: &String,
 ): &VecSet<P> {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     assert!(vec_map::contains(&self.roles, role), ERoleDoesNotExist);
     &vec_map::get(&self.roles, role).permissions
 }
@@ -328,6 +446,7 @@ public fun get_role_data<P: copy + drop, D: copy + drop>(
     self: &RoleMap<P, D>,
     role: &String,
 ): &Option<D> {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     assert!(vec_map::contains(&self.roles, role), ERoleDoesNotExist);
     &vec_map::get(&self.roles, role).data
 }
@@ -346,6 +465,7 @@ public fun create_role<P: copy + drop, D: copy + drop>(
     clock: &Clock,
     ctx: &TxContext,
 ) {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     self.assert_capability_valid(
         cap,
         &self.role_admin_permissions.add,
@@ -378,6 +498,7 @@ public fun delete_role<P: copy + drop, D: copy + drop>(
     clock: &Clock,
     ctx: &TxContext,
 ) {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     self.assert_capability_valid(
         cap,
         &self.role_admin_permissions.delete,
@@ -415,6 +536,7 @@ public fun update_role<P: copy + drop, D: copy + drop>(
     clock: &Clock,
     ctx: &TxContext,
 ) {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     self.assert_capability_valid(
         cap,
         &self.role_admin_permissions.update,
@@ -428,6 +550,7 @@ public fun update_role<P: copy + drop, D: copy + drop>(
                 &new_permissions,
                 &self.role_admin_permissions,
                 &self.capability_admin_permissions,
+                &self.role_map_admin_permissions,
             ),
             EInitialAdminPermissionsInconsistent,
         );
@@ -451,7 +574,18 @@ public fun update_role<P: copy + drop, D: copy + drop>(
 
 /// Indicates if the specified role exists in the role_map
 public fun has_role<P: copy + drop, D: copy + drop>(self: &RoleMap<P, D>, role: &String): bool {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     vec_map::contains(&self.roles, role)
+}
+
+/// Returns the permissions associated with a `Role`
+public fun role_permissions<P: copy + drop, D: copy + drop>(self: &Role<P, D>): &VecSet<P> {
+    &self.permissions
+}
+
+/// Returns the data associated with a `Role`
+public fun role_data<P: copy + drop, D: copy + drop>(self: &Role<P, D>): &Option<D> {
+    &self.data
 }
 
 public(package) fun new_role<P: copy + drop, D: copy + drop>(
@@ -497,6 +631,7 @@ public fun assert_capability_valid<P: copy + drop, D: copy + drop>(
     clock: &Clock,
     ctx: &TxContext,
 ) {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     assert!(self.target_key == cap.target_key(), ECapabilityTargetKeyMismatch);
 
     let permissions = self.get_role_permissions(cap.role());
@@ -546,6 +681,7 @@ public fun new_capability<P: copy + drop, D: copy + drop>(
     clock: &Clock,
     ctx: &mut TxContext,
 ): Capability {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     self.assert_capability_valid(
         cap,
         &self.capability_admin_permissions.add,
@@ -575,6 +711,7 @@ public fun new_capability<P: copy + drop, D: copy + drop>(
 ///
 /// Sends a `CapabilityDestroyed` event upon successful destruction.
 public fun destroy_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap<P, D>, cap_to_destroy: Capability) {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     assert!(self.target_key == cap_to_destroy.target_key(), ECapabilityTargetKeyMismatch);
     assert!(
         !self.initial_admin_cap_ids.contains(&cap_to_destroy.id()),
@@ -636,6 +773,7 @@ public fun revoke_capability<P: copy + drop, D: copy + drop>(
     clock: &Clock,
     ctx: &TxContext,
 ) {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     self.assert_capability_valid(
         cap,
         &self.capability_admin_permissions.revoke,
@@ -676,6 +814,7 @@ public fun cleanup_revoked_capabilities_list<P: copy + drop, D: copy + drop>(
     clock: &Clock,
     ctx: &TxContext,
 ) {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     self.assert_capability_valid(
         cap,
         &self.capability_admin_permissions.revoke,
@@ -718,6 +857,7 @@ public fun destroy_initial_admin_capability<P: copy + drop, D: copy + drop>(
     self: &mut RoleMap<P, D>,
     cap_to_destroy: Capability,
 ) {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     assert!(self.target_key == cap_to_destroy.target_key(), ECapabilityTargetKeyMismatch);
     assert!(
         self.initial_admin_cap_ids.contains(&cap_to_destroy.id()),
@@ -766,6 +906,7 @@ public fun revoke_initial_admin_capability<P: copy + drop, D: copy + drop>(
     clock: &Clock,
     ctx: &TxContext,
 ) {
+    assert!(self.version == PACKAGE_VERSION, EPackageVersionMismatch);
     self.assert_capability_valid(
         cap,
         &self.capability_admin_permissions.revoke,
@@ -781,17 +922,19 @@ public fun revoke_initial_admin_capability<P: copy + drop, D: copy + drop>(
 
 /// Checks if the provided permissions include all required admin permissions
 ///
-/// Returns true if the provided permissions include all required admin
+/// Returns true if the provided permissions include all required admin permissions
 fun has_required_admin_permissions<P: copy + drop>(
     permissions: &VecSet<P>,
     role_admin_permissions: &RoleAdminPermissions<P>,
     capability_admin_permissions: &CapabilityAdminPermissions<P>,
+    role_map_admin_permissions: &RoleMapAdminPermissions<P>,
 ): bool {
     permissions.contains(&role_admin_permissions.add) &&
         permissions.contains(&role_admin_permissions.delete) &&
         permissions.contains(&role_admin_permissions.update) &&
         permissions.contains(&capability_admin_permissions.add) &&
-        permissions.contains(&capability_admin_permissions.revoke)
+        permissions.contains(&capability_admin_permissions.revoke) &&
+        permissions.contains(&role_map_admin_permissions.migrate)
 }
 
 /// Issues a new capability
@@ -840,13 +983,42 @@ public fun target_key<P: copy + drop, D: copy + drop>(self: &RoleMap<P, D>): ID 
     self.target_key
 }
 
-// Returns the role admin permissions associated with the role_map
+/// Returns the role admin permissions associated with the role_map
 public fun role_admin_permissions<P: copy + drop, D: copy + drop>(
     self: &RoleMap<P, D>,
 ): &RoleAdminPermissions<P> {
     &self.role_admin_permissions
 }
 
+/// Returns the capability admin permissions associated with the role_map
+public fun capability_admin_permissions<P: copy + drop, D: copy + drop>(
+    self: &RoleMap<P, D>,
+): &CapabilityAdminPermissions<P> {
+    &self.capability_admin_permissions
+}
+
+/// Returns the list of revoked capabilities
 public fun revoked_capabilities<P: copy + drop, D: copy + drop>(self: &RoleMap<P, D>): &LinkedTable<ID,u64> {
     &self.revoked_capabilities
 }
+
+/// Returns the initial admin role name
+public fun initial_admin_role_name<P: copy + drop, D: copy + drop>(self: &RoleMap<P, D>): &String {
+    &self.initial_admin_role_name
+}
+
+/// Returns the IDs of active initial admin capabilities
+public fun initial_admin_cap_ids<P: copy + drop, D: copy + drop>(self: &RoleMap<P, D>): &VecSet<ID> {
+    &self.initial_admin_cap_ids
+}
+
+/// Returns all roles managed by the role_map
+public fun roles<P: copy + drop, D: copy + drop>(self: &RoleMap<P, D>): &VecMap<String, Role<P, D>> {
+    &self.roles
+}
+
+/// Returns the package version of the RoleMap instance
+public fun version<P: copy + drop, D: copy + drop>(self: &RoleMap<P, D>): u64 {
+    self.version
+}
+

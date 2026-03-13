@@ -11,6 +11,7 @@ use std::string::String;
 #[test_only]
 public enum Permission has copy, drop, store {
     DeleteEverything,
+    MigrateItAll,
     /// Manage Capabilities including adding and revoking
     ManageCapabilities,
     /// Manage Roles including adding, removing and updating
@@ -23,6 +24,10 @@ public enum Permission has copy, drop, store {
 
 public fun delete_everything(): Permission {
     Permission::DeleteEverything
+}
+
+public fun migrate_it_all(): Permission {
+    Permission::MigrateItAll
 }
 
 public fun manage_capabilities(): Permission {
@@ -51,6 +56,7 @@ public fun action_c(): Permission {
 public fun super_admin_permissions(): VecSet<Permission> {
     let mut perms = vec_set::empty();
     perms.insert(delete_everything());
+    perms.insert(migrate_it_all());
     perms.insert(manage_capabilities());
     perms.insert(manage_roles());
     perms.insert(action_a());
@@ -75,6 +81,7 @@ public fun fake_object_id_from_string(id_string: &String): ID {
 public fun get_admin_permissions(): (
     tf_components::role_map::RoleAdminPermissions<Permission>,
     tf_components::role_map::CapabilityAdminPermissions<Permission>,
+    tf_components::role_map::RoleMapAdminPermissions<Permission>,
 ) {
     let role_admin_permissions = tf_components::role_map::new_role_admin_permissions(
         manage_roles(),
@@ -85,7 +92,10 @@ public fun get_admin_permissions(): (
         manage_capabilities(),
         manage_capabilities(),
     );
-    (role_admin_permissions, capability_admin_permissions)
+    let role_map_admin_permissions = tf_components::role_map::new_role_map_admin_permissions(
+        migrate_it_all(),
+    );
+    (role_admin_permissions, capability_admin_permissions, role_map_admin_permissions)
 }
 
 const INITIAL_ADMIN_ROLE_NAME: vector<u8> = b"Admin";
@@ -102,7 +112,7 @@ public fun create_test_role_map(
 ): (tf_components::role_map::RoleMap<Permission, bool>, tf_components::capability::Capability, ID) {
     let target_key = fake_object_id_from_string(&SECURITY_VAULT_ID_STRING.to_string());
     let initial_admin_role = INITIAL_ADMIN_ROLE_NAME.to_string();
-    let (role_admin_permissions, capability_admin_permissions) = get_admin_permissions();
+    let (role_admin_permissions, capability_admin_permissions, role_map_admin_permissions) = get_admin_permissions();
 
     let (role_map, admin_cap) = tf_components::role_map::new(
         target_key,
@@ -110,6 +120,7 @@ public fun create_test_role_map(
         super_admin_permissions(),
         role_admin_permissions,
         capability_admin_permissions,
+        role_map_admin_permissions,
         ctx,
     );
 
