@@ -586,3 +586,295 @@ fun test_revoke_initial_admin_capability_rejects_non_admin_cap() {
     role_map.destroy();
     ts::end(scenario);
 }
+
+// Test proper capability revocation
+#[test]
+fun test_proper_capability_revocation() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    // Step 1: admin_user creates the role map
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+
+    // Step 2: admin_user creates CapAdmin role
+    role_map.create_role(
+        &admin_cap,
+        string::utf8(b"CapAdmin"),
+        vec_set::singleton(test_utils::manage_capabilities()),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    let cap_admin_role = string::utf8(b"CapAdmin");
+
+    // Step 3: admin_user creates cap_admin_1, cap_admin_2, cap_admin_3 with CapAdmin role
+    let cap_admin_1 = role_map.new_capability(
+        &admin_cap,
+        &cap_admin_role,
+        std::option::none(),
+        std::option::none(),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    let cap_admin_1_id = cap_admin_1.id();
+
+    let cap_admin_2 = role_map.new_capability(
+        &admin_cap,
+        &cap_admin_role,
+        std::option::none(),
+        std::option::none(),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    let cap_admin_2_id = cap_admin_2.id();
+
+    let cap_admin_3 = role_map.new_capability(
+        &admin_cap,
+        &cap_admin_role,
+        std::option::none(),
+        std::option::none(),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    let cap_admin_3_id = cap_admin_3.id();
+
+    // Step 4: admin_user revokes cap_admin_2
+    role_map.revoke_capability(
+        &admin_cap,
+        cap_admin_2_id,
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    // Step 5: Verify cap_admin_2 is revoked and the others are not
+    assert!(role_map.revoked_capabilities().contains(cap_admin_2_id), 0);
+    assert!(!role_map.revoked_capabilities().contains(cap_admin_1_id), 1);
+    assert!(!role_map.revoked_capabilities().contains(cap_admin_3_id), 2);
+    assert!(role_map.revoked_capabilities().length() == 1, 3);
+
+    // Step 6: admin_user creates cap_admin_4, cap_admin_5
+    let cap_admin_4 = role_map.new_capability(
+        &admin_cap,
+        &cap_admin_role,
+        std::option::none(),
+        std::option::none(),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    let _cap_admin_4_id = cap_admin_4.id();
+
+    let cap_admin_5 = role_map.new_capability(
+        &admin_cap,
+        &cap_admin_role,
+        std::option::none(),
+        std::option::none(),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    let cap_admin_5_id = cap_admin_5.id();
+
+    // Step 7: admin_user revokes cap_admin_1 and cap_admin_5
+    role_map.revoke_capability(
+        &admin_cap,
+        cap_admin_1_id,
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    role_map.revoke_capability(
+        &admin_cap,
+        cap_admin_5_id,
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    // Step 8: Verify cap_admin_1 and cap_admin_5 are revoked and the others are not
+    assert!(role_map.revoked_capabilities().contains(cap_admin_1_id), 4);
+    assert!(role_map.revoked_capabilities().contains(cap_admin_2_id), 5);
+    assert!(role_map.revoked_capabilities().contains(cap_admin_5_id), 6);
+    assert!(!role_map.revoked_capabilities().contains(cap_admin_3_id), 7);
+    assert!(!role_map.revoked_capabilities().contains(_cap_admin_4_id), 8);
+    assert!(role_map.revoked_capabilities().length() == 3, 9);
+
+    // Step 9: Verify that `cleanup_revoked_capabilities_list` doesn't remove revoked capabilities that are still active
+    role_map.cleanup_revoked_capabilities_list(
+        &admin_cap,
+        &clock,
+        ts::ctx(&mut scenario)
+    );
+    assert!(role_map.revoked_capabilities().contains(cap_admin_1_id), 10);
+    assert!(role_map.revoked_capabilities().contains(cap_admin_2_id), 11);
+    assert!(role_map.revoked_capabilities().contains(cap_admin_5_id), 12);
+    assert!(role_map.revoked_capabilities().length() == 3, 13);
+
+    // Cleanup
+    iota::clock::destroy_for_testing(clock);
+    role_map.destroy_capability(cap_admin_1);
+    role_map.destroy_capability(cap_admin_2);
+    role_map.destroy_capability(cap_admin_3);
+    role_map.destroy_capability(cap_admin_4);
+    role_map.destroy_capability(cap_admin_5);
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
+// Test `cleanup_revoked_capabilities_list` removes revoked capabilities that are no longer active
+#[test]
+fun test_cleanup_revoked_capabilities_list_removes_expired() {
+    let admin_user = @0xAD;
+    let mut scenario = ts::begin(admin_user);
+
+    let (mut role_map, admin_cap, _target_key) = test_utils::create_test_role_map(
+        ts::ctx(&mut scenario),
+    );
+
+    let mut clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
+
+    // Create a CapAdmin role
+    role_map.create_role(
+        &admin_cap,
+        string::utf8(b"CapAdmin"),
+        vec_set::singleton(test_utils::manage_capabilities()),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    let cap_admin_role = string::utf8(b"CapAdmin");
+
+    // Create cap_1 with valid_until = 100 (will expire)
+    let cap_1 = role_map.new_capability(
+        &admin_cap,
+        &cap_admin_role,
+        std::option::none(),
+        std::option::none(),
+        std::option::some(100),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    let cap_1_id = cap_1.id();
+
+    // Create cap_2 with valid_until = 200 (will expire)
+    let cap_2 = role_map.new_capability(
+        &admin_cap,
+        &cap_admin_role,
+        std::option::none(),
+        std::option::none(),
+        std::option::some(200),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    let cap_2_id = cap_2.id();
+
+    // Create cap_3 with no valid_until (never expires)
+    let cap_3 = role_map.new_capability(
+        &admin_cap,
+        &cap_admin_role,
+        std::option::none(),
+        std::option::none(),
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    let cap_3_id = cap_3.id();
+
+    // Create cap_4 with valid_until = 500 (will not expire yet)
+    let cap_4 = role_map.new_capability(
+        &admin_cap,
+        &cap_admin_role,
+        std::option::none(),
+        std::option::none(),
+        std::option::some(500),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    let cap_4_id = cap_4.id();
+
+    // Revoke all four capabilities with their respective valid_until values
+    role_map.revoke_capability(
+        &admin_cap,
+        cap_1_id,
+        std::option::some(100),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    role_map.revoke_capability(
+        &admin_cap,
+        cap_2_id,
+        std::option::some(200),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    role_map.revoke_capability(
+        &admin_cap,
+        cap_3_id,
+        std::option::none(),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+    role_map.revoke_capability(
+        &admin_cap,
+        cap_4_id,
+        std::option::some(500),
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    // All 4 should be in the revoked list
+    assert!(role_map.revoked_capabilities().length() == 4, 0);
+
+    // Advance clock to 300 — cap_1 (valid_until=100) and cap_2 (valid_until=200) are now expired
+    iota::clock::set_for_testing(&mut clock, 300);
+
+    // Cleanup should remove expired entries
+    role_map.cleanup_revoked_capabilities_list(
+        &admin_cap,
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    // cap_1 and cap_2 should be removed (expired), cap_3 and cap_4 should remain
+    assert!(role_map.revoked_capabilities().length() == 2, 1);
+    assert!(!role_map.revoked_capabilities().contains(cap_1_id), 2);
+    assert!(!role_map.revoked_capabilities().contains(cap_2_id), 3);
+    assert!(role_map.revoked_capabilities().contains(cap_3_id), 4);
+    assert!(role_map.revoked_capabilities().contains(cap_4_id), 5);
+
+    // Advance clock to 600 — cap_4 (valid_until=500) is now also expired
+    iota::clock::set_for_testing(&mut clock, 600);
+
+    role_map.cleanup_revoked_capabilities_list(
+        &admin_cap,
+        &clock,
+        ts::ctx(&mut scenario),
+    );
+
+    // Only cap_3 (no expiry) should remain
+    assert!(role_map.revoked_capabilities().length() == 1, 6);
+    assert!(role_map.revoked_capabilities().contains(cap_3_id), 7);
+    assert!(!role_map.revoked_capabilities().contains(cap_4_id), 8);
+
+    // Cleanup
+    iota::clock::destroy_for_testing(clock);
+    role_map.destroy_capability(cap_1);
+    role_map.destroy_capability(cap_2);
+    role_map.destroy_capability(cap_3);
+    role_map.destroy_capability(cap_4);
+    role_map.destroy_initial_admin_capability(admin_cap);
+    role_map.destroy();
+    ts::end(scenario);
+}
+
