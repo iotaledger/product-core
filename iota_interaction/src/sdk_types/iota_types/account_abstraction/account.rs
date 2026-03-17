@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::ident_str;
-use super::super::super::move_core_types::{identifier::IdentStr, language_storage::StructTag};
+use crate::move_core_types::{identifier::IdentStr, language_storage::StructTag};
 use serde::{Deserialize, Serialize};
 
 use super::super::IOTA_FRAMEWORK_ADDRESS;

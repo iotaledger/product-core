@@ -16,7 +16,7 @@ use super::super::{
 use super::timelocked_staked_iota::{TIMELOCKED_STAKED_IOTA_MODULE_NAME, TIMELOCKED_STAKED_IOTA_STRUCT_NAME};
 use crate::ident_str;
 #[allow(unused)] // Kept in sync with original source, so keep as is.
-use crate::sdk_types::move_types::{
+use crate::move_core_types::{
   identifier::IdentStr,
   language_storage::{StructTag, TypeTag},
 };

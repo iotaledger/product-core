@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{serde_as, DisplayFromStr};
 
-use super::super::move_core_types::{
+use crate::move_core_types::{
   // annotated_value::{MoveStruct, MoveValue},
   identifier::IdentStr,
   language_storage::{StructTag, TypeTag},

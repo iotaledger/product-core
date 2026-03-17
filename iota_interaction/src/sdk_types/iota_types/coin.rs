@@ -4,9 +4,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::super::move_core_types::annotated_value::{MoveFieldLayout, MoveStructLayout, MoveTypeLayout};
-use super::super::move_core_types::identifier::IdentStr;
-use super::super::move_core_types::language_storage::{StructTag, TypeTag};
+use crate::move_core_types::annotated_value::{MoveFieldLayout, MoveStructLayout, MoveTypeLayout};
+use crate::move_core_types::identifier::IdentStr;
+use crate::move_core_types::language_storage::{StructTag, TypeTag};
 use super::balance::{Balance, Supply};
 use super::base_types::ObjectID;
 use super::error::{ExecutionError, ExecutionErrorKind, IotaError};
