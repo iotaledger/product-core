@@ -475,7 +475,7 @@ public(package) fun new_role<P: copy + drop, D: copy + drop>(
 ///   Aborts with `ERoleDoesNotExist` if the role does not exist.
 /// - The role associated with the capability contains the permission specified by the `permission` argument.
 ///   Aborts with `ECapabilityPermissionDenied` if the permission is not granted by the role.
-/// - The capability has not been revoked (is included in the `issued_capabilities` set).
+/// - The capability has not been revoked (is not included in the `revoked_capabilities` set).
 ///   Aborts with `ECapabilityHasBeenRevoked` if revoked.
 /// - The capability is currently active, based on its time restrictions (if any).
 ///   Aborts with `ECapabilityTimeConstraintsNotMet`, if the current time is outside the `valid_from` and `valid_until` range.

@@ -134,7 +134,7 @@ fun test_capability_lifecycle() {
                 ts::ctx(&mut scenario),
             );
 
-        // Verify capability was removed from the issued_capabilities list
+        // Verify capability has been added to the revoked_capabilities list
         assert!(counter.access().revoked_capabilities().length() == 1, 1); // counter-admin only
         assert!(counter.access().revoked_capabilities().contains(counter_admin_cap_id), 2);
 
