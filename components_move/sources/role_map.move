@@ -670,7 +670,7 @@ public fun revoke_capability<P: copy + drop, D: copy + drop>(
 ///
 /// Errors:
 /// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
-public fun cleanup_revoked_capabilities_list<P: copy + drop, D: copy + drop>(
+public fun cleanup_revoked_capabilities<P: copy + drop, D: copy + drop>(
     self: &mut RoleMap<P, D>,
     cap: &Capability,
     clock: &Clock,
