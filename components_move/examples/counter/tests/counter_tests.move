@@ -6,6 +6,7 @@ module tf_components::example_counter_tests;
 
 use iota::test_scenario as ts;
 use std::string;
+use std::option::none;
 use tf_components::{
     capability::Capability,
     counter::{Self, Counter},
@@ -33,9 +34,6 @@ fun prepare_counter_and_issue_capability(
         let super_admin_cap = ts::take_from_sender<Capability>(&scenario);
         let mut counter = ts::take_shared<Counter>(&scenario);
         let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
-
-        // Initially only the super-admin cap should be tracked
-        assert!(counter.access().issued_capabilities().size() == 1, 0);
 
         counter
             .access_mut()
@@ -72,10 +70,6 @@ fun prepare_counter_and_issue_capability(
             );
         let counter_admin_cap_id = object::id(&counter_cap);
         transfer::public_transfer(counter_cap, counter_admin_user);
-
-        // Verify all capabilities are tracked
-        assert!(counter.access().issued_capabilities().size() == 2, 1); // super-admin + counter-admin
-        assert!(counter.access().issued_capabilities().contains(&counter_admin_cap_id), 2);
 
         iota::clock::destroy_for_testing(clock);
         ts::return_to_sender(&scenario, super_admin_cap);
@@ -127,18 +121,22 @@ fun test_capability_lifecycle() {
         let mut counter = ts::take_shared<Counter>(&scenario);
         let clock = iota::clock::create_for_testing(ts::ctx(&mut scenario));
 
+        // Make sure there are no revoked capabilities so far
+        assert!(counter.access().revoked_capabilities().length() == 0, 0);
+
         counter
             .access_mut()
             .revoke_capability(
                 &super_admin_cap,
                 counter_admin_cap_id,
+                none(),
                 &clock,
                 ts::ctx(&mut scenario),
             );
 
-        // Verify capability was removed from the issued_capabilities list
-        assert!(counter.access().issued_capabilities().size() == 1, 5); // super-admin only
-        assert!(!counter.access().issued_capabilities().contains(&counter_admin_cap_id), 6);
+        // Verify capability has been added to the revoked_capabilities list
+        assert!(counter.access().revoked_capabilities().length() == 1, 1); // counter-admin only
+        assert!(counter.access().revoked_capabilities().contains(counter_admin_cap_id), 2);
 
         iota::clock::destroy_for_testing(clock);
         ts::return_to_sender(&scenario, super_admin_cap);
