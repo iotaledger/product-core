@@ -709,8 +709,8 @@ fun test_proper_capability_revocation() {
     assert!(!role_map.revoked_capabilities().contains(_cap_admin_4_id), 8);
     assert!(role_map.revoked_capabilities().length() == 3, 9);
 
-    // Step 9: Verify that `cleanup_revoked_capabilities_list` doesn't remove revoked capabilities that are still active
-    role_map.cleanup_revoked_capabilities_list(
+    // Step 9: Verify that `cleanup_revoked_capabilities` doesn't remove revoked capabilities that are still active
+    role_map.cleanup_revoked_capabilities(
         &admin_cap,
         &clock,
         ts::ctx(&mut scenario)
@@ -732,7 +732,7 @@ fun test_proper_capability_revocation() {
     ts::end(scenario);
 }
 
-// Test `cleanup_revoked_capabilities_list` removes revoked capabilities that are no longer active
+// Test `cleanup_revoked_capabilities` removes revoked capabilities that are no longer active
 #[test]
 fun test_cleanup_revoked_capabilities_list_removes_expired() {
     let admin_user = @0xAD;
@@ -841,7 +841,7 @@ fun test_cleanup_revoked_capabilities_list_removes_expired() {
     iota::clock::set_for_testing(&mut clock, 300);
 
     // Cleanup should remove expired entries
-    role_map.cleanup_revoked_capabilities_list(
+    role_map.cleanup_revoked_capabilities(
         &admin_cap,
         &clock,
         ts::ctx(&mut scenario),
@@ -857,7 +857,7 @@ fun test_cleanup_revoked_capabilities_list_removes_expired() {
     // Advance clock to 600 — cap_4 (valid_until=500) is now also expired
     iota::clock::set_for_testing(&mut clock, 600);
 
-    role_map.cleanup_revoked_capabilities_list(
+    role_map.cleanup_revoked_capabilities(
         &admin_cap,
         &clock,
         ts::ctx(&mut scenario),
