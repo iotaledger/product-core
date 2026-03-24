@@ -501,6 +501,7 @@ impl Signer<Signature> for Secp256k1KeyPair {
         Secp256k1IotaSignature::new(self, msg).into()
     }
 }
+
 // Secp256r1 Iota Signature port
 //
 #[serde_as]
@@ -540,6 +541,7 @@ impl Signer<Signature> for Secp256r1KeyPair {
         Secp256r1IotaSignature::new(self, msg).into()
     }
 }
+
 // This struct exists due to the limitations of the `enum_dispatch` library.
 //
 pub trait IotaSignatureInner: Sized + ToFromBytes + PartialEq + Eq + Hash {
