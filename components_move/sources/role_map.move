@@ -34,11 +34,13 @@
 ///
 module tf_components::role_map;
 
-use iota::clock::{Self, Clock};
-use iota::event;
-use iota::vec_map::{Self, VecMap};
-use iota::vec_set::{Self, VecSet};
-use iota::linked_table::{Self, LinkedTable};
+use iota::{
+    clock::{Self, Clock},
+    event,
+    linked_table::{Self, LinkedTable},
+    vec_map::{Self, VecMap},
+    vec_set::{Self, VecSet}
+};
 use std::string::String;
 use tf_components::capability::{Self, Capability};
 
@@ -306,7 +308,7 @@ public fun destroy<P: copy + drop, D: copy + drop>(self: RoleMap<P, D>) {
     } = self;
 
     while (!revoked_capabilities.is_empty()) {
-       revoked_capabilities.pop_front();
+        revoked_capabilities.pop_front();
     };
     revoked_capabilities.destroy_empty();
 }
@@ -573,11 +575,14 @@ public fun new_capability<P: copy + drop, D: copy + drop>(
 ///
 /// Initial admin capabilities cannot be destroyed via this function.
 /// Use `destroy_initial_admin_capability` instead.
-/// 
+///
 /// Will remove the capability from the `revoked_capabilities` denylist if it's included.
 ///
 /// Sends a `CapabilityDestroyed` event upon successful destruction.
-public fun destroy_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap<P, D>, cap_to_destroy: Capability) {
+public fun destroy_capability<P: copy + drop, D: copy + drop>(
+    self: &mut RoleMap<P, D>,
+    cap_to_destroy: Capability,
+) {
     assert!(self.target_key == cap_to_destroy.target_key(), ECapabilityTargetKeyMismatch);
     assert!(
         !self.initial_admin_cap_ids.contains(&cap_to_destroy.id()),
@@ -595,7 +600,7 @@ public fun destroy_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap
         issued_to: *cap_to_destroy.issued_to(),
         valid_from: *cap_to_destroy.valid_from(),
         valid_until: *cap_to_destroy.valid_until(),
-     });
+    });
 
     cap_to_destroy.destroy();
 }
@@ -608,61 +613,61 @@ public fun destroy_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap
 ///   Use `revoke_initial_admin_capability` instead.
 ///
 /// * Sends a `CapabilityRevoked` event upon successful revocation.
-/// 
+///
 /// Off-chain tracking for issued capabilities
 /// ------------------------------------------
 /// The `RoleMap` has been designed for users issuing high numbers of capabilities.
-/// 
+///
 /// It therefore uses a denylist to manage revoked capabilities. Inherently, a denylist doesn't allow
 /// to track all issued capabilities on-chain. Tracking issued capability ID's and their validity constraints
 /// on-chain would lead to high storage costs and would slow down capability validity checks.
-/// 
+///
 /// The `revoke_capability()` function therefore relies on the user to provide correct information about
 /// the capability to revoke, which is the main challenge of this approach:
-/// 
+///
 /// **Users of the `RoleMap` need to have an off-chain tracking mechanism for issued capabilities,
 /// their id's and optional constraints.**
-/// 
+///
 /// The main strength of this approach is that it allows to keep the internally managed denylist
 /// (`revoked_capabilities`) as short as possible, by only including capabilities that are actually
 /// revoked and haven't expired yet.
-/// 
+///
 /// To keep the denylist as short as possible, we recommend to:
 /// * Use the `Capability::valid_until` field to set an expiry date for issued capabilities whenever possible
 /// * Track the id and expiry date of issued capabilities off-chain
 /// * Set the `cap_to_revoke_valid_until` parameter (see below) to the `valid_until` value of the capability
 ///   when revoking a capability
 /// * Frequently use the `cleanup_revoked_capabilities()` function to automatically remove expired capabilities from list
-/// 
+///
 /// Please note: Revoked capabilities without an expiry date need to be included in the list until they are explicitly
 /// destroyed. This means in case users miss to destroy capabilities, these capabilities will remain in the list infinitely.
 /// As there is no maximum size to be taken into account, this is not a problem per se but should be avoided.
-/// 
+///
 /// **Keeping the denylist as short as possible is crucial for users issuing high numbers of capabilities,
-/// to avoid high storage costs and performance issues.** 
-/// 
+/// to avoid high storage costs and performance issues.**
+///
 /// See the `cap_to_revoke` parameter documentation below for the constraints that need to be fulfilled for the
 /// `revoke_capability()` function to work correctly.
-/// 
+///
 /// If users of the RoleMap only issue minor numbers of capabilities, they can also choose to set the
 /// `cap_to_revoke_valid_until` parameter to `option::none()` when revoking a capability. In this case, the off-chain
 /// tracking mechanism only needs to maintain a list of already issued capability ID's.
-/// 
+///
 /// Parameters
 /// ----------
 /// - cap: Reference to the capability used to authorize the revocation of the `cap_to_revoke` capability.
 ///   Needs to grant the `CapabilityAdminPermissions::revoke` permission.
-/// - cap_to_revoke: 
+/// - cap_to_revoke:
 ///   The capability to be revoked is specified by its ID (see above for more details).
 ///   The user of this function is responsible to only pass `cap_to_revoke` values that meet the following preconditions:
 ///   * A capability with the provided `cap_to_revoke` ID exists
 ///   * The capability specified by `cap_to_revoke` has been issued by this RoleMap instance
 ///   * The optional `valid_until` value of the capability specified by `cap_to_revoke` has not expired
 ///     (in this case there would be no need to revoke it)
-///   
+///
 ///   To meet these preconditions, the off-chain tracking mechanism implemented by the user of the RoleMap is responsible for
 ///   registering all issued capabilities, their ID's and optional expiry dates.
-///   
+///
 ///   **The `revoke_capability()` function itself will not evaluate any of the above listed checks.**
 ///
 ///   If you provide i.e. random `cap_to_revoke` ID's they will be stored in the `revoked_capabilities` without any errors.
@@ -672,7 +677,7 @@ public fun destroy_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap
 ///   by removing already expired capabilities from the list.
 /// - clock: Reference to a Clock instance for time-based validation.
 /// - ctx: Reference to the transaction context.
-/// 
+///
 /// Errors:
 /// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
 /// - Aborts with `ECapabilityToRevokeHasAlreadyBeenRevoked` if `cap_to_revoke` has already been revoked.
@@ -708,7 +713,7 @@ public fun revoke_capability<P: copy + drop, D: copy + drop>(
 ///
 /// Entries with `valid_until == 0` (i.e. capabilities that had no expiry) are kept, since they remain potentially
 /// valid and must stay on the denylist.
-/// 
+///
 /// See function `revoke_capability` above for more details.
 ///
 /// Parameters
@@ -760,7 +765,7 @@ public fun cleanup_revoked_capabilities<P: copy + drop, D: copy + drop>(
 /// sealed with no admin access possible.
 ///
 /// Sends a `CapabilityDestroyed` event upon successful destruction.
-/// 
+///
 /// Will remove the capability from the `revoked_capabilities` denylist if it's included.
 ///
 /// Errors:
@@ -777,7 +782,7 @@ public fun destroy_initial_admin_capability<P: copy + drop, D: copy + drop>(
     );
 
     if (self.revoked_capabilities.contains(cap_to_destroy.id())) {
-            self.revoked_capabilities.remove(cap_to_destroy.id());
+        self.revoked_capabilities.remove(cap_to_destroy.id());
     };
     self.initial_admin_cap_ids.remove(&cap_to_destroy.id());
 
@@ -788,7 +793,7 @@ public fun destroy_initial_admin_capability<P: copy + drop, D: copy + drop>(
         issued_to: *cap_to_destroy.issued_to(),
         valid_from: *cap_to_destroy.valid_from(),
         valid_until: *cap_to_destroy.valid_until(),
-     });
+    });
 
     cap_to_destroy.destroy();
 }
@@ -802,8 +807,8 @@ public fun destroy_initial_admin_capability<P: copy + drop, D: copy + drop>(
 /// sealed with no admin access possible.
 ///
 /// Sends a `CapabilityRevoked` event upon successful revocation.
-/// 
-/// See function `revoke_capability()` for parameter documentation and further details. 
+///
+/// See function `revoke_capability()` for parameter documentation and further details.
 ///
 /// Errors:
 /// - Aborts with any error documented by `assert_capability_valid` if the provided capability fails authorization checks.
@@ -847,7 +852,10 @@ fun has_required_admin_permissions<P: copy + drop>(
 }
 
 /// Issues a new capability
-fun issue_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap<P, D>, new_cap: &Capability) {
+fun issue_capability<P: copy + drop, D: copy + drop>(
+    self: &mut RoleMap<P, D>,
+    new_cap: &Capability,
+) {
     if (new_cap.role() == &self.initial_admin_role_name) {
         self.initial_admin_cap_ids.insert(new_cap.id());
     };
@@ -866,9 +874,12 @@ fun issue_capability<P: copy + drop, D: copy + drop>(self: &mut RoleMap<P, D>, n
 fun add_cap_to_revoke_list<P: copy + drop, D: copy + drop>(
     self: &mut RoleMap<P, D>,
     cap_to_revoke: ID,
-    cap_to_revoke_valid_until: Option<u64>
+    cap_to_revoke_valid_until: Option<u64>,
 ) {
-    assert!(!self.revoked_capabilities.contains(cap_to_revoke), ECapabilityToRevokeHasAlreadyBeenRevoked);
+    assert!(
+        !self.revoked_capabilities.contains(cap_to_revoke),
+        ECapabilityToRevokeHasAlreadyBeenRevoked,
+    );
 
     let valid_until = cap_to_revoke_valid_until.borrow_with_default(&0);
     self.revoked_capabilities.push_back(cap_to_revoke, *valid_until);
@@ -899,6 +910,8 @@ public fun role_admin_permissions<P: copy + drop, D: copy + drop>(
     &self.role_admin_permissions
 }
 
-public fun revoked_capabilities<P: copy + drop, D: copy + drop>(self: &RoleMap<P, D>): &LinkedTable<ID,u64> {
+public fun revoked_capabilities<P: copy + drop, D: copy + drop>(
+    self: &RoleMap<P, D>,
+): &LinkedTable<ID, u64> {
     &self.revoked_capabilities
 }
