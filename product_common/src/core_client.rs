@@ -16,6 +16,7 @@ use serde::de::DeserializeOwned;
 
 use crate::iota_interaction_adapter::IotaClientAdapter;
 use crate::network_name::NetworkName;
+use crate::tf_components_registry;
 
 #[cfg_attr(not(feature = "send-sync"), async_trait(?Send))]
 #[cfg_attr(feature = "send-sync", async_trait)]
@@ -36,6 +37,13 @@ pub trait CoreClientReadOnly {
   ///
   /// This allows access to lower-level client operations if needed.
   fn client_adapter(&self) -> &IotaClientAdapter;
+
+  /// Returns the [`TfComponents`] package ID for this client's network, if applicable.
+  ///
+  /// Products that do not depend on `TfComponents` can rely on the default implementation.
+  fn tf_components_package_id(&self) -> Option<ObjectID> {
+    tf_components_registry::tf_components_package_id(self.network_name().as_ref())
+  }
 
   /// Returns the IDs of all packages version, from initial to current.
   fn package_history(&self) -> Vec<ObjectID> {
