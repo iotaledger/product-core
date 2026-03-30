@@ -18,6 +18,7 @@ use crate::network_name::NetworkName;
 #[wasm_bindgen]
 pub struct WasmManagedCoreClientReadOnly {
   package_history: Vec<ObjectID>,
+  tf_components_package_id: Option<ObjectID>,
   network: NetworkName,
   iota_client_adapter: IotaClientAdapter,
 }
@@ -30,11 +31,17 @@ impl WasmManagedCoreClientReadOnly {
       .map(|pkg_id| pkg_id.parse())
       .collect::<StdResult<Vec<_>, ObjectIDParseError>>()
       .map_err(|e| JsError::new(&e.to_string()))?;
+    let tf_components_package_id = wasm_core_client
+      .tf_components_package_id()
+      .map(|pkg_id| pkg_id.parse())
+      .transpose()
+      .map_err(|e: ObjectIDParseError| JsError::new(&e.to_string()))?;
     let network = wasm_core_client.network().parse().wasm_result()?;
     let iota_client_adapter = IotaClientAdapter::new(wasm_core_client.iota_client());
 
     Ok(Self {
       package_history,
+      tf_components_package_id,
       network,
       iota_client_adapter,
     })
@@ -49,11 +56,13 @@ impl WasmManagedCoreClientReadOnly {
     C: CoreClientReadOnly,
   {
     let package_history = core_client.package_history();
+    let tf_components_package_id = core_client.tf_components_package_id();
     let network = core_client.network_name().clone();
     let iota_client_adapter = core_client.client_adapter().clone();
 
     Self {
       package_history,
+      tf_components_package_id,
       network,
       iota_client_adapter,
     }
@@ -78,6 +87,11 @@ impl WasmManagedCoreClientReadOnly {
     self.package_history.iter().map(|pkg| pkg.to_string()).collect()
   }
 
+  #[wasm_bindgen(js_name = tfComponentsPackageId)]
+  pub fn tf_components_package_id(&self) -> Option<String> {
+    self.tf_components_package_id.map(|pkg| pkg.to_string())
+  }
+
   #[wasm_bindgen]
   pub fn network(&self) -> String {
     self.network.to_string()
@@ -96,6 +110,10 @@ impl CoreClientReadOnly for WasmManagedCoreClientReadOnly {
 
   fn package_history(&self) -> Vec<ObjectID> {
     self.package_history.clone()
+  }
+
+  fn tf_components_package_id(&self) -> Option<ObjectID> {
+    self.tf_components_package_id
   }
 
   fn network_name(&self) -> &NetworkName {
@@ -171,6 +189,11 @@ impl WasmManagedCoreClient {
     self.read_only.package_history()
   }
 
+  #[wasm_bindgen(js_name = tfComponentsPackageId)]
+  pub fn tf_components_package_id(&self) -> Option<String> {
+    self.read_only.tf_components_package_id()
+  }
+
   #[wasm_bindgen]
   pub fn network(&self) -> String {
     self.read_only.network.to_string()
@@ -206,6 +229,10 @@ impl CoreClientReadOnly for WasmManagedCoreClient {
 
   fn package_history(&self) -> Vec<ObjectID> {
     CoreClientReadOnly::package_history(&self.read_only)
+  }
+
+  fn tf_components_package_id(&self) -> Option<ObjectID> {
+    CoreClientReadOnly::tf_components_package_id(&self.read_only)
   }
 
   fn network_name(&self) -> &NetworkName {
