@@ -58,11 +58,6 @@ impl CallArg {
         initial_shared_version: IOTA_CLOCK_OBJECT_SHARED_VERSION,
         mutable: true,
     });
-    pub const AUTHENTICATOR_MUT: Self = Self::Object(ObjectArg::SharedObject {
-        id: IOTA_AUTHENTICATOR_STATE_OBJECT_ID,
-        initial_shared_version: IOTA_AUTHENTICATOR_STATE_OBJECT_SHARED_VERSION,
-        mutable: true,
-    });
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Serialize, Deserialize)]
