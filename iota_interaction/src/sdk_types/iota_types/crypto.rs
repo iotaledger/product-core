@@ -5,9 +5,12 @@ use std::hash::Hash;
 use std::str::FromStr;
 
 use derive_more::{AsMut, AsRef, From};
-use enum_dispatch::enum_dispatch;
+pub use enum_dispatch::enum_dispatch;
 use eyre::{eyre, Report};
-use fastcrypto::bls12381::min_sig::{
+pub use fastcrypto::traits::{
+    Authenticator, EncodeDecodeBase64, KeyPair as KeypairTraits, Signer, ToFromBytes, VerifyingKey,
+};
+pub use fastcrypto::bls12381::min_sig::{
   BLS12381AggregateSignature, BLS12381AggregateSignatureAsBytes, BLS12381KeyPair, BLS12381PrivateKey,
   BLS12381PublicKey, BLS12381Signature,
 };
@@ -19,9 +22,6 @@ use fastcrypto::error::{FastCryptoError, FastCryptoResult};
 use fastcrypto::hash::{Blake2b256, HashFunction};
 use fastcrypto::secp256k1::{Secp256k1KeyPair, Secp256k1PublicKey, Secp256k1PublicKeyAsBytes, Secp256k1Signature};
 use fastcrypto::secp256r1::{Secp256r1KeyPair, Secp256r1PublicKey, Secp256r1PublicKeyAsBytes, Secp256r1Signature};
-use fastcrypto::traits::{
-  Authenticator, EncodeDecodeBase64, KeyPair as KeypairTraits, Signer, ToFromBytes, VerifyingKey,
-};
 use fastcrypto_zkp::zk_login_utils::Bn254FrElement;
 use iota_sdk_types::crypto::IntentMessage;
 use schemars::JsonSchema;
