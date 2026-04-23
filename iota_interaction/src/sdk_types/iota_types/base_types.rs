@@ -18,8 +18,8 @@ use fastcrypto::hash::HashFunction;
 use rand::Rng;
 use schemars::JsonSchema;
 use serde::ser::Error;
-use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_with::{DeserializeAs, SerializeAs, serde_as};
 use Result;
 
 use crate::move_core_types::account_address::AccountAddress;
@@ -691,6 +691,55 @@ impl ObjectID {
         }
     }
 
+    /// Create an ObjectID from `TransactionDigest` and `creation_num`.
+    /// Caller is responsible for ensuring that `creation_num` is fresh
+    pub fn derive_id(digest: TransactionDigest, creation_num: u64) -> Self {
+        let mut hasher = DefaultHash::default();
+        hasher.update([HashingIntentScope::RegularObjectId as u8]);
+        hasher.update(digest);
+        hasher.update(creation_num.to_le_bytes());
+        let hash = hasher.finalize();
+
+        // truncate into an ObjectID.
+        // OK to access slice because digest should never be shorter than
+        // ObjectID::LENGTH.
+        ObjectID::try_from(&hash.as_ref()[0..ObjectID::LENGTH]).unwrap()
+    }
+
+    /// Increment the ObjectID by one, assuming the ObjectID hex is a number
+    /// represented as an array of bytes
+    pub fn next_increment(&self) -> Result<ObjectID, anyhow::Error> {
+        let mut prev_val = self.to_vec();
+        let mx = [0xFF; Self::LENGTH];
+
+        if prev_val == mx {
+            bail!("Increment will cause overflow");
+        }
+
+        // This logic increments the integer representation of an ObjectID u8 array
+        for idx in (0..Self::LENGTH).rev() {
+            if prev_val[idx] == 0xFF {
+                prev_val[idx] = 0;
+            } else {
+                prev_val[idx] += 1;
+                break;
+            };
+        }
+        ObjectID::try_from(prev_val.clone()).map_err(|w| w.into())
+    }
+
+    /// Create `count` object IDs starting with one at `offset`
+    pub fn in_range(offset: ObjectID, count: u64) -> Result<Vec<ObjectID>, anyhow::Error> {
+        let mut ret = Vec::new();
+        let mut prev = offset;
+        for o in 0..count {
+            if o != 0 {
+                prev = prev.next_increment()?;
+            }
+            ret.push(prev);
+        }
+        Ok(ret)
+    }
 
     /// Return the full hex string with 0x prefix without removing trailing 0s.
     /// Prefer this over [fn to_hex_literal] if the string needs to be fully
