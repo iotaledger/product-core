@@ -13,7 +13,6 @@ use std::result::Result::Ok;
 use std::str::FromStr;
 use std::string::{String, ToString};
 
-use fastcrypto::encoding::Hex;
 use schemars::JsonSchema;
 use serde::de::{Deserializer, Error};
 use serde::ser::{Error as SerError, Serializer};
@@ -97,15 +96,6 @@ pub(crate) fn to_custom_deser_error<'de, D, E>(e: E) -> D::Error
         D: Deserializer<'de>,
 {
     Error::custom(format!("byte deserialization failed, cause by: {e:?}"))
-}
-
-#[inline]
-pub(crate) fn to_custom_ser_error<S, E>(e: E) -> S::Error
-where
-    E: Debug,
-    S: Serializer,
-{
-    S::Error::custom(format!("byte serialization failed, cause by: {e:?}"))
 }
 
 /// Use with serde_as to control serde for human-readable serialization and
