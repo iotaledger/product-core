@@ -18,6 +18,9 @@ extern "C" {
   #[wasm_bindgen(method, js_name = packageHistory)]
   pub fn package_history(this: &WasmCoreClientReadOnly) -> Vec<String>;
 
+  #[wasm_bindgen(method, js_name = tfComponentsPackageId)]
+  pub fn tf_components_package_id(this: &WasmCoreClientReadOnly) -> Option<String>;
+
   #[wasm_bindgen(method, js_name = network)]
   pub fn network(this: &WasmCoreClientReadOnly) -> String;
 

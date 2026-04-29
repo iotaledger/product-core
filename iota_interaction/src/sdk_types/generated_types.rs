@@ -80,7 +80,7 @@ impl GetDynamicFieldObjectParams {
 #[serde(rename_all = "camelCase")]
 pub struct GetDynamicFieldObjectV2Params {
   /// The ID of the queried parent object
-  parent_id: String,
+  parent_object_id: String,
   /// The Name of the dynamic field
   name: DynamicFieldName,
   /// options for specifying the content to be returned
@@ -89,9 +89,9 @@ pub struct GetDynamicFieldObjectV2Params {
 }
 
 impl GetDynamicFieldObjectV2Params {
-  pub fn new(parent_id: String, name: DynamicFieldName, options: Option<IotaObjectDataOptions>) -> Self {
+  pub fn new(parent_object_id: String, name: DynamicFieldName, options: Option<IotaObjectDataOptions>) -> Self {
     GetDynamicFieldObjectV2Params {
-      parent_id,
+      parent_object_id,
       name,
       options,
     }
