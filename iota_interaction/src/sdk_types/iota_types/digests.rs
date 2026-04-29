@@ -211,6 +211,7 @@ impl fmt::UpperHex for CheckpointContentsDigest {
     }
 }
 
+/// A transaction will have a (unique) digest.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct TransactionDigest(Digest);
 
@@ -258,6 +259,30 @@ impl TransactionDigest {
 
     pub fn next_lexicographical(&self) -> Option<Self> {
         self.0.next_lexicographical().map(Self)
+    }
+}
+
+impl AsRef<[u8]> for TransactionDigest {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+}
+
+impl AsRef<[u8; 32]> for TransactionDigest {
+    fn as_ref(&self) -> &[u8; 32] {
+        self.0.as_ref()
+    }
+}
+
+impl From<TransactionDigest> for [u8; 32] {
+    fn from(digest: TransactionDigest) -> Self {
+        digest.into_inner()
+    }
+}
+
+impl From<[u8; 32]> for TransactionDigest {
+    fn from(digest: [u8; 32]) -> Self {
+        Self::new(digest)
     }
 }
 
