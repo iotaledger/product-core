@@ -18,8 +18,8 @@ use crate::move_core_types::language_storage::TypeTag;
 use super::base_types::{EpochId, IotaAddress, ObjectID, ObjectRef, SequenceNumber};
 use super::error::{UserInputError, UserInputResult};
 use super::{
-    IOTA_AUTHENTICATOR_STATE_OBJECT_ID, IOTA_AUTHENTICATOR_STATE_OBJECT_SHARED_VERSION, IOTA_CLOCK_OBJECT_ID,
-    IOTA_CLOCK_OBJECT_SHARED_VERSION, IOTA_SYSTEM_STATE_OBJECT_ID, IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION,
+    IOTA_CLOCK_OBJECT_ID, IOTA_CLOCK_OBJECT_SHARED_VERSION, IOTA_SYSTEM_STATE_OBJECT_ID,
+    IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION,
 };
 
 pub const TEST_ONLY_GAS_UNIT_FOR_TRANSFER: u64 = 10_000;
@@ -56,11 +56,6 @@ impl CallArg {
     pub const CLOCK_MUT: Self = Self::Object(ObjectArg::SharedObject {
         id: IOTA_CLOCK_OBJECT_ID,
         initial_shared_version: IOTA_CLOCK_OBJECT_SHARED_VERSION,
-        mutable: true,
-    });
-    pub const AUTHENTICATOR_MUT: Self = Self::Object(ObjectArg::SharedObject {
-        id: IOTA_AUTHENTICATOR_STATE_OBJECT_ID,
-        initial_shared_version: IOTA_AUTHENTICATOR_STATE_OBJECT_SHARED_VERSION,
         mutable: true,
     });
 }

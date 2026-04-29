@@ -13,7 +13,6 @@ use std::result::Result::Ok;
 use std::str::FromStr;
 use std::string::{String, ToString};
 
-use fastcrypto::encoding::Hex;
 use schemars::JsonSchema;
 use serde::de::{Deserializer, Error};
 use serde::ser::{Error as SerError, Serializer};
@@ -91,7 +90,7 @@ impl From<u64> for ProtocolVersion {
 // -----------------------------------------------------------------------------------------
 
 #[inline]
-fn to_custom_error<'de, D, E>(e: E) -> D::Error
+pub(crate) fn to_custom_deser_error<'de, D, E>(e: E) -> D::Error
     where
         E: Debug,
         D: Deserializer<'de>,
@@ -152,37 +151,6 @@ impl<'de, R, H, T> DeserializeAs<'de, T> for Readable<H, R>
         }
     }
 }
-
-/// custom serde for AccountAddress
-pub struct HexAccountAddress;
-
-impl SerializeAs<AccountAddress> for HexAccountAddress {
-    fn serialize_as<S>(value: &AccountAddress, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-    {
-        Hex::serialize_as(value, serializer)
-    }
-}
-
-impl<'de> DeserializeAs<'de, AccountAddress> for HexAccountAddress {
-    fn deserialize_as<D>(deserializer: D) -> Result<AccountAddress, D::Error>
-        where
-            D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        if s.starts_with("0x") {
-            AccountAddress::from_hex_literal(&s)
-        } else {
-            AccountAddress::from_hex(&s)
-        }
-            .map_err(to_custom_error::<'de, D, _>)
-    }
-}
-
-/// Serializes a bitmap according to the roaring bitmap on-disk standard.
-/// <https://github.com/RoaringBitmap/RoaringFormatSpec>
-pub struct IotaBitmap;
 
 pub struct IotaStructTag;
 
@@ -398,3 +366,4 @@ impl<'de> DeserializeAs<'de, ProtocolVersion> for AsProtocolVersion {
         Ok(ProtocolVersion::from(*b))
     }
 }
+
