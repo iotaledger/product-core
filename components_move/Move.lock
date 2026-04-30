@@ -2,7 +2,7 @@
 
 [move]
 version = 3
-manifest_digest = "172E6E9D27DFB64487EDC62DB907AD3642D5693302E78F3727A67B53C44DAD6C"
+manifest_digest = "4E219538E560B52E657002599823A7F5794C484FDEB0EA7DE93DD860C8821C44"
 deps_digest = "F9B494B64F0615AED0E98FC12A85B85ECD2BC5185C22D30E7F67786BB52E507C"
 dependencies = [
   { id = "Iota", name = "Iota" },
@@ -45,3 +45,11 @@ dependencies = [
 compiler-version = "1.14.1"
 edition = "2024.beta"
 flavor = "iota"
+
+[env]
+
+[env.localnet]
+chain-id = "e4e01ad5"
+original-published-id = "0x2acbe845269d520a5a4ea272041d19be5e561fd21df2f256c807c7bac769e987"
+latest-published-id = "0x2acbe845269d520a5a4ea272041d19be5e561fd21df2f256c807c7bac769e987"
+published-version = "1"
