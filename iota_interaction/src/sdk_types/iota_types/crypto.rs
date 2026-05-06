@@ -200,34 +200,19 @@ pub enum PublicKey {
     Ed25519(Ed25519PublicKeyAsBytes),
     Secp256k1(Secp256k1PublicKeyAsBytes),
     Secp256r1(Secp256r1PublicKeyAsBytes),
-    ZkLogin(ZkLoginPublicIdentifier),
+    #[deprecated(note = "zkLogin is deprecated and was never enabled on IOTA")]
+    ZkLoginDeprecated,
     Passkey(Secp256r1PublicKeyAsBytes),
 }
 
-/// A wrapper struct to retrofit in [enum PublicKey] for zkLogin.
-/// Useful to construct [struct MultiSigPublicKey].
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ZkLoginPublicIdentifier(pub Vec<u8>); // #[schemars(with = "Base64")]
-
-impl ZkLoginPublicIdentifier {
-    /// Consists of iss_bytes_len || iss_bytes || padded_32_byte_address_seed.
-    pub fn new(iss: &str, address_seed: &Bn254FrElement) -> IotaResult<Self> {
-        let mut bytes = Vec::new();
-        let iss_bytes = iss.as_bytes();
-        bytes.extend([iss_bytes.len() as u8]);
-        bytes.extend(iss_bytes);
-        bytes.extend(address_seed.padded());
-
-        Ok(Self(bytes))
-    }
-}
 impl AsRef<[u8]> for PublicKey {
     fn as_ref(&self) -> &[u8] {
         match self {
             PublicKey::Ed25519(pk) => &pk.0,
             PublicKey::Secp256k1(pk) => &pk.0,
             PublicKey::Secp256r1(pk) => &pk.0,
-            PublicKey::ZkLogin(z) => &z.0,
+            #[allow(deprecated)]
+            PublicKey::ZkLoginDeprecated => &[],
             PublicKey::Passkey(pk) => &pk.0,
         }
     }
@@ -306,7 +291,8 @@ impl PublicKey {
             PublicKey::Ed25519(_) => SignatureScheme::ED25519,     // Equals Ed25519IotaSignature::SCHEME
             PublicKey::Secp256k1(_) => SignatureScheme::Secp256k1, // Equals Secp256k1IotaSignature::SCHEME
             PublicKey::Secp256r1(_) => SignatureScheme::Secp256r1, // Equals Secp256r1IotaSignature::SCHEME
-            PublicKey::ZkLogin(_) => SignatureScheme::ZkLoginAuthenticator,
+            #[allow(deprecated)]
+            PublicKey::ZkLoginDeprecated => SignatureScheme::ZkLoginAuthenticatorDeprecated,
             PublicKey::Passkey(_) => SignatureScheme::PasskeyAuthenticator,
         }
     }
@@ -621,7 +607,7 @@ impl<S: IotaSignatureInner + Sized> IotaSignature for S {
         &self,
         value: &IntentMessage<T>,
         author: IotaAddress,
-        scheme: SignatureScheme,
+        _scheme: SignatureScheme,
     ) -> Result<(), IotaError>
     where
         T: Serialize,
@@ -631,17 +617,11 @@ impl<S: IotaSignatureInner + Sized> IotaSignature for S {
         let digest = hasher.finalize().digest;
 
         let (sig, pk) = &self.get_verification_inputs()?;
-        match scheme {
-            SignatureScheme::ZkLoginAuthenticator => {} // Pass this check because zk login does
-            // not derive address from pubkey.
-            _ => {
-                let address = IotaAddress::from(pk);
-                if author != address {
-                    return Err(IotaError::IncorrectSigner {
-                        error: format!("Incorrect signer, expected {author:?}, got {address:?}"),
-                    });
-                }
-            }
+        let address = IotaAddress::from(pk);
+        if author != address {
+            return Err(IotaError::IncorrectSigner {
+                error: format!("Incorrect signer, expected {author:?}, got {address:?}"),
+            });
         }
 
         pk.verify(&digest, sig)
@@ -659,7 +639,8 @@ pub enum SignatureScheme {
     Secp256r1,
     BLS12381, // This is currently not supported for user Iota Address.
     MultiSig,
-    ZkLoginAuthenticator,
+    #[deprecated(note = "zkLogin is deprecated and was never enabled on IOTA")]
+    ZkLoginAuthenticatorDeprecated,
     PasskeyAuthenticator,
     MoveAuthenticator,
 }
@@ -673,7 +654,8 @@ impl SignatureScheme {
             SignatureScheme::MultiSig => 0x03,
             SignatureScheme::BLS12381 => 0x04, // This is currently not supported for user Iota
             // Address.
-            SignatureScheme::ZkLoginAuthenticator => 0x05,
+            #[allow(deprecated)]
+            SignatureScheme::ZkLoginAuthenticatorDeprecated => 0x05,
             SignatureScheme::PasskeyAuthenticator => 0x06,
             SignatureScheme::MoveAuthenticator => 0x07,
         }
@@ -702,7 +684,8 @@ impl SignatureScheme {
             0x02 => Ok(SignatureScheme::Secp256r1),
             0x03 => Ok(SignatureScheme::MultiSig),
             0x04 => Ok(SignatureScheme::BLS12381),
-            0x05 => Ok(SignatureScheme::ZkLoginAuthenticator),
+            #[allow(deprecated)]
+            0x05 => Ok(SignatureScheme::ZkLoginAuthenticatorDeprecated),
             0x06 => Ok(SignatureScheme::PasskeyAuthenticator),
             0x07 => Ok(SignatureScheme::MoveAuthenticator),
             _ => Err(IotaError::KeyConversion("Invalid key scheme".to_string())),
