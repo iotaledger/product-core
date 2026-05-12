@@ -12,6 +12,7 @@ pub use iota_transaction::*;
 pub use iota_object::*;
 pub use iota_coin::*;
 pub use iota_event::*;
+pub use iota_move::*;
 
 use serde::{Deserialize, Serialize};
 
