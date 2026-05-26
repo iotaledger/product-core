@@ -1,7 +1,7 @@
 // Copyright 2020-2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 /// The size of the hex-encoded first 4 bytes of an IOTA network's genesis
 /// transaction.
@@ -112,6 +112,14 @@ impl Display for Network {
 impl AsRef<str> for Network {
     fn as_ref(&self) -> &str {
         self.as_str()
+    }
+}
+
+impl FromStr for Network {
+    type Err = NetworkParsingError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::parse(s)
     }
 }
 

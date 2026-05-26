@@ -5,7 +5,7 @@ import { IotaObjectRef, IotaTransactionBlockResponse, TransactionEffects } from 
 import { IotaEvent } from "@iota/iota-sdk/src/client/types/generated";
 import { TransactionDataBuilder } from "@iota/iota-sdk/transactions";
 import { TransactionSigner } from "~iota_interaction_ts";
-import { CoreClient, CoreClientReadOnly } from "./core_client";
+import { CoreClient, CoreClientReadOnly } from "./product-client";
 import { GasStationParamsI } from "./gas-station";
 import { HttpClient } from "./http-client";
 

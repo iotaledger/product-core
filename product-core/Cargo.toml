@@ -14,3 +14,6 @@ thiserror = { workspace = true }
 url = { workspace = true }
 http = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true}
+futures = { version = "0.3.31", default-features = false }
+cynic = "3.12.0"

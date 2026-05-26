@@ -12,20 +12,43 @@ use iota_sdk::{
 use secret_storage::iota::TransactionSigner;
 use url::Url;
 
+use crate::product_client::ProductClient;
+
 pub trait Operation: Send + Sync {
     type Output;
     type Error: 'static + std::error::Error + Send + Sync;
 
     fn to_transaction(
         &self,
-        client: &IotaClient,
+        client: &impl ProductClient,
         tx_builder: TransactionBuilder<IotaClient>,
     ) -> impl Future<Output = Result<TransactionBuilder<IotaClient>, Self::Error>>;
     fn apply_effects(
         self,
-        client: &IotaClient,
+        client: &impl ProductClient,
         tx_effects: &mut TransactionEffects,
     ) -> impl Future<Output = Result<Self::Output, Self::Error>>;
+}
+
+impl<O: Operation> Operation for OperationBuilder<O> {
+    type Output = O::Output;
+    type Error = O::Error;
+
+    async fn to_transaction(
+        &self,
+        client: &impl ProductClient,
+        tx_builder: TransactionBuilder<IotaClient>,
+    ) -> Result<TransactionBuilder<IotaClient>, Self::Error> {
+        self.operation.to_transaction(client, tx_builder).await
+    }
+
+    async fn apply_effects(
+        self,
+        client: &impl ProductClient,
+        tx_effects: &mut TransactionEffects,
+    ) -> Result<Self::Output, Self::Error> {
+        self.operation.apply_effects(client, tx_effects).await
+    }
 }
 
 #[derive(Debug)]
@@ -46,6 +69,10 @@ impl<O> OperationBuilder<O> {
             sponsor: None,
             expiration: TransactionExpiration::None,
         }
+    }
+
+    pub fn into_inner(self) -> O {
+        self.operation
     }
 
     pub fn gas_budget(mut self, gas_budget: u64) -> Self {
@@ -73,7 +100,7 @@ impl<O: Operation> OperationBuilder<O> {
     pub async fn build(
         self,
         sender_signer: &impl TransactionSigner,
-        client: &IotaClient,
+        client: &impl ProductClient,
     ) -> Result<(O, Transaction), OperationError> {
         let tx_builder = self
             .operation
@@ -92,7 +119,7 @@ impl<O: Operation> OperationBuilder<O> {
     pub async fn execute(
         self,
         signer: &impl TransactionSigner,
-        client: &IotaClient,
+        client: &impl ProductClient,
     ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
         let tx_builder = self
             .operation
@@ -112,7 +139,7 @@ impl<O: Operation> OperationBuilder<O> {
         self,
         sender_signer: &impl TransactionSigner,
         sponsor_signer: &impl TransactionSigner,
-        client: &IotaClient,
+        client: &impl ProductClient,
     ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
         let tx_builder = self
             .operation
@@ -134,7 +161,7 @@ impl<O: Operation> OperationBuilder<O> {
         self,
         gas_station_options: GasStationOptions,
         signer: &impl TransactionSigner,
-        client: &IotaClient,
+        client: &impl ProductClient,
     ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
         let mut tx_builder = self
             .operation
