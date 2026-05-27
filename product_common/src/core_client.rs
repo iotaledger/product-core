@@ -89,7 +89,7 @@ pub trait CoreClientReadOnly {
       .map(|response| {
         response.data.map(|obj_data| OwnedObjectRef {
           owner: obj_data.owner.expect("requested data"),
-          reference: obj_data.object_ref().into(),
+          reference: obj_data.object_ref(),
         })
       })
       .context("failed to get object ref by id")

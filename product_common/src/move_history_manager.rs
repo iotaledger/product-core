@@ -825,12 +825,12 @@ latest-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864a
     let mainnet_history = registry.history("6364aad5").unwrap();
     assert_eq!(mainnet_history.len(), 2);
     assert_eq!(
-      mainnet_history[0].to_hex_literal(),
+      mainnet_history[0].to_hex(),
       "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
     );
     // New redeployed version should be added
     assert_eq!(
-      mainnet_history[1].to_hex_literal(),
+      mainnet_history[1].to_hex(),
       "0xa4cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de10"
     );
 

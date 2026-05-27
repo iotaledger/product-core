@@ -675,13 +675,6 @@ mod gas_station {
       http_client,
     )
     .await?;
-    // Map coins to known format.
-    let gas_coins = gas_coins
-      .into_iter()
-      .map(
-        |obj_ref_schema| obj_ref_schema.into(),
-      )
-      .collect();
 
     // Set sponsor information in tx's gas data.
     // Note: gas' price can be set automatically.
