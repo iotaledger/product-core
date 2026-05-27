@@ -523,7 +523,7 @@ impl From<(ObjectID, SequenceNumber, bool)> for WasmSharedObjectRef {
 impl TryFrom<OwnedObjectRef> for WasmSharedObjectRef {
   type Error = TsSdkError;
   fn try_from(value: OwnedObjectRef) -> Result<Self, Self::Error> {
-    let Owner::Shared ( initial_shared_version ) = value.owner else {
+    let Owner::Shared(initial_shared_version) = value.owner else {
       return Err(TsSdkError::CommandArgumentError(CommandArgumentError::TypeMismatch));
     };
     let obj_id = value.object_id();

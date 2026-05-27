@@ -3,12 +3,12 @@
 
 use std::result::Result as StdResult;
 
-use iota_sdk_types::AddressParseError;
 use iota_interaction::types::base_types::{IotaAddress, ObjectID};
 use iota_interaction::types::crypto::PublicKey;
 use iota_interaction_ts::bindings::{WasmIotaClient, WasmTransactionSigner};
 use iota_interaction_ts::core_client::{WasmCoreClient, WasmCoreClientReadOnly};
 use iota_interaction_ts::{IotaClientAdapter, WasmPublicKey};
+use iota_sdk_types::AddressParseError;
 use wasm_bindgen::prelude::*;
 
 use crate::bindings::wasm_error::{Result, WasmResult};

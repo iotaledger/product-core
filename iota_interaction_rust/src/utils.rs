@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::fmt::Debug;
+
 use iota_interaction::interaction_error::Error;
 use iota_interaction::rpc_types::OwnedObjectRef;
 use iota_interaction::types::base_types::{ObjectID, RESOLVED_STD_OPTION};
@@ -10,8 +11,8 @@ use iota_interaction::types::programmable_transaction_builder::ProgrammableTrans
 use iota_interaction::types::transaction::{Argument, CallArg, SharedObjectRef};
 use iota_interaction::types::{IOTA_CLOCK_OBJECT_ID, IOTA_CLOCK_OBJECT_SHARED_VERSION, MOVE_STDLIB_PACKAGE_ID};
 use iota_interaction::MoveType;
-use serde::Serialize;
 use iota_sdk_types::Identifier;
+use serde::Serialize;
 
 /// Adds a reference to the on-chain clock to `ptb`'s arguments.
 pub fn get_clock_ref(ptb: &mut Ptb) -> Argument {
@@ -59,7 +60,7 @@ pub fn owned_ref_to_shared_object_arg(
   ptb: &mut Ptb,
   mutable: bool,
 ) -> anyhow::Result<Argument> {
-  let Owner::Shared ( initial_shared_version ) = owned_ref.owner else {
+  let Owner::Shared(initial_shared_version) = owned_ref.owner else {
     anyhow::bail!("Object \"{}\" is not a shared object", owned_ref.object_id());
   };
   ptb.obj(CallArg::Shared(SharedObjectRef {
@@ -108,7 +109,7 @@ where
 }
 
 #[allow(dead_code)]
-pub fn ptb_obj(ptb: &mut Ptb, name: &str, value:  impl Into<CallArg> + Debug + Copy) -> Result<Argument, Error> {
+pub fn ptb_obj(ptb: &mut Ptb, name: &str, value: impl Into<CallArg> + Debug + Copy) -> Result<Argument, Error> {
   ptb
     .obj(value)
     .map_err(|err| Error::InvalidArgument(format!("could not serialize object {name} {value:?}; {err}")))

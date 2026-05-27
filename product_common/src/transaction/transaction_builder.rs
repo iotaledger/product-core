@@ -14,8 +14,8 @@ use iota_interaction::types::base_types::{IotaAddress, ObjectRef};
 use iota_interaction::types::crypto::{IotaSignature as _, PublicKey, Signature};
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
 use iota_interaction::types::transaction::{
-  GasData, ProgrammableTransaction, TransactionData, TransactionDataAPI as _, TransactionKind, TransactionDataV1,
-  TransactionExpiration,
+  GasData, ProgrammableTransaction, TransactionData, TransactionDataAPI as _, TransactionDataV1, TransactionExpiration,
+  TransactionKind,
 };
 use iota_interaction::{IotaClientTrait, IotaKeySignature, OptionalSend, OptionalSync};
 use iota_sdk_types::crypto::{Intent, IntentMessage};
@@ -347,11 +347,7 @@ where
       .await
       .map_err(|e| Error::GasIssue(e.to_string()))?;
 
-    let tx_data = new_with_gas_data(
-      sender,
-      gas_data,
-      programmable_tx,
-    );
+    let tx_data = new_with_gas_data(sender, gas_data, programmable_tx);
 
     let mut signatures = self.signatures;
     let needs_client_signature = client_address == sender

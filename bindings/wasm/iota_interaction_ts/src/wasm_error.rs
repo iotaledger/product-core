@@ -5,9 +5,9 @@ use std::borrow::Cow;
 use std::fmt::{Debug, Display};
 use std::result::Result as StdResult;
 
+use iota_sdk_types::AddressParseError;
 use tokio::sync::TryLockError;
 use wasm_bindgen::JsValue;
-use iota_sdk_types::AddressParseError;
 
 /// Convenience wrapper for `Result<T, JsValue>`.
 ///
