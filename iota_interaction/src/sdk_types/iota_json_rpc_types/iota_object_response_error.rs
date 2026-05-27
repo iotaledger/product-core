@@ -1,0 +1,96 @@
+// Copyright (c) 2026 IOTA Stiftung
+// SPDX-License-Identifier: Apache-2.0
+
+use crate::types::{
+    base_types::{ObjectID, SequenceNumber},
+    digests::ObjectDigest,
+    error::IotaObjectResponseError as NativeObjectResponseError,
+};
+use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeAs, SerializeAs, serde_as};
+
+#[serde_as]
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "code", rename = "ObjectResponseError", rename_all = "camelCase")]
+pub enum IotaObjectResponseError {
+    NotExists {
+        object_id: ObjectID,
+    },
+    DynamicFieldNotFound {
+        parent_object_id: ObjectID,
+    },
+    Deleted {
+        object_id: ObjectID,
+        /// Object version.
+        version: SequenceNumber,
+        /// Base64 string representing the object digest
+        digest: ObjectDigest,
+    },
+    Unknown,
+    Display {
+        error: String,
+    },
+}
+
+impl SerializeAs<NativeObjectResponseError> for IotaObjectResponseError {
+    fn serialize_as<S>(source: &NativeObjectResponseError, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        IotaObjectResponseError::from(source.clone()).serialize(serializer)
+    }
+}
+
+impl<'de> DeserializeAs<'de, NativeObjectResponseError> for IotaObjectResponseError {
+    fn deserialize_as<D>(deserializer: D) -> Result<NativeObjectResponseError, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let schema = IotaObjectResponseError::deserialize(deserializer)?;
+        Ok(NativeObjectResponseError::from(schema))
+    }
+}
+
+impl From<NativeObjectResponseError> for IotaObjectResponseError {
+    fn from(error: NativeObjectResponseError) -> Self {
+        match error {
+            NativeObjectResponseError::NotExists { object_id } => Self::NotExists { object_id },
+            NativeObjectResponseError::DynamicFieldNotFound { parent_object_id } => {
+                Self::DynamicFieldNotFound { parent_object_id }
+            }
+            NativeObjectResponseError::Deleted {
+                object_id,
+                version,
+                digest,
+            } => Self::Deleted {
+                object_id,
+                version,
+                digest,
+            },
+            NativeObjectResponseError::Unknown => Self::Unknown,
+            NativeObjectResponseError::Display { error } => Self::Display { error },
+        }
+    }
+}
+
+impl From<IotaObjectResponseError> for NativeObjectResponseError {
+    fn from(error: IotaObjectResponseError) -> Self {
+        match error {
+            IotaObjectResponseError::NotExists { object_id } => Self::NotExists { object_id },
+            IotaObjectResponseError::DynamicFieldNotFound { parent_object_id } => {
+                Self::DynamicFieldNotFound { parent_object_id }
+            }
+            IotaObjectResponseError::Deleted {
+                object_id,
+                version,
+                digest,
+            } => Self::Deleted {
+                object_id,
+                version,
+                digest,
+            },
+            IotaObjectResponseError::Unknown => Self::Unknown,
+            IotaObjectResponseError::Display { error } => Self::Display { error },
+        }
+    }
+}

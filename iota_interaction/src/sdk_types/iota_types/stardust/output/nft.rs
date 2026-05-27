@@ -1,17 +1,13 @@
 // Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use super::super::super::STARDUST_ADDRESS;
-use crate::ident_str;
-use crate::move_core_types::identifier::IdentStr;
-use crate::move_core_types::language_storage::StructTag;
+use iota_sdk_types::{Identifier, StructTag};
+use crate::types::base_types::IotaAddress;
 
-pub const IRC27_MODULE_NAME: &IdentStr = ident_str!("irc27");
-pub const NFT_MODULE_NAME: &IdentStr = ident_str!("nft");
-pub const NFT_OUTPUT_MODULE_NAME: &IdentStr = ident_str!("nft_output");
-pub const NFT_OUTPUT_STRUCT_NAME: &IdentStr = ident_str!("NftOutput");
-pub const NFT_STRUCT_NAME: &IdentStr = ident_str!("Nft");
-pub const IRC27_STRUCT_NAME: &IdentStr = ident_str!("Irc27Metadata");
+pub const NFT_MODULE_NAME: Identifier = Identifier::from_static("nft");
+pub const NFT_OUTPUT_MODULE_NAME: Identifier = Identifier::from_static("nft_output");
+pub const NFT_OUTPUT_STRUCT_NAME: Identifier = Identifier::from_static("NftOutput");
+pub const NFT_STRUCT_NAME: Identifier = Identifier::from_static("Nft");
 pub const NFT_DYNAMIC_OBJECT_FIELD_KEY: &[u8] = b"nft";
 pub const NFT_DYNAMIC_OBJECT_FIELD_KEY_TYPE: &str = "vector<u8>";
 
@@ -21,11 +17,11 @@ impl Nft {
     /// Returns the struct tag that represents the fully qualified path of an
     /// [`Nft`] in its move package.
     pub fn tag() -> StructTag {
-        StructTag {
-            address: STARDUST_ADDRESS,
-            module: NFT_MODULE_NAME.to_owned(),
-            name: NFT_STRUCT_NAME.to_owned(),
-            type_params: Vec::new(),
-        }
+        StructTag::new(
+            IotaAddress::STARDUST,
+            NFT_MODULE_NAME,
+            NFT_STRUCT_NAME,
+            Vec::new(),
+        )
     }
 }

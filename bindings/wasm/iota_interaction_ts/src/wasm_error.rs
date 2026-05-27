@@ -7,6 +7,7 @@ use std::result::Result as StdResult;
 
 use tokio::sync::TryLockError;
 use wasm_bindgen::JsValue;
+use iota_sdk_types::AddressParseError;
 
 /// Convenience wrapper for `Result<T, JsValue>`.
 ///
@@ -148,6 +149,15 @@ impl From<serde_wasm_bindgen::Error> for WasmError<'_> {
   fn from(error: serde_wasm_bindgen::Error) -> Self {
     Self {
       name: Cow::Borrowed("serde_wasm_bindgen::Error"),
+      message: Cow::Owned(ErrorMessage(&error).to_string()),
+    }
+  }
+}
+
+impl From<AddressParseError> for WasmError<'_> {
+  fn from(error: AddressParseError) -> Self {
+    Self {
+      name: Cow::Borrowed("AddressParseError"),
       message: Cow::Owned(ErrorMessage(&error).to_string()),
     }
   }

@@ -6,13 +6,6 @@ use serde::{Deserialize, Serialize};
 use super::super::base_types::{EpochId, ObjectID};
 use super::super::governance::StakedIota;
 use super::super::id::UID;
-use super::super::IOTA_SYSTEM_ADDRESS;
-use crate::ident_str;
-use crate::move_core_types::identifier::IdentStr;
-use crate::move_core_types::language_storage::StructTag;
-
-pub const TIMELOCKED_STAKED_IOTA_MODULE_NAME: &IdentStr = ident_str!("timelocked_staking");
-pub const TIMELOCKED_STAKED_IOTA_STRUCT_NAME: &IdentStr = ident_str!("TimelockedStakedIota");
 
 /// Rust version of the Move
 /// stardust::timelocked_staked_iota::TimelockedStakedIota type.
@@ -28,24 +21,6 @@ pub struct TimelockedStakedIota {
 }
 
 impl TimelockedStakedIota {
-  /// Get the TimeLock's `type`.
-  pub fn type_() -> StructTag {
-    StructTag {
-      address: IOTA_SYSTEM_ADDRESS,
-      module: TIMELOCKED_STAKED_IOTA_MODULE_NAME.to_owned(),
-      name: TIMELOCKED_STAKED_IOTA_STRUCT_NAME.to_owned(),
-      type_params: vec![],
-    }
-  }
-
-  /// Is this other StructTag representing a TimelockedStakedIota?
-  pub fn is_timelocked_staked_iota(s: &StructTag) -> bool {
-    s.address == IOTA_SYSTEM_ADDRESS
-      && s.module.as_ident_str() == TIMELOCKED_STAKED_IOTA_MODULE_NAME
-      && s.name.as_ident_str() == TIMELOCKED_STAKED_IOTA_STRUCT_NAME
-      && s.type_params.is_empty()
-  }
-
   /// Get the TimelockedStakedIota's `id`.
   pub fn id(&self) -> ObjectID {
     self.id.id.bytes

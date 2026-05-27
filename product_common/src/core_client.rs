@@ -3,12 +3,11 @@
 
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
-use iota_interaction::move_types::language_storage::StructTag;
 use iota_interaction::rpc_types::{
   IotaData, IotaObjectData, IotaObjectDataFilter, IotaObjectDataOptions, IotaObjectResponseQuery, IotaParsedData,
   OwnedObjectRef,
 };
-use iota_interaction::types::base_types::{IotaAddress, ObjectID, ObjectRef};
+use iota_interaction::types::base_types::{IotaAddress, ObjectID, ObjectRef, StructTag};
 use iota_interaction::types::crypto::PublicKey;
 use iota_interaction::{IotaClientTrait, IotaKeySignature, MoveType};
 use secret_storage::Signer;

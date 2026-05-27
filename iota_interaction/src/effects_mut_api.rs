@@ -1,25 +1,24 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::rpc_types::{
-  IotaObjectRef, IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI, IotaTransactionBlockEffectsV1,
-  OwnedObjectRef,
-};
+use crate::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI, IotaTransactionBlockEffectsV1, OwnedObjectRef};
+
+use iota_sdk_types::object::ObjectReference;
 
 /// A mutable version of [IotaTransactionBlockEffectsAPI] that allows the
 /// in-place mutation of [IotaTransactionBlockEffects]
 pub trait IotaTransactionBlockEffectsMutAPI: IotaTransactionBlockEffectsAPI {
-  fn shared_objects_mut(&mut self) -> &mut Vec<IotaObjectRef>;
+  fn shared_objects_mut(&mut self) -> &mut Vec<ObjectReference>;
   fn created_mut(&mut self) -> &mut Vec<OwnedObjectRef>;
   fn mutated_mut(&mut self) -> &mut Vec<OwnedObjectRef>;
   fn unwrapped_mut(&mut self) -> &mut Vec<OwnedObjectRef>;
-  fn deleted_mut(&mut self) -> &mut Vec<IotaObjectRef>;
-  fn unwrapped_then_deleted_mut(&mut self) -> &mut Vec<IotaObjectRef>;
-  fn wrapped_mut(&mut self) -> &mut Vec<IotaObjectRef>;
+  fn deleted_mut(&mut self) -> &mut Vec<ObjectReference>;
+  fn unwrapped_then_deleted_mut(&mut self) -> &mut Vec<ObjectReference>;
+  fn wrapped_mut(&mut self) -> &mut Vec<ObjectReference>;
 }
 
 impl IotaTransactionBlockEffectsMutAPI for IotaTransactionBlockEffectsV1 {
-  fn shared_objects_mut(&mut self) -> &mut Vec<IotaObjectRef> {
+  fn shared_objects_mut(&mut self) -> &mut Vec<ObjectReference> {
     &mut self.shared_objects
   }
 
@@ -35,21 +34,21 @@ impl IotaTransactionBlockEffectsMutAPI for IotaTransactionBlockEffectsV1 {
     &mut self.unwrapped
   }
 
-  fn deleted_mut(&mut self) -> &mut Vec<IotaObjectRef> {
+  fn deleted_mut(&mut self) -> &mut Vec<ObjectReference> {
     &mut self.deleted
   }
 
-  fn unwrapped_then_deleted_mut(&mut self) -> &mut Vec<IotaObjectRef> {
+  fn unwrapped_then_deleted_mut(&mut self) -> &mut Vec<ObjectReference> {
     &mut self.unwrapped_then_deleted
   }
 
-  fn wrapped_mut(&mut self) -> &mut Vec<IotaObjectRef> {
+  fn wrapped_mut(&mut self) -> &mut Vec<ObjectReference> {
     &mut self.wrapped
   }
 }
 
 impl IotaTransactionBlockEffectsMutAPI for IotaTransactionBlockEffects {
-  fn shared_objects_mut(&mut self) -> &mut Vec<IotaObjectRef> {
+  fn shared_objects_mut(&mut self) -> &mut Vec<ObjectReference> {
     match self {
       Self::V1(effects) => &mut effects.shared_objects,
     }
@@ -73,19 +72,19 @@ impl IotaTransactionBlockEffectsMutAPI for IotaTransactionBlockEffects {
     }
   }
 
-  fn deleted_mut(&mut self) -> &mut Vec<IotaObjectRef> {
+  fn deleted_mut(&mut self) -> &mut Vec<ObjectReference> {
     match self {
       Self::V1(effects) => &mut effects.deleted,
     }
   }
 
-  fn unwrapped_then_deleted_mut(&mut self) -> &mut Vec<IotaObjectRef> {
+  fn unwrapped_then_deleted_mut(&mut self) -> &mut Vec<ObjectReference> {
     match self {
       Self::V1(effects) => &mut effects.unwrapped_then_deleted,
     }
   }
 
-  fn wrapped_mut(&mut self) -> &mut Vec<IotaObjectRef> {
+  fn wrapped_mut(&mut self) -> &mut Vec<ObjectReference> {
     match self {
       Self::V1(effects) => &mut effects.wrapped,
     }

@@ -72,9 +72,9 @@ impl PackageRegistry {
       let original_published_id: String = get_id_from_table(&table, "original-published-id", &alias)?;
       let latest_published_id: String = get_id_from_table(&table, "latest-published-id", &alias)?;
 
-      let mut metadata = vec![ObjectID::from_hex_literal(original_published_id.as_str())?];
+      let mut metadata = vec![ObjectID::from_hex(original_published_id.as_str())?];
       if original_published_id != latest_published_id {
-        metadata.push(ObjectID::from_hex_literal(latest_published_id.as_str())?);
+        metadata.push(ObjectID::from_hex(latest_published_id.as_str())?);
       }
 
       let env = Env::new_with_alias(chain_id, alias.clone());

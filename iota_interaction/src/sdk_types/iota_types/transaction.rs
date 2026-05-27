@@ -3,24 +3,23 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::fmt::{Display, Formatter};
 use std::vec::Vec;
 
-use enum_dispatch::enum_dispatch;
-use super::type_input::TypeInput;
+pub use iota_sdk_types::{
+    Argument, ChangeEpoch, ChangeEpochV2, ChangeEpochV3, ChangeEpochV4, Command,
+    EndOfEpochTransactionKind, GasPayment as GasData, GenesisObject, GenesisTransaction,
+    MakeMoveVector, MergeCoins, MoveCall as ProgrammableMoveCall, ProgrammableTransaction, Publish,
+    RandomnessStateUpdate, SharedObjectReference as SharedObjectRef, SplitCoins, SystemPackage,
+    Transaction as TransactionData, TransactionExpiration, TransactionKind,
+    TransactionV1 as TransactionDataV1, TransferObjects, Upgrade,
+};
+use iota_sdk_types::Input;
 use nonempty::{NonEmpty, nonempty};
 use serde::{Deserialize, Serialize};
-use strum::IntoStaticStr;
 use crate::{fp_ensure, fp_bail};
 
-use crate::move_core_types::identifier::Identifier;
-use crate::move_core_types::language_storage::TypeTag;
-use super::base_types::{EpochId, IotaAddress, ObjectID, ObjectRef, SequenceNumber};
+use super::base_types::{IotaAddress, ObjectID, ObjectRef, SequenceNumber};
 use super::error::{UserInputError, UserInputResult};
-use super::{
-    IOTA_CLOCK_OBJECT_ID, IOTA_CLOCK_OBJECT_SHARED_VERSION, IOTA_SYSTEM_STATE_OBJECT_ID,
-    IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION,
-};
 
 pub const TEST_ONLY_GAS_UNIT_FOR_TRANSFER: u64 = 10_000;
 pub const TEST_ONLY_GAS_UNIT_FOR_OBJECT_BASICS: u64 = 50_000;
@@ -38,400 +37,133 @@ pub const GAS_PRICE_FOR_SYSTEM_TX: u64 = 1;
 
 pub const DEFAULT_VALIDATOR_GAS_PRICE: u64 = 1000;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
-pub enum CallArg {
-    // contains no structs or objects
-    Pure(Vec<u8>),
-    // an object
-    Object(ObjectArg),
-}
+/// Type alias for the SDK's `Input` type, used as transaction call arguments.
+pub type CallArg = Input;
 
-impl CallArg {
-    pub const IOTA_SYSTEM_MUT: Self = Self::Object(ObjectArg::IOTA_SYSTEM_MUT);
-    pub const CLOCK_IMM: Self = Self::Object(ObjectArg::SharedObject {
-        id: IOTA_CLOCK_OBJECT_ID,
-        initial_shared_version: IOTA_CLOCK_OBJECT_SHARED_VERSION,
-        mutable: false,
-    });
-    pub const CLOCK_MUT: Self = Self::Object(ObjectArg::SharedObject {
-        id: IOTA_CLOCK_OBJECT_ID,
-        initial_shared_version: IOTA_CLOCK_OBJECT_SHARED_VERSION,
-        mutable: true,
-    });
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Serialize, Deserialize)]
-pub enum ObjectArg {
-    // A Move object, either immutable, or owned mutable.
-    ImmOrOwnedObject(ObjectRef),
-    // A Move object that's shared.
-    // SharedObject::mutable controls whether caller asks for a mutable reference to shared
-    // object.
-    SharedObject {
-        id: ObjectID,
-        initial_shared_version: SequenceNumber,
-        mutable: bool,
-    },
-    // A Move object that can be received in this transaction.
-    Receiving(ObjectRef),
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize, IntoStaticStr)]
-pub enum TransactionKind {
-    /// A transaction that allows the interleaving of native commands and Move
-    /// calls
-    ProgrammableTransaction(ProgrammableTransaction),
-}
-
-impl ObjectArg {
-    pub const IOTA_SYSTEM_MUT: Self = Self::SharedObject {
-        id: IOTA_SYSTEM_STATE_OBJECT_ID,
-        initial_shared_version: IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION,
-        mutable: true,
-    };
-
-    pub fn id(&self) -> ObjectID {
-        match self {
-            ObjectArg::Receiving((id, _, _))
-            | ObjectArg::ImmOrOwnedObject((id, _, _))
-            | ObjectArg::SharedObject { id, .. } => *id,
-        }
-    }
-}
-
-/// A series of commands where the results of one command can be used in future
-/// commands
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
-pub struct ProgrammableTransaction {
-    /// Input objects or primitive values
-    pub inputs: Vec<CallArg>,
-    /// The commands to be executed sequentially. A failure in any command will
-    /// result in the failure of the entire transaction.
-    pub commands: Vec<Command>,
-}
-
-/// A single command in a programmable transaction.
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
-pub enum Command {
-    /// A call to either an entry or a public Move function
-    MoveCall(Box<ProgrammableMoveCall>),
-    /// `(Vec<forall T:key+store. T>, address)`
-    /// It sends n-objects to the specified address. These objects must have
-    /// store (public transfer) and either the previous owner must be an
-    /// address or the object must be newly created.
-    TransferObjects(Vec<Argument>, Argument),
-    /// `(&mut Coin<T>, Vec<u64>)` -> `Vec<Coin<T>>`
-    /// It splits off some amounts into a new coins with those amounts
-    SplitCoins(Argument, Vec<Argument>),
-    /// `(&mut Coin<T>, Vec<Coin<T>>)`
-    /// It merges n-coins into the first coin
-    MergeCoins(Argument, Vec<Argument>),
-    /// Publishes a Move package. It takes the package bytes and a list of the
-    /// package's transitive dependencies to link against on-chain.
-    Publish(Vec<Vec<u8>>, Vec<ObjectID>),
-    /// `forall T: Vec<T> -> vector<T>`
-    /// Given n-values of the same type, it constructs a vector. For non objects
-    /// or an empty vector, the type input must be specified.
-    MakeMoveVec(Option<TypeInput>, Vec<Argument>),
-    /// Upgrades a Move package
-    /// Takes (in order):
-    /// 1. A vector of serialized modules for the package.
-    /// 2. A vector of object ids for the transitive dependencies of the new
-    ///    package.
-    /// 3. The object ID of the package being upgraded.
-    /// 4. An argument holding the `UpgradeTicket` that must have been produced
-    ///    from an earlier command in the same programmable transaction.
-    Upgrade(Vec<Vec<u8>>, Vec<ObjectID>, ObjectID, Argument),
-}
-
-/// An argument to a programmable transaction command
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Serialize, Deserialize)]
-pub enum Argument {
-    /// The gas coin. The gas coin can only be used by-ref, except for with
-    /// `TransferObjects`, which can use it by-value.
-    GasCoin,
-    /// One of the input objects or primitive values (from
-    /// `ProgrammableTransaction` inputs)
-    Input(u16),
-    /// The result of another command (from `ProgrammableTransaction` commands)
-    Result(u16),
-    /// Like a `Result` but it accesses a nested result. Currently, the only
-    /// usage of this is to access a value from a Move call with multiple
-    /// return values.
-    NestedResult(u16, u16),
-}
-
-/// The command for calling a Move function, either an entry function or a
-/// public function (which cannot return references).
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
-pub struct ProgrammableMoveCall {
-    /// The package containing the module and function.
-    pub package: ObjectID,
-    /// The specific module in the package containing the function.
-    pub module: String,
-    /// The function to be called.
-    pub function: String,
-    /// The type arguments to the function.
-    pub type_arguments: Vec<TypeInput>,
-    /// The arguments to the function.
-    pub arguments: Vec<Argument>,
-}
-
-impl Command {
-    pub fn move_call(
-        package: ObjectID,
-        module: Identifier,
-        function: Identifier,
-        type_arguments: Vec<TypeTag>,
-        arguments: Vec<Argument>,
-    ) -> Self {
-        let module = module.to_string();
-        let function = function.to_string();
-        let type_arguments = type_arguments.into_iter().map(TypeInput::from).collect();
-        Command::MoveCall(Box::new(ProgrammableMoveCall {
-            package,
-            module,
-            function,
-            type_arguments,
-            arguments,
-        }))
-    }
-}
-
-
-impl Display for Argument {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Argument::GasCoin => write!(f, "GasCoin"),
-            Argument::Input(i) => write!(f, "Input({i})"),
-            Argument::Result(i) => write!(f, "Result({i})"),
-            Argument::NestedResult(i, j) => write!(f, "NestedResult({i},{j})"),
-        }
-    }
-}
-
-#[derive(Clone, Hash, Debug, PartialEq, Eq)]
-pub struct SharedInputObject {
-    pub id: ObjectID,
-    pub initial_shared_version: SequenceNumber,
-    pub mutable: bool,
-}
-
-impl SharedInputObject {
-    pub const IOTA_SYSTEM_OBJ: Self = Self {
-        id: IOTA_SYSTEM_STATE_OBJECT_ID,
-        initial_shared_version: IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION,
-        mutable: true,
-    };
-
-    pub fn id(&self) -> ObjectID {
-        self.id
-    }
-
-    pub fn into_id_and_version(self) -> (ObjectID, SequenceNumber) {
-        (self.id, self.initial_shared_version)
-    }
-}
-
-impl TransactionKind {
-    /// present to make migrations to programmable transactions eaier.
-    /// Will be removed
-    pub fn programmable(pt: ProgrammableTransaction) -> Self {
-        TransactionKind::ProgrammableTransaction(pt)
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
-pub struct GasData {
-    pub payment: Vec<ObjectRef>,
-    pub owner: IotaAddress,
-    pub price: u64,
-    pub budget: u64,
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Serialize, Deserialize)]
-pub enum TransactionExpiration {
-    /// The transaction has no expiration
-    None,
-    /// Validators wont sign a transaction unless the expiration Epoch
-    /// is greater than or equal to the current epoch
-    Epoch(EpochId),
-}
-
-#[enum_dispatch(TransactionDataAPI)]
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
-pub enum TransactionData {
-    V1(TransactionDataV1),
-    // When new variants are introduced, it is important that we check version support
-    // in the validity_check function based on the protocol config.
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
-pub struct TransactionDataV1 {
-    pub kind: TransactionKind,
-    pub sender: IotaAddress,
-    pub gas_data: GasData,
-    pub expiration: TransactionExpiration,
-}
-
-impl TransactionData {
-    pub fn new(
-        kind: TransactionKind,
-        sender: IotaAddress,
-        gas_payment: ObjectRef,
-        gas_budget: u64,
-        gas_price: u64,
-    ) -> Self {
-        TransactionData::V1(TransactionDataV1 {
-            kind,
-            sender,
-            gas_data: GasData {
-                price: gas_price,
-                owner: sender,
-                payment: vec![gas_payment],
-                budget: gas_budget,
-            },
-            expiration: TransactionExpiration::None,
-        })
-    }
-
-    pub fn new_with_gas_coins(
-        kind: TransactionKind,
-        sender: IotaAddress,
-        gas_payment: Vec<ObjectRef>,
-        gas_budget: u64,
-        gas_price: u64,
-    ) -> Self {
-        Self::new_with_gas_coins_allow_sponsor(
-            kind,
-            sender,
-            gas_payment,
-            gas_budget,
-            gas_price,
-            sender,
-        )
-    }
-
-    pub fn new_with_gas_coins_allow_sponsor(
-        kind: TransactionKind,
-        sender: IotaAddress,
-        gas_payment: Vec<ObjectRef>,
-        gas_budget: u64,
-        gas_price: u64,
-        gas_sponsor: IotaAddress,
-    ) -> Self {
-        TransactionData::V1(TransactionDataV1 {
-            kind,
-            sender,
-            gas_data: GasData {
-                price: gas_price,
-                owner: gas_sponsor,
-                payment: gas_payment,
-                budget: gas_budget,
-            },
-            expiration: TransactionExpiration::None,
-        })
-    }
-
-    pub fn new_with_gas_data(
-        kind: TransactionKind,
-        sender: IotaAddress,
-        gas_data: GasData,
-    ) -> Self {
-        TransactionData::V1(TransactionDataV1 {
-            kind,
-            sender,
-            gas_data,
-            expiration: TransactionExpiration::None,
-        })
-    }
-}
-
-#[enum_dispatch]
+/// API for accessing and constructing [`TransactionData`].
+///
+/// This trait provides node-internal methods for:
+/// - **Accessors**: reading transaction fields (sender, kind, gas, expiration,
+///   etc.)
+/// - **Queries**: inspecting transaction properties (shared objects, Move
+///   calls, sponsorship)
+/// - **Validation**: checking transaction validity against protocol config
+/// - **Constructors**: building new transactions (transfers, Move calls,
+///   programmable txs, etc.)
+///
+/// Note: The `iota-rust-sdk` crate (`iota-sdk-types`) defines its own
+/// [`Transaction`] type with additional client-facing methods.
 pub trait TransactionDataAPI {
+    /// Returns the address of the transaction sender.
     fn sender(&self) -> IotaAddress;
 
-    // Note: this implies that SingleTransactionKind itself must be versioned, so
-    // that it can be shared across versions. This will be easy to do since it
-    // is already an enum.
+    /// Returns a reference to the transaction kind.
     fn kind(&self) -> &TransactionKind;
 
-    // Used by programmable_transaction_builder
+    /// Returns a mutable reference to the transaction kind.
     fn kind_mut(&mut self) -> &mut TransactionKind;
 
-    // kind is moved out of often enough that this is worth it to special case.
+    /// Consumes self and returns the transaction kind.
     fn into_kind(self) -> TransactionKind;
 
-    /// Transaction signer and Gas owner
+    /// Returns the transaction signer(s). Includes both the sender and the gas
+    /// owner if they differ (i.e. for sponsored transactions).
     fn signers(&self) -> NonEmpty<IotaAddress>;
 
+    /// Returns a reference to the gas data (owner, payment objects, price,
+    /// budget).
     fn gas_data(&self) -> &GasData;
 
+    /// Returns the address that owns the gas payment objects.
     fn gas_owner(&self) -> IotaAddress;
 
+    /// Returns the gas payment object references.
     fn gas(&self) -> &[ObjectRef];
 
+    /// Returns the gas price for this transaction.
     fn gas_price(&self) -> u64;
 
+    /// Returns the gas budget for this transaction.
     fn gas_budget(&self) -> u64;
 
+    /// Returns the transaction expiration.
     fn expiration(&self) -> &TransactionExpiration;
 
     fn gas_data_mut(&mut self) -> &mut GasData;
 }
 
-impl TransactionDataAPI for TransactionDataV1 {
+impl TransactionDataAPI for TransactionData {
     fn sender(&self) -> IotaAddress {
-        self.sender
+        match self {
+            Self::V1(v1) => v1.sender,
+            _ => unimplemented!("a new Transaction variant was added and needs to be handled"),
+        }
     }
 
     fn kind(&self) -> &TransactionKind {
-        &self.kind
+        match self {
+            Self::V1(v1) => &v1.kind,
+            _ => unimplemented!("a new Transaction variant was added and needs to be handled"),
+        }
     }
 
     fn kind_mut(&mut self) -> &mut TransactionKind {
-        &mut self.kind
+        match self {
+            Self::V1(v1) => &mut v1.kind,
+            _ => unimplemented!("a new Transaction variant was added and needs to be handled"),
+        }
     }
 
     fn into_kind(self) -> TransactionKind {
-        self.kind
+        match self {
+            Self::V1(v1) => v1.kind,
+            _ => unimplemented!("a new Transaction variant was added and needs to be handled"),
+        }
     }
 
-    /// Transaction signer and Gas owner
     fn signers(&self) -> NonEmpty<IotaAddress> {
-        let mut signers = nonempty![self.sender];
-        if self.gas_owner() != self.sender {
+        let mut signers = nonempty![self.sender()];
+        if self.gas_owner() != self.sender() {
             signers.push(self.gas_owner());
         }
         signers
     }
 
     fn gas_data(&self) -> &GasData {
-        &self.gas_data
+        match self {
+            Self::V1(v1) => &v1.gas_payment,
+            _ => unimplemented!("a new Transaction variant was added and needs to be handled"),
+        }
     }
 
     fn gas_owner(&self) -> IotaAddress {
-        self.gas_data.owner
+        self.gas_data().owner
     }
 
     fn gas(&self) -> &[ObjectRef] {
-        &self.gas_data.payment
+        &self.gas_data().objects
     }
 
     fn gas_price(&self) -> u64 {
-        self.gas_data.price
+        self.gas_data().price
     }
 
     fn gas_budget(&self) -> u64 {
-        self.gas_data.budget
+        self.gas_data().budget
     }
 
     fn expiration(&self) -> &TransactionExpiration {
-        &self.expiration
+        match self {
+            Self::V1(v1) => &v1.expiration,
+            _ => unimplemented!("a new Transaction variant was added and needs to be handled"),
+        }
     }
 
     fn gas_data_mut(&mut self) -> &mut GasData {
-        &mut self.gas_data
+        match self {
+            Self::V1(v1) => &mut v1.gas_payment,
+            _ => unimplemented!("a new Transaction variant was added and needs to be handled"),
+        }
     }
 }
 
@@ -453,7 +185,7 @@ impl InputObjectKind {
     pub fn object_id(&self) -> ObjectID {
         match self {
             Self::MovePackage(id) => *id,
-            Self::ImmOrOwnedMoveObject((id, _, _)) => *id,
+            Self::ImmOrOwnedMoveObject(object_ref) => object_ref.object_id,
             Self::SharedMoveObject { id, .. } => *id,
         }
     }
@@ -461,7 +193,7 @@ impl InputObjectKind {
     pub fn version(&self) -> Option<SequenceNumber> {
         match self {
             Self::MovePackage(..) => None,
-            Self::ImmOrOwnedMoveObject((_, version, _)) => Some(*version),
+            Self::ImmOrOwnedMoveObject(object_ref) => Some(object_ref.version),
             Self::SharedMoveObject { .. } => None,
         }
     }
@@ -471,9 +203,9 @@ impl InputObjectKind {
             Self::MovePackage(package_id) => {
                 UserInputError::DependentPackageNotFound { package_id }
             }
-            Self::ImmOrOwnedMoveObject((object_id, version, _)) => UserInputError::ObjectNotFound {
-                object_id,
-                version: Some(version),
+            Self::ImmOrOwnedMoveObject(object_ref) => UserInputError::ObjectNotFound {
+                object_id: object_ref.object_id,
+                version: Some(object_ref.version),
             },
             Self::SharedMoveObject { id, .. } => UserInputError::ObjectNotFound {
                 object_id: id,
@@ -489,7 +221,7 @@ impl InputObjectKind {
     pub fn is_mutable(&self) -> bool {
         match self {
             Self::MovePackage(..) => false,
-            Self::ImmOrOwnedMoveObject((_, _, _)) => true,
+            Self::ImmOrOwnedMoveObject(_) => true,
             Self::SharedMoveObject { mutable, .. } => *mutable,
         }
     }

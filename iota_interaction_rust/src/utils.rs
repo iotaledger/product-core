@@ -1,33 +1,34 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use std::fmt::Debug;
 use iota_interaction::interaction_error::Error;
-use iota_interaction::move_types::ident_str;
 use iota_interaction::rpc_types::OwnedObjectRef;
-use iota_interaction::types::base_types::{ObjectID, STD_OPTION_MODULE_NAME};
+use iota_interaction::types::base_types::{ObjectID, RESOLVED_STD_OPTION};
 use iota_interaction::types::object::Owner;
 use iota_interaction::types::programmable_transaction_builder::ProgrammableTransactionBuilder as Ptb;
-use iota_interaction::types::transaction::{Argument, ObjectArg};
+use iota_interaction::types::transaction::{Argument, CallArg, SharedObjectRef};
 use iota_interaction::types::{IOTA_CLOCK_OBJECT_ID, IOTA_CLOCK_OBJECT_SHARED_VERSION, MOVE_STDLIB_PACKAGE_ID};
 use iota_interaction::MoveType;
 use serde::Serialize;
+use iota_sdk_types::Identifier;
 
 /// Adds a reference to the on-chain clock to `ptb`'s arguments.
 pub fn get_clock_ref(ptb: &mut Ptb) -> Argument {
   ptb
-    .obj(ObjectArg::SharedObject {
-      id: IOTA_CLOCK_OBJECT_ID,
+    .obj(CallArg::Shared(SharedObjectRef {
+      object_id: IOTA_CLOCK_OBJECT_ID,
       initial_shared_version: IOTA_CLOCK_OBJECT_SHARED_VERSION,
       mutable: false,
-    })
+    }))
     .expect("network has a singleton clock instantiated")
 }
 
 pub fn get_controller_delegation(ptb: &mut Ptb, controller_cap: Argument, package: ObjectID) -> (Argument, Argument) {
   let Argument::Result(idx) = ptb.programmable_move_call(
     package,
-    ident_str!("controller").into(),
-    ident_str!("borrow").into(),
+    Identifier::from_static("controller"),
+    Identifier::from_static("borrow"),
     vec![],
     vec![controller_cap],
   ) else {
@@ -46,8 +47,8 @@ pub fn put_back_delegation_token(
 ) {
   ptb.programmable_move_call(
     package,
-    ident_str!("controller").into(),
-    ident_str!("put_back").into(),
+    Identifier::from_static("controller"),
+    Identifier::from_static("put_back"),
     vec![],
     vec![controller_cap, delegation_token, borrow],
   );
@@ -58,14 +59,14 @@ pub fn owned_ref_to_shared_object_arg(
   ptb: &mut Ptb,
   mutable: bool,
 ) -> anyhow::Result<Argument> {
-  let Owner::Shared { initial_shared_version } = owned_ref.owner else {
+  let Owner::Shared ( initial_shared_version ) = owned_ref.owner else {
     anyhow::bail!("Object \"{}\" is not a shared object", owned_ref.object_id());
   };
-  ptb.obj(ObjectArg::SharedObject {
-    id: owned_ref.object_id(),
+  ptb.obj(CallArg::Shared(SharedObjectRef {
+    object_id: owned_ref.object_id(),
     initial_shared_version,
     mutable,
-  })
+  }))
 }
 
 pub fn option_to_move<T: MoveType + Serialize>(
@@ -77,16 +78,16 @@ pub fn option_to_move<T: MoveType + Serialize>(
     let t = ptb.pure(t)?;
     ptb.programmable_move_call(
       MOVE_STDLIB_PACKAGE_ID,
-      STD_OPTION_MODULE_NAME.into(),
-      ident_str!("some").into(),
+      Identifier::from_static(RESOLVED_STD_OPTION.1.as_str()),
+      Identifier::from_static("some"),
       vec![T::move_type(package)],
       vec![t],
     )
   } else {
     ptb.programmable_move_call(
       MOVE_STDLIB_PACKAGE_ID,
-      STD_OPTION_MODULE_NAME.into(),
-      ident_str!("none").into(),
+      Identifier::from_static(RESOLVED_STD_OPTION.1.as_str()),
+      Identifier::from_static("none"),
       vec![T::move_type(package)],
       vec![],
     )
@@ -97,7 +98,7 @@ pub fn option_to_move<T: MoveType + Serialize>(
 
 pub fn ptb_pure<T>(ptb: &mut Ptb, name: &str, value: T) -> Result<Argument, Error>
 where
-  T: Serialize + core::fmt::Debug,
+  T: Serialize + Debug,
 {
   ptb.pure(&value).map_err(|err| {
     Error::InvalidArgument(format!(
@@ -107,7 +108,7 @@ where
 }
 
 #[allow(dead_code)]
-pub fn ptb_obj(ptb: &mut Ptb, name: &str, value: ObjectArg) -> Result<Argument, Error> {
+pub fn ptb_obj(ptb: &mut Ptb, name: &str, value:  impl Into<CallArg> + Debug + Copy) -> Result<Argument, Error> {
   ptb
     .obj(value)
     .map_err(|err| Error::InvalidArgument(format!("could not serialize object {name} {value:?}; {err}")))
