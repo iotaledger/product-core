@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::boxed::Box;
-#[cfg(not(target_arch = "wasm32"))]
-use std::marker::Send;
 use std::option::Option;
 use std::result::Result;
 
