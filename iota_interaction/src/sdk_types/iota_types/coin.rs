@@ -2,27 +2,21 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use iota_sdk_types::{Identifier, StructTag, TypeTag};
 use serde::{Deserialize, Serialize};
 
 use crate::move_core_types::annotated_value::{MoveFieldLayout, MoveStructLayout, MoveTypeLayout};
-use crate::move_core_types::identifier::IdentStr;
-use crate::move_core_types::language_storage::{StructTag, TypeTag};
 use super::balance::{Balance, Supply};
 use super::base_types::ObjectID;
 use super::error::{ExecutionError, ExecutionErrorKind, IotaError};
 use super::id::UID;
-use super::IOTA_FRAMEWORK_ADDRESS;
+use super::iota_sdk_types_conversions::struct_tag_sdk_to_core;
 use crate::ident_str;
 
-pub const COIN_MODULE_NAME: &IdentStr = ident_str!("coin");
-pub const COIN_STRUCT_NAME: &IdentStr = ident_str!("Coin");
-pub const COIN_METADATA_STRUCT_NAME: &IdentStr = ident_str!("CoinMetadata");
-pub const COIN_TREASURE_CAP_NAME: &IdentStr = ident_str!("TreasuryCap");
-pub const COIN_JOIN_FUNC_NAME: &IdentStr = ident_str!("join");
+pub const COIN_JOIN_FUNC_NAME: Identifier = Identifier::from_static("join");
 
-pub const PAY_MODULE_NAME: &IdentStr = ident_str!("pay");
-pub const PAY_SPLIT_N_FUNC_NAME: &IdentStr = ident_str!("divide_and_keep");
-pub const PAY_SPLIT_VEC_FUNC_NAME: &IdentStr = ident_str!("split_vec");
+pub const PAY_SPLIT_N_FUNC_NAME: Identifier = Identifier::from_static("divide_and_keep");
+pub const PAY_SPLIT_VEC_FUNC_NAME: Identifier = Identifier::from_static("split_vec");
 
 // Rust version of the Move iota::coin::Coin type
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
@@ -37,22 +31,6 @@ impl Coin {
             id: UID::new(id),
             balance: Balance::new(value),
         }
-    }
-
-    pub fn type_(type_param: TypeTag) -> StructTag {
-        StructTag {
-            address: IOTA_FRAMEWORK_ADDRESS,
-            name: COIN_STRUCT_NAME.to_owned(),
-            module: COIN_MODULE_NAME.to_owned(),
-            type_params: vec![type_param],
-        }
-    }
-
-    /// Is this other StructTag representing a Coin?
-    pub fn is_coin(other: &StructTag) -> bool {
-        other.address == IOTA_FRAMEWORK_ADDRESS
-            && other.module.as_ident_str() == COIN_MODULE_NAME
-            && other.name.as_ident_str() == COIN_STRUCT_NAME
     }
 
     /// Create a coin from BCS bytes
@@ -74,7 +52,7 @@ impl Coin {
 
     pub fn layout(type_param: TypeTag) -> MoveStructLayout {
         MoveStructLayout {
-            type_: Self::type_(type_param.clone()),
+            type_: struct_tag_sdk_to_core(&StructTag::new_coin(type_param.clone())),
             fields: vec![
                 MoveFieldLayout::new(
                     ident_str!("id").to_owned(),
@@ -118,26 +96,11 @@ pub struct TreasuryCap {
 }
 
 impl TreasuryCap {
-    pub fn is_treasury_type(other: &StructTag) -> bool {
-        other.address == IOTA_FRAMEWORK_ADDRESS
-            && other.module.as_ident_str() == COIN_MODULE_NAME
-            && other.name.as_ident_str() == COIN_TREASURE_CAP_NAME
-    }
-
     /// Create a TreasuryCap from BCS bytes
     pub fn from_bcs_bytes(content: &[u8]) -> Result<Self, IotaError> {
         bcs::from_bytes(content).map_err(|err| IotaError::ObjectDeserialization {
             error: format!("Unable to deserialize TreasuryCap object: {err}"),
         })
-    }
-
-    pub fn type_(type_param: StructTag) -> StructTag {
-        StructTag {
-            address: IOTA_FRAMEWORK_ADDRESS,
-            name: COIN_TREASURE_CAP_NAME.to_owned(),
-            module: COIN_MODULE_NAME.to_owned(),
-            type_params: vec![TypeTag::Struct(Box::new(type_param))],
-        }
     }
 }
 
@@ -158,26 +121,10 @@ pub struct CoinMetadata {
 }
 
 impl CoinMetadata {
-    /// Is this other StructTag representing a CoinMetadata?
-    pub fn is_coin_metadata(other: &StructTag) -> bool {
-        other.address == IOTA_FRAMEWORK_ADDRESS
-            && other.module.as_ident_str() == COIN_MODULE_NAME
-            && other.name.as_ident_str() == COIN_METADATA_STRUCT_NAME
-    }
-
     /// Create a coin from BCS bytes
     pub fn from_bcs_bytes(content: &[u8]) -> Result<Self, IotaError> {
         bcs::from_bytes(content).map_err(|err| IotaError::ObjectDeserialization {
             error: format!("Unable to deserialize CoinMetadata object: {err}"),
         })
-    }
-
-    pub fn type_(type_param: StructTag) -> StructTag {
-        StructTag {
-            address: IOTA_FRAMEWORK_ADDRESS,
-            name: COIN_METADATA_STRUCT_NAME.to_owned(),
-            module: COIN_MODULE_NAME.to_owned(),
-            type_params: vec![TypeTag::Struct(Box::new(type_param))],
-        }
     }
 }

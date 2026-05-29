@@ -2,36 +2,24 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::fmt;
-use std::fmt::{Display, Formatter};
+use std::{
+    fmt,
+    fmt::{Display, Formatter},
+};
 
 use fastcrypto::encoding::Base64;
+use iota_sdk_types::{StructTag, TypeTag};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{serde_as, DisplayFromStr};
 
-use crate::move_core_types::{
-  // annotated_value::{MoveStruct, MoveValue},
-  identifier::IdentStr,
-  language_storage::{StructTag, TypeTag},
-};
 use super::{
   base_types::{ObjectID, SequenceNumber},
   digests::ObjectDigest,
   error::{IotaError, IotaResult},
   id::UID,
   iota_serde::{IotaTypeTag, Readable},
-  //object::Object,
-  //storage::ObjectStore,
-  IOTA_FRAMEWORK_ADDRESS,
 };
-use crate::ident_str;
-
-const DYNAMIC_FIELD_MODULE_NAME: &IdentStr = ident_str!("dynamic_field");
-const DYNAMIC_FIELD_FIELD_STRUCT_NAME: &IdentStr = ident_str!("Field");
-
-const DYNAMIC_OBJECT_FIELD_MODULE_NAME: &IdentStr = ident_str!("dynamic_object_field");
-const DYNAMIC_OBJECT_FIELD_WRAPPER_STRUCT_NAME: &IdentStr = ident_str!("Wrapper");
 
 /// Rust version of the Move iota::dynamic_field::Field type
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -74,7 +62,7 @@ impl Display for DynamicFieldName {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum DynamicFieldType {
     #[serde(rename_all = "camelCase")]
     DynamicField,
@@ -92,43 +80,29 @@ impl Display for DynamicFieldType {
 
 impl DynamicFieldInfo {
     pub fn is_dynamic_field(tag: &StructTag) -> bool {
-        tag.address == IOTA_FRAMEWORK_ADDRESS
-            && tag.module.as_ident_str() == DYNAMIC_FIELD_MODULE_NAME
-            && tag.name.as_ident_str() == DYNAMIC_FIELD_FIELD_STRUCT_NAME
+        tag.is_dynamic_field()
     }
 
     pub fn is_dynamic_object_field_wrapper(tag: &StructTag) -> bool {
-        tag.address == IOTA_FRAMEWORK_ADDRESS
-            && tag.module.as_ident_str() == DYNAMIC_OBJECT_FIELD_MODULE_NAME
-            && tag.name.as_ident_str() == DYNAMIC_OBJECT_FIELD_WRAPPER_STRUCT_NAME
+        tag.is_dynamic_object_field_wrapper()
     }
 
     pub fn dynamic_field_type(key: TypeTag, value: TypeTag) -> StructTag {
-        StructTag {
-            address: IOTA_FRAMEWORK_ADDRESS,
-            name: DYNAMIC_FIELD_FIELD_STRUCT_NAME.to_owned(),
-            module: DYNAMIC_FIELD_MODULE_NAME.to_owned(),
-            type_params: vec![key, value],
-        }
+        StructTag::new_dynamic_field(key, value)
     }
 
     pub fn dynamic_object_field_wrapper(key: TypeTag) -> StructTag {
-        StructTag {
-            address: IOTA_FRAMEWORK_ADDRESS,
-            module: DYNAMIC_OBJECT_FIELD_MODULE_NAME.to_owned(),
-            name: DYNAMIC_OBJECT_FIELD_WRAPPER_STRUCT_NAME.to_owned(),
-            type_params: vec![key],
-        }
+        StructTag::new_dynamic_object_field_wrapper(key)
     }
 
     pub fn try_extract_field_name(
         tag: &StructTag,
         type_: &DynamicFieldType,
     ) -> IotaResult<TypeTag> {
-        match (type_, tag.type_params.first()) {
+        match (type_, tag.type_params().first()) {
             (DynamicFieldType::DynamicField, Some(name_type)) => Ok(name_type.clone()),
             (DynamicFieldType::DynamicObject, Some(TypeTag::Struct(s))) => Ok(s
-                .type_params
+                .type_params()
                 .first()
                 .ok_or_else(|| IotaError::ObjectDeserialization {
                     error: format!("Error extracting dynamic object name from object: {tag}"),
@@ -141,7 +115,7 @@ impl DynamicFieldInfo {
     }
 
     pub fn try_extract_field_value(tag: &StructTag) -> IotaResult<TypeTag> {
-        match tag.type_params.last() {
+        match tag.type_params().last() {
             Some(value_type) => Ok(value_type.clone()),
             None => Err(IotaError::ObjectDeserialization {
                 error: format!("Error extracting dynamic object value from object: {tag}"),

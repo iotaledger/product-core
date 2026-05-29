@@ -4,17 +4,18 @@
 
 #[allow(unused)] // Kept in sync with original source, so keep as is.
 use serde::{Deserialize, Serialize};
-
+use super::base_types::{IotaAddress, ObjectID, SequenceNumber, StructTag, TypeTag};
+pub use iota_sdk_types as sdk_types;
 use crate::move_core_types::account_address::AccountAddress;
-use crate::move_core_types::language_storage::{StructTag, TypeTag};
-use super::base_types::{IotaAddress, ObjectID, SequenceNumber};
 use super::object::OBJECT_START_VERSION;
-
+use super::{
+    iota_sdk_types_conversions::{struct_tag_core_to_sdk, type_tag_core_to_sdk},
+};
 macro_rules! built_in_ids {
     ($($addr:ident / $id:ident = $init:expr);* $(;)?) => {
         $(
             pub const $addr: AccountAddress = builtin_address($init);
-            pub const $id: ObjectID = ObjectID::from_address($addr);
+            pub const $id: ObjectID = ObjectID::new($addr.into_bytes());
         )*
     }
 }
@@ -22,10 +23,6 @@ macro_rules! built_in_ids {
 macro_rules! built_in_pkgs {
     ($($addr:ident / $id:ident = $init:expr);* $(;)?) => {
         built_in_ids! { $($addr / $id = $init;)* }
-        pub const SYSTEM_PACKAGE_ADDRESSES: &[AccountAddress] = &[$($addr),*];
-        pub fn is_system_package(addr: impl Into<AccountAddress>) -> bool {
-            matches!(addr.into(), $($addr)|*)
-        }
     }
 }
 
@@ -46,6 +43,14 @@ built_in_ids! {
     IOTA_DENY_LIST_ADDRESS / IOTA_DENY_LIST_OBJECT_ID = 0x403;
 }
 
+pub const SYSTEM_PACKAGE_ADDRESSES: [IotaAddress; 5] = [
+    IotaAddress::STD,
+    IotaAddress::FRAMEWORK,
+    IotaAddress::SYSTEM,
+    IotaAddress::GENESIS_BRIDGE,
+    IotaAddress::STARDUST,
+];
+
 pub const IOTA_SYSTEM_STATE_OBJECT_SHARED_VERSION: SequenceNumber = OBJECT_START_VERSION;
 pub const IOTA_CLOCK_OBJECT_SHARED_VERSION: SequenceNumber = OBJECT_START_VERSION;
 pub const IOTA_AUTHENTICATOR_STATE_OBJECT_SHARED_VERSION: SequenceNumber = OBJECT_START_VERSION;
@@ -64,8 +69,10 @@ const fn builtin_address(suffix: u16) -> AccountAddress {
 /// matches this format exactly, with no remaining input. This function is
 /// intended for use within the authority codebase.
 pub fn parse_iota_struct_tag(s: &str) -> anyhow::Result<StructTag> {
-    use crate::move_core_types::parsing::types::ParsedStructType;
-    ParsedStructType::parse(s)?.into_struct_tag(&resolve_address)
+    use move_core_types::parsing::types::ParsedStructType;
+    ParsedStructType::parse(s)?
+        .into_struct_tag(&resolve_address)
+        .map(|s| struct_tag_core_to_sdk(&s))
 }
 
 /// Parse `s` as a type: Either a struct type (see `parse_iota_struct_tag`), a
@@ -73,19 +80,22 @@ pub fn parse_iota_struct_tag(s: &str) -> anyhow::Result<StructTag> {
 /// only if `s` matches this format exactly, with no remaining input. This
 /// function is intended for use within the authority codebase.
 pub fn parse_iota_type_tag(s: &str) -> anyhow::Result<TypeTag> {
-    use crate::move_core_types::parsing::types::ParsedType;
-    ParsedType::parse(s)?.into_type_tag(&resolve_address)
+    use move_core_types::parsing::types::ParsedType;
+    ParsedType::parse(s)?
+        .into_type_tag(&resolve_address)
+        .map(|s| type_tag_core_to_sdk(&s))
 }
 
 /// Resolve well-known named addresses into numeric addresses.
 pub fn resolve_address(addr: &str) -> Option<AccountAddress> {
     match addr {
-        "std" => Some(MOVE_STDLIB_ADDRESS),
-        "iota" => Some(IOTA_FRAMEWORK_ADDRESS),
-        "iota_system" => Some(IOTA_SYSTEM_ADDRESS),
-        "stardust" => Some(STARDUST_ADDRESS),
+        "std" => Some(IotaAddress::STD),
+        "iota" => Some(IotaAddress::FRAMEWORK),
+        "iota_system" => Some(IotaAddress::SYSTEM),
+        "stardust" => Some(IotaAddress::STARDUST),
         _ => None,
     }
+    .map(|addr| AccountAddress::new(addr.into_bytes()))
 }
 
 pub trait MoveTypeTagTrait {

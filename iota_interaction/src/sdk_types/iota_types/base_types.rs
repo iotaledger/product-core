@@ -3,49 +3,36 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::convert::{AsRef, TryFrom};
+use std::convert::{TryFrom};
 use std::fmt;
-use std::option::Option;
-use std::option::Option::Some;
 use std::result::Result::Ok;
 use std::str::FromStr;
-use std::string::String;
-use std::vec::Vec;
 
-use anyhow::{anyhow, bail};
-use fastcrypto::encoding::{decode_bytes_hex, Encoding, Hex};
+use anyhow::{anyhow};
 use fastcrypto::hash::HashFunction;
-use rand::Rng;
-use schemars::JsonSchema;
 use serde::ser::Error;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_with::{DeserializeAs, SerializeAs, serde_as};
+use serde::{Deserialize, Serialize};
 use Result;
 
-use iota_sdk_types::crypto::HashingIntentScope;
+use super::{
+    MOVE_STDLIB_ADDRESS,
+    crypto::{
+        AuthorityPublicKeyBytes, DefaultHash, IotaPublicKey, PublicKey,
+    },
+    iota_serde::to_iota_struct_tag_string,
+    object::{Object, Owner},
+    parse_iota_struct_tag,
+};
 
 use crate::move_core_types::account_address::AccountAddress;
 use crate::move_core_types::identifier::IdentStr;
-use crate::move_core_types::language_storage::{ModuleId, StructTag, TypeTag};
-
-use super::account_abstraction::authenticator_function::AuthenticatorFunctionRefV1;
-use super::balance::Balance;
-use super::coin::{Coin, CoinMetadata, TreasuryCap, COIN_MODULE_NAME, COIN_STRUCT_NAME};
-use super::crypto::{AuthorityPublicKeyBytes, DefaultHash, IotaPublicKey, PublicKey};
 pub use super::digests::{ObjectDigest, TransactionDigest};
-use super::dynamic_field::DynamicFieldInfo;
-use super::error::{IotaError, IotaResult};
-use super::gas_coin::{GasCoin, GAS};
-use super::governance::{StakedIota, STAKED_IOTA_STRUCT_NAME, STAKING_POOL_MODULE_NAME};
-use super::iota_serde::{to_custom_deser_error, to_iota_struct_tag_string, Readable};
-use super::object::Owner;
-use super::stardust::output::Nft;
-use super::timelock::timelock::{self, TimeLock};
-use super::timelock::timelocked_staked_iota::TimelockedStakedIota;
-use super::{
-  parse_iota_struct_tag, IOTA_CLOCK_OBJECT_ID, IOTA_FRAMEWORK_ADDRESS, IOTA_SYSTEM_ADDRESS, MOVE_STDLIB_ADDRESS,
-};
 use crate::ident_str;
+
+pub use iota_sdk_types::{
+    Identifier, MoveObjectType, StructTag, TypeTag,
+    ObjectId as ObjectID, ObjectReference as ObjectRef, Version as SequenceNumber,
+};
 
 // -----------------------------------------------------------------
 // Originally defined in crates/iota-types/src/committee.rs
@@ -71,320 +58,14 @@ pub type CodeOffset = u16;
 pub type TypeParameterIndex = u16;
 // -----------------------------------------------------------------
 
-#[derive(
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-    Copy,
-    Clone,
-    Hash,
-    Default,
-    Debug,
-    Serialize,
-    Deserialize,
-    JsonSchema,
-)]
-pub struct SequenceNumber(u64);
+pub type TxSequenceNumber = u64;
 
-impl fmt::Display for SequenceNumber {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:#x}", self.0)
-    }
-}
+pub type VersionNumber = SequenceNumber;
+
+/// The round number.
+pub type CommitRound = u64;
 
 pub type AuthorityName = AuthorityPublicKeyBytes;
-
-#[serde_as]
-#[derive(Eq, PartialEq, Clone, Copy, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema)]
-pub struct ObjectID(
-    #[schemars(with = "Hex")]
-    #[serde_as(as = "Readable<HexAccountAddress, _>")]
-    AccountAddress,
-);
-
-pub type ObjectRef = (ObjectID, SequenceNumber, ObjectDigest);
-
-/// Wrapper around StructTag with a space-efficient representation for common
-/// types like coins The StructTag for a gas coin is 84 bytes, so using 1 byte
-/// instead is a win. The inner representation is private to prevent incorrectly
-/// constructing an `Other` instead of one of the specialized variants, e.g.
-/// `Other(GasCoin::type_())` instead of `GasCoin`
-#[derive(Eq, PartialEq, PartialOrd, Ord, Debug, Clone, Deserialize, Serialize, Hash)]
-pub struct MoveObjectType(MoveObjectType_);
-
-/// Even though it is declared public, it is the "private", internal
-/// representation for `MoveObjectType`
-#[derive(Eq, PartialEq, PartialOrd, Ord, Debug, Clone, Deserialize, Serialize, Hash)]
-pub enum MoveObjectType_ {
-    /// A type that is not `0x2::coin::Coin<T>`
-    Other(StructTag),
-    /// An IOTA coin (i.e., `0x2::coin::Coin<0x2::iota::IOTA>`)
-    GasCoin,
-    /// A record of a staked IOTA coin (i.e., `0x3::staking_pool::StakedIota`)
-    StakedIota,
-    /// A non-IOTA coin type (i.e., `0x2::coin::Coin<T> where T !=
-    /// 0x2::iota::IOTA`)
-    Coin(TypeTag),
-    // NOTE: if adding a new type here, and there are existing on-chain objects of that
-    // type with Other(_), that is ok, but you must hand-roll PartialEq/Eq/Ord/maybe Hash
-    // to make sure the new type and Other(_) are interpreted consistently.
-}
-
-impl MoveObjectType {
-    pub fn gas_coin() -> Self {
-        Self(MoveObjectType_::GasCoin)
-    }
-
-    pub fn coin(coin_type: TypeTag) -> Self {
-        Self(if GAS::is_gas_type(&coin_type) {
-            MoveObjectType_::GasCoin
-        } else {
-            MoveObjectType_::Coin(coin_type)
-        })
-    }
-
-    pub fn staked_iota() -> Self {
-        Self(MoveObjectType_::StakedIota)
-    }
-
-    pub fn timelocked_iota_balance() -> Self {
-        Self(MoveObjectType_::Other(TimeLock::<Balance>::type_(
-            Balance::type_(GAS::type_().into()).into(),
-        )))
-    }
-
-    pub fn timelocked_staked_iota() -> Self {
-        Self(MoveObjectType_::Other(TimelockedStakedIota::type_()))
-    }
-
-    pub fn stardust_nft() -> Self {
-        Self(MoveObjectType_::Other(Nft::tag()))
-    }
-
-    pub fn address(&self) -> AccountAddress {
-        match &self.0 {
-            MoveObjectType_::GasCoin | MoveObjectType_::Coin(_) => IOTA_FRAMEWORK_ADDRESS,
-            MoveObjectType_::StakedIota => IOTA_SYSTEM_ADDRESS,
-            MoveObjectType_::Other(s) => s.address,
-        }
-    }
-
-    pub fn module(&self) -> &IdentStr {
-        match &self.0 {
-            MoveObjectType_::GasCoin | MoveObjectType_::Coin(_) => COIN_MODULE_NAME,
-            MoveObjectType_::StakedIota => STAKING_POOL_MODULE_NAME,
-            MoveObjectType_::Other(s) => &s.module,
-        }
-    }
-
-    pub fn name(&self) -> &IdentStr {
-        match &self.0 {
-            MoveObjectType_::GasCoin | MoveObjectType_::Coin(_) => COIN_STRUCT_NAME,
-            MoveObjectType_::StakedIota => STAKED_IOTA_STRUCT_NAME,
-            MoveObjectType_::Other(s) => &s.name,
-        }
-    }
-
-    pub fn type_params(&self) -> Vec<TypeTag> {
-        match &self.0 {
-            MoveObjectType_::GasCoin => vec![GAS::type_tag()],
-            MoveObjectType_::StakedIota => vec![],
-            MoveObjectType_::Coin(inner) => vec![inner.clone()],
-            MoveObjectType_::Other(s) => s.type_params.clone(),
-        }
-    }
-
-    pub fn into_type_params(self) -> Vec<TypeTag> {
-        match self.0 {
-            MoveObjectType_::GasCoin => vec![GAS::type_tag()],
-            MoveObjectType_::StakedIota => vec![],
-            MoveObjectType_::Coin(inner) => vec![inner],
-            MoveObjectType_::Other(s) => s.type_params,
-        }
-    }
-
-    pub fn coin_type_maybe(&self) -> Option<TypeTag> {
-        match &self.0 {
-            MoveObjectType_::GasCoin => Some(GAS::type_tag()),
-            MoveObjectType_::Coin(inner) => Some(inner.clone()),
-            MoveObjectType_::StakedIota => None,
-            MoveObjectType_::Other(_) => None,
-        }
-    }
-
-    pub fn module_id(&self) -> ModuleId {
-        ModuleId::new(self.address(), self.module().to_owned())
-    }
-
-    pub fn size_for_gas_metering(&self) -> usize {
-        // unwraps safe because a `StructTag` cannot fail to serialize
-        match &self.0 {
-            MoveObjectType_::GasCoin => 1,
-            MoveObjectType_::StakedIota => 1,
-            MoveObjectType_::Coin(inner) => bcs::serialized_size(inner).unwrap() + 1,
-            MoveObjectType_::Other(s) => bcs::serialized_size(s).unwrap() + 1,
-        }
-    }
-
-    /// Return true if `self` is `0x2::coin::Coin<T>` for some T (note: T can be
-    /// IOTA)
-    pub fn is_coin(&self) -> bool {
-        match &self.0 {
-            MoveObjectType_::GasCoin | MoveObjectType_::Coin(_) => true,
-            MoveObjectType_::StakedIota | MoveObjectType_::Other(_) => false,
-        }
-    }
-
-    /// Return true if `self` is 0x2::coin::Coin<0x2::iota::IOTA>
-    pub fn is_gas_coin(&self) -> bool {
-        match &self.0 {
-            MoveObjectType_::GasCoin => true,
-            MoveObjectType_::StakedIota | MoveObjectType_::Coin(_) | MoveObjectType_::Other(_) => {
-                false
-            }
-        }
-    }
-
-    /// Return true if `self` is `0x2::coin::Coin<t>`
-    pub fn is_coin_t(&self, t: &TypeTag) -> bool {
-        match &self.0 {
-            MoveObjectType_::GasCoin => GAS::is_gas_type(t),
-            MoveObjectType_::Coin(c) => t == c,
-            MoveObjectType_::StakedIota | MoveObjectType_::Other(_) => false,
-        }
-    }
-
-    pub fn is_staked_iota(&self) -> bool {
-        match &self.0 {
-            MoveObjectType_::StakedIota => true,
-            MoveObjectType_::GasCoin | MoveObjectType_::Coin(_) | MoveObjectType_::Other(_) => {
-                false
-            }
-        }
-    }
-
-    pub fn is_coin_metadata(&self) -> bool {
-        match &self.0 {
-            MoveObjectType_::GasCoin | MoveObjectType_::StakedIota | MoveObjectType_::Coin(_) => {
-                false
-            }
-            MoveObjectType_::Other(s) => CoinMetadata::is_coin_metadata(s),
-        }
-    }
-
-    pub fn is_treasury_cap(&self) -> bool {
-        match &self.0 {
-            MoveObjectType_::GasCoin | MoveObjectType_::StakedIota | MoveObjectType_::Coin(_) => {
-                false
-            }
-            MoveObjectType_::Other(s) => TreasuryCap::is_treasury_type(s),
-        }
-    }
-
-    pub fn is_regulated_coin_metadata(&self) -> bool {
-        self.address() == IOTA_FRAMEWORK_ADDRESS
-            && self.module().as_str() == "coin"
-            && self.name().as_str() == "RegulatedCoinMetadata"
-    }
-
-  pub fn is_coin_deny_cap_v1(&self) -> bool {
-        self.address() == IOTA_FRAMEWORK_ADDRESS
-            && self.module().as_str() == "coin"
-      && self.name().as_str() == "DenyCapV1"
-    }
-
-    pub fn is_dynamic_field(&self) -> bool {
-        match &self.0 {
-            MoveObjectType_::GasCoin | MoveObjectType_::StakedIota | MoveObjectType_::Coin(_) => {
-                false
-            }
-            MoveObjectType_::Other(s) => DynamicFieldInfo::is_dynamic_field(s),
-        }
-    }
-
-    pub fn is_timelock(&self) -> bool {
-        match &self.0 {
-            MoveObjectType_::GasCoin | MoveObjectType_::StakedIota | MoveObjectType_::Coin(_) => {
-                false
-            }
-            MoveObjectType_::Other(s) => timelock::is_timelock(s),
-        }
-    }
-
-    pub fn is_timelocked_balance(&self) -> bool {
-        match &self.0 {
-            MoveObjectType_::GasCoin | MoveObjectType_::StakedIota | MoveObjectType_::Coin(_) => {
-                false
-            }
-            MoveObjectType_::Other(s) => timelock::is_timelocked_balance(s),
-        }
-    }
-
-    pub fn is_timelocked_staked_iota(&self) -> bool {
-        match &self.0 {
-            MoveObjectType_::GasCoin | MoveObjectType_::StakedIota | MoveObjectType_::Coin(_) => {
-                false
-            }
-            MoveObjectType_::Other(s) => TimelockedStakedIota::is_timelocked_staked_iota(s),
-        }
-    }
-
-    pub fn is_authenticator_function_ref_v1(&self) -> bool {
-        match &self.0 {
-            MoveObjectType_::GasCoin | MoveObjectType_::StakedIota | MoveObjectType_::Coin(_) => {
-                false
-            }
-            MoveObjectType_::Other(s) => {
-                AuthenticatorFunctionRefV1::is_authenticator_function_ref_v1(s)
-            }
-        }
-    }
-
-    pub fn try_extract_field_value(&self) -> IotaResult<TypeTag> {
-        match &self.0 {
-            MoveObjectType_::GasCoin | MoveObjectType_::StakedIota | MoveObjectType_::Coin(_) => {
-                Err(IotaError::ObjectDeserialization {
-                    error: "Error extracting dynamic object value from Coin object".to_string(),
-                })
-            }
-            MoveObjectType_::Other(s) => DynamicFieldInfo::try_extract_field_value(s),
-        }
-    }
-}
-
-impl From<StructTag> for MoveObjectType {
-    fn from(mut s: StructTag) -> Self {
-        Self(if GasCoin::is_gas_coin(&s) {
-            MoveObjectType_::GasCoin
-        } else if Coin::is_coin(&s) {
-            // unwrap safe because a coin has exactly one type parameter
-            MoveObjectType_::Coin(s.type_params.pop().unwrap())
-        } else if StakedIota::is_staked_iota(&s) {
-            MoveObjectType_::StakedIota
-        } else {
-            MoveObjectType_::Other(s)
-        })
-    }
-}
-
-impl From<MoveObjectType> for StructTag {
-    fn from(t: MoveObjectType) -> Self {
-        match t.0 {
-            MoveObjectType_::GasCoin => GasCoin::type_(),
-            MoveObjectType_::StakedIota => StakedIota::type_(),
-            MoveObjectType_::Coin(inner) => Coin::type_(inner),
-            MoveObjectType_::Other(s) => s,
-        }
-    }
-}
-
-impl From<MoveObjectType> for TypeTag {
-    fn from(o: MoveObjectType) -> TypeTag {
-        let s: StructTag = o.into();
-        TypeTag::Struct(Box::new(s))
-    }
-}
 
 /// Type of an IOTA object
 #[derive(Clone, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq, Debug)]
@@ -395,13 +76,38 @@ pub enum ObjectType {
     Struct(MoveObjectType),
 }
 
+const PACKAGE: &str = "package";
+
+impl ObjectType {
+    pub fn is_gas_coin(&self) -> bool {
+        matches!(self, ObjectType::Struct(s) if s.is_gas_coin())
+    }
+
+    pub fn is_coin(&self) -> bool {
+        matches!(self, ObjectType::Struct(s) if s.is_coin())
+    }
+
+    pub fn is_package(&self) -> bool {
+        matches!(self, ObjectType::Package)
+    }
+}
+
+impl From<&Object> for ObjectType {
+    fn from(o: &Object) -> Self {
+        o.data
+            .object_type()
+            .map(|t| ObjectType::Struct(t.clone()))
+            .unwrap_or(ObjectType::Package)
+    }
+}
+
 impl TryFrom<ObjectType> for StructTag {
     type Error = anyhow::Error;
 
     fn try_from(o: ObjectType) -> Result<Self, anyhow::Error> {
         match o {
             ObjectType::Package => Err(anyhow!("Cannot create StructTag from Package")),
-            ObjectType::Struct(move_object_type) => Ok(move_object_type.into()),
+            ObjectType::Struct(s) => Ok(s.into()),
         }
     }
 }
@@ -414,7 +120,7 @@ impl FromStr for ObjectType {
             Ok(ObjectType::Package)
         } else {
             let tag = parse_iota_struct_tag(s)?;
-            Ok(ObjectType::Struct(MoveObjectType::from(tag)))
+            Ok(ObjectType::Struct(tag.into()))
         }
     }
 }
@@ -429,125 +135,52 @@ pub struct ObjectInfo {
     pub previous_transaction: TransactionDigest,
 }
 
-const PACKAGE: &str = "package";
-impl ObjectType {
-    pub fn is_gas_coin(&self) -> bool {
-        matches!(self, ObjectType::Struct(s) if s.is_gas_coin())
+impl ObjectInfo {
+    pub fn new(oref: &ObjectRef, o: &Object) -> Self {
+        Self {
+            object_id: oref.object_id,
+            version: oref.version,
+            digest: oref.digest,
+            type_: o.into(),
+            owner: o.owner,
+            previous_transaction: o.previous_transaction,
+    }
     }
 
-    pub fn is_coin(&self) -> bool {
-        matches!(self, ObjectType::Struct(s) if s.is_coin())
+    pub fn from_object(object: &Object) -> Self {
+        Self {
+            object_id: object.id(),
+            version: object.version(),
+            digest: object.digest(),
+            type_: object.into(),
+            owner: object.owner,
+            previous_transaction: object.previous_transaction,
     }
-
-    /// Return true if `self` is `0x2::coin::Coin<t>`
-    pub fn is_coin_t(&self, t: &TypeTag) -> bool {
-        matches!(self, ObjectType::Struct(s) if s.is_coin_t(t))
-    }
-
-    pub fn is_package(&self) -> bool {
-        matches!(self, ObjectType::Package)
     }
 }
 
 impl From<ObjectInfo> for ObjectRef {
     fn from(info: ObjectInfo) -> Self {
-        (info.object_id, info.version, info.digest)
+        ObjectRef::new(info.object_id, info.version, info.digest)
     }
 }
 
 impl From<&ObjectInfo> for ObjectRef {
     fn from(info: &ObjectInfo) -> Self {
-        (info.object_id, info.version, info.digest)
+        ObjectRef::new(info.object_id, info.version, info.digest)
     }
 }
 
 pub const IOTA_ADDRESS_LENGTH: usize = ObjectID::LENGTH;
 
-#[serde_as]
-#[derive(Eq, Default, PartialEq, Ord, PartialOrd, Copy, Clone, Hash, Serialize, Deserialize, JsonSchema)]
-pub struct IotaAddress(
-    #[schemars(with = "Hex")]
-    #[serde_as(as = "Readable<Hex, _>")]
-    [u8; IOTA_ADDRESS_LENGTH],
-);
+pub use iota_sdk_types::Address as IotaAddress;
 
-impl IotaAddress {
-    pub const ZERO: Self = Self([0u8; IOTA_ADDRESS_LENGTH]);
-
-    /// Convert the address to a byte buffer.
-    pub fn to_vec(&self) -> Vec<u8> {
-        self.0.to_vec()
-    }
-
-    pub fn generate<R: rand::RngCore + rand::CryptoRng>(mut rng: R) -> Self {
-        let buf: [u8; IOTA_ADDRESS_LENGTH] = rng.gen();
-        Self(buf)
-    }
-
-    /// Return the underlying byte array of a IotaAddress.
-    pub fn to_inner(self) -> [u8; IOTA_ADDRESS_LENGTH] {
-        self.0
-    }
-
-    /// Parse a IotaAddress from a byte array or buffer.
-    pub fn from_bytes<T: AsRef<[u8]>>(bytes: T) -> Result<Self, IotaError> {
-        <[u8; IOTA_ADDRESS_LENGTH]>::try_from(bytes.as_ref())
-            .map_err(|_| IotaError::InvalidAddress)
-            .map(IotaAddress)
-    }
-}
-
-impl From<ObjectID> for IotaAddress {
-    fn from(object_id: ObjectID) -> IotaAddress {
-        Self(object_id.into_bytes())
-    }
-}
-
-impl From<AccountAddress> for IotaAddress {
-    fn from(address: AccountAddress) -> IotaAddress {
-        Self(address.into_bytes())
-    }
-}
-
-impl TryFrom<&[u8]> for IotaAddress {
-    type Error = IotaError;
-
-    /// Tries to convert the provided byte array into a IotaAddress.
-    fn try_from(bytes: &[u8]) -> Result<Self, IotaError> {
-        Self::from_bytes(bytes)
-    }
-}
-
-impl TryFrom<Vec<u8>> for IotaAddress {
-    type Error = IotaError;
-
-    /// Tries to convert the provided byte buffer into a IotaAddress.
-    fn try_from(bytes: Vec<u8>) -> Result<Self, IotaError> {
-        Self::from_bytes(bytes)
-    }
-}
-
-impl AsRef<[u8]> for IotaAddress {
-    fn as_ref(&self) -> &[u8] {
-        &self.0[..]
-    }
-}
-
-impl FromStr for IotaAddress {
-    type Err = anyhow::Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        decode_bytes_hex(s).map_err(|e| anyhow!(e))
-    }
-}
-
-impl<T: IotaPublicKey> From<&T> for IotaAddress {
-    fn from(pk: &T) -> Self {
+pub fn address_from_iota_pub_key<T: IotaPublicKey>(pk: &T) -> IotaAddress {
         let mut hasher = DefaultHash::default();
         T::SIGNATURE_SCHEME.update_hasher_with_flag(&mut hasher);
         hasher.update(pk);
         let g_arr = hasher.finalize();
-        IotaAddress(g_arr.digest)
-    }
+    IotaAddress::new(g_arr.digest)
 }
 
 impl From<&PublicKey> for IotaAddress {
@@ -556,271 +189,33 @@ impl From<&PublicKey> for IotaAddress {
         pk.scheme().update_hasher_with_flag(&mut hasher);
         hasher.update(pk);
         let g_arr = hasher.finalize();
-        IotaAddress(g_arr.digest)
+        IotaAddress::new(g_arr.digest)
     }
 }
 
-impl fmt::Display for IotaAddress {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0x{}", Hex::encode(self.0))
-    }
+/// Generate a fake IotaAddress with repeated one byte.
+pub fn dbg_addr(name: u8) -> IotaAddress {
+    let addr = [name; IOTA_ADDRESS_LENGTH];
+    IotaAddress::new(addr)
 }
 
-impl fmt::Debug for IotaAddress {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "0x{}", Hex::encode(self.0))
-    }
-}
-
-pub const STD_OPTION_MODULE_NAME: &IdentStr = ident_str!("option");
-pub const STD_OPTION_STRUCT_NAME: &IdentStr = ident_str!("Option");
 pub const RESOLVED_STD_OPTION: (&AccountAddress, &IdentStr, &IdentStr) = (
     &MOVE_STDLIB_ADDRESS,
-    STD_OPTION_MODULE_NAME,
-    STD_OPTION_STRUCT_NAME,
+    ident_str!("option"),
+    ident_str!("Option"),
 );
 
-pub const STD_ASCII_MODULE_NAME: &IdentStr = ident_str!("ascii");
-pub const STD_ASCII_STRUCT_NAME: &IdentStr = ident_str!("String");
 pub const RESOLVED_ASCII_STR: (&AccountAddress, &IdentStr, &IdentStr) = (
     &MOVE_STDLIB_ADDRESS,
-    STD_ASCII_MODULE_NAME,
-    STD_ASCII_STRUCT_NAME,
+    ident_str!("ascii"),
+    ident_str!("String"),
 );
 
-pub const STD_UTF8_MODULE_NAME: &IdentStr = ident_str!("string");
-pub const STD_UTF8_STRUCT_NAME: &IdentStr = ident_str!("String");
 pub const RESOLVED_UTF8_STR: (&AccountAddress, &IdentStr, &IdentStr) = (
     &MOVE_STDLIB_ADDRESS,
-    STD_UTF8_MODULE_NAME,
-    STD_UTF8_STRUCT_NAME,
+    ident_str!("string"),
+    ident_str!("String"),
 );
-
-// TODO: rename to version
-impl SequenceNumber {
-    /// An inclusive lower limit on a valid sequence number.
-    ///
-    /// A valid sequence number means an object, which this sequence number
-    /// is assigned to, does not appear in a cancelled transaction.
-    pub const MIN_VALID_INCL: SequenceNumber = SequenceNumber(u64::MIN);
-
-    /// An exclusive upper limit on a valid sequence number: sequence numbers
-    /// strictly smaller than this limit are valid sequence numbers.
-    ///
-    /// A valid sequence number means an object, which this sequence number
-    /// is assigned to, does not appear in a cancelled transaction.
-    /// Sequence numbers larger than this value are "special" and
-    /// assigned to objects that appear in cancelled transactions.
-    pub const MAX_VALID_EXCL: SequenceNumber = SequenceNumber(0x7fff_ffff_ffff_ffff);
-
-    pub const fn new() -> Self {
-        SequenceNumber(0)
-    }
-
-    pub const fn value(&self) -> u64 {
-        self.0
-    }
-
-    pub const fn from_u64(u: u64) -> Self {
-        SequenceNumber(u)
-    }
-}
-
-impl ObjectID {
-    /// The number of bytes in an address.
-    pub const LENGTH: usize = AccountAddress::LENGTH;
-    /// Hex address: 0x0
-    pub const ZERO: Self = Self::new([0u8; Self::LENGTH]);
-    pub const MAX: Self = Self::new([0xff; Self::LENGTH]);
-    /// Create a new ObjectID
-    pub const fn new(obj_id: [u8; Self::LENGTH]) -> Self {
-        Self(AccountAddress::new(obj_id))
-    }
-
-    /// Const fn variant of `<ObjectID as From<AccountAddress>>::from`
-    pub const fn from_address(addr: AccountAddress) -> Self {
-        Self(addr)
-    }
-
-    /// Return a random ObjectID.
-    pub fn random() -> Self {
-        Self::from(AccountAddress::random())
-    }
-
-    /// Return the underlying bytes buffer of the ObjectID.
-    pub fn to_vec(&self) -> Vec<u8> {
-        self.0.to_vec()
-    }
-
-    /// Parse the ObjectID from byte array or buffer.
-    pub fn from_bytes<T: AsRef<[u8]>>(bytes: T) -> Result<Self, ObjectIDParseError> {
-        <[u8; Self::LENGTH]>::try_from(bytes.as_ref())
-          .map_err(|_| ObjectIDParseError::TryFromSlice)
-          .map(ObjectID::new)
-    }
-
-    /// Return the underlying bytes array of the ObjectID.
-    pub fn into_bytes(self) -> [u8; Self::LENGTH] {
-        self.0.into_bytes()
-    }
-
-    /// Make an ObjectID with padding 0s before the single byte.
-    pub const fn from_single_byte(byte: u8) -> ObjectID {
-        let mut bytes = [0u8; Self::LENGTH];
-        bytes[Self::LENGTH - 1] = byte;
-        ObjectID::new(bytes)
-    }
-
-    /// Convert from hex string to ObjectID where the string is prefixed with 0x
-    /// Padding 0s if the string is too short.
-    pub fn from_hex_literal(literal: &str) -> Result<Self, ObjectIDParseError> {
-        if !literal.starts_with("0x") {
-            return Err(ObjectIDParseError::HexLiteralPrefixMissing);
-        }
-
-        let hex_len = literal.len() - 2;
-
-        // If the string is too short, pad it
-        if hex_len < Self::LENGTH * 2 {
-            let mut hex_str = String::with_capacity(Self::LENGTH * 2);
-            for _ in 0..Self::LENGTH * 2 - hex_len {
-                hex_str.push('0');
-            }
-            hex_str.push_str(&literal[2..]);
-            Self::from_str(&hex_str)
-        } else {
-            Self::from_str(&literal[2..])
-        }
-    }
-
-    /// Create an ObjectID from `TransactionDigest` and `creation_num`.
-    /// Caller is responsible for ensuring that `creation_num` is fresh
-    pub fn derive_id(digest: TransactionDigest, creation_num: u64) -> Self {
-        let mut hasher = DefaultHash::default();
-        hasher.update([HashingIntentScope::RegularObjectId as u8]);
-        hasher.update(digest);
-        hasher.update(creation_num.to_le_bytes());
-        let hash = hasher.finalize();
-
-        // truncate into an ObjectID.
-        // OK to access slice because digest should never be shorter than
-        // ObjectID::LENGTH.
-        ObjectID::try_from(&hash.as_ref()[0..ObjectID::LENGTH]).unwrap()
-    }
-
-    /// Increment the ObjectID by one, assuming the ObjectID hex is a number
-    /// represented as an array of bytes
-    pub fn next_increment(&self) -> Result<ObjectID, anyhow::Error> {
-        let mut prev_val = self.to_vec();
-        let mx = [0xFF; Self::LENGTH];
-
-        if prev_val == mx {
-            bail!("Increment will cause overflow");
-        }
-
-        // This logic increments the integer representation of an ObjectID u8 array
-        for idx in (0..Self::LENGTH).rev() {
-            if prev_val[idx] == 0xFF {
-                prev_val[idx] = 0;
-            } else {
-                prev_val[idx] += 1;
-                break;
-            };
-        }
-        ObjectID::try_from(prev_val.clone()).map_err(|w| w.into())
-    }
-
-    /// Create `count` object IDs starting with one at `offset`
-    pub fn in_range(offset: ObjectID, count: u64) -> Result<Vec<ObjectID>, anyhow::Error> {
-        let mut ret = Vec::new();
-        let mut prev = offset;
-        for o in 0..count {
-            if o != 0 {
-                prev = prev.next_increment()?;
-            }
-            ret.push(prev);
-        }
-        Ok(ret)
-    }
-
-    /// Return the full hex string with 0x prefix without removing trailing 0s.
-    /// Prefer this over [fn to_hex_literal] if the string needs to be fully
-    /// preserved.
-    pub fn to_hex_uncompressed(&self) -> String {
-        format!("{self}")
-    }
-
-    pub fn is_clock(&self) -> bool {
-        *self == IOTA_CLOCK_OBJECT_ID
-    }
-}
-
-impl From<IotaAddress> for ObjectID {
-    fn from(address: IotaAddress) -> ObjectID {
-        let tmp: AccountAddress = address.into();
-        tmp.into()
-    }
-}
-
-impl From<AccountAddress> for ObjectID {
-    fn from(address: AccountAddress) -> Self {
-        Self(address)
-    }
-}
-
-impl fmt::Display for ObjectID {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "0x{}", Hex::encode(self.0))
-    }
-}
-
-impl fmt::Debug for ObjectID {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "0x{}", Hex::encode(self.0))
-    }
-}
-
-impl AsRef<[u8]> for ObjectID {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_slice()
-    }
-}
-
-impl TryFrom<&[u8]> for ObjectID {
-    type Error = ObjectIDParseError;
-
-    /// Tries to convert the provided byte array into ObjectID.
-    fn try_from(bytes: &[u8]) -> Result<ObjectID, ObjectIDParseError> {
-        Self::from_bytes(bytes)
-    }
-}
-
-impl TryFrom<Vec<u8>> for ObjectID {
-    type Error = ObjectIDParseError;
-
-    /// Tries to convert the provided byte buffer into ObjectID.
-    fn try_from(bytes: Vec<u8>) -> Result<ObjectID, ObjectIDParseError> {
-        Self::from_bytes(bytes)
-    }
-}
-
-impl FromStr for ObjectID {
-    type Err = ObjectIDParseError;
-
-    /// Parse ObjectID from hex string with or without 0x prefix, pad with 0s if
-    /// needed.
-    fn from_str(s: &str) -> Result<Self, ObjectIDParseError> {
-        decode_bytes_hex(s).or_else(|_| Self::from_hex_literal(s))
-    }
-}
-
-impl std::ops::Deref for ObjectID {
-    type Target = AccountAddress;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 /// Generate a fake ObjectID with repeated one byte.
 pub fn dbg_object_id(name: u8) -> ObjectID {
@@ -836,61 +231,15 @@ pub enum ObjectIDParseError {
     TryFromSlice,
 }
 
-impl From<ObjectID> for AccountAddress {
-    fn from(obj_id: ObjectID) -> Self {
-        obj_id.0
-    }
-}
-
-impl From<IotaAddress> for AccountAddress {
-    fn from(address: IotaAddress) -> Self {
-        Self::new(address.0)
-    }
-}
-
-/// Hex serde for AccountAddress
-struct HexAccountAddress;
-
-impl SerializeAs<AccountAddress> for HexAccountAddress {
-    fn serialize_as<S>(value: &AccountAddress, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        Hex::serialize_as(value, serializer)
-    }
-}
-
-impl<'de> DeserializeAs<'de, AccountAddress> for HexAccountAddress {
-    fn deserialize_as<D>(deserializer: D) -> Result<AccountAddress, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        if s.starts_with("0x") {
-            AccountAddress::from_hex_literal(&s)
-        } else {
-            AccountAddress::from_hex(&s)
-        }
-        .map_err(to_custom_deser_error::<'de, D, _>)
-    }
-}
-
-impl fmt::Display for MoveObjectType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        let s: StructTag = self.clone().into();
-        write!(
-            f,
-            "{}",
-            to_iota_struct_tag_string(&s).map_err(fmt::Error::custom)?
-        )
-    }
-}
-
 impl fmt::Display for ObjectType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ObjectType::Package => write!(f, "{PACKAGE}"),
-            ObjectType::Struct(t) => write!(f, "{t}"),
+            ObjectType::Struct(t) => write!(
+                f,
+                "{}",
+                to_iota_struct_tag_string(t).map_err(fmt::Error::custom)?
+            ),
         }
     }
 }

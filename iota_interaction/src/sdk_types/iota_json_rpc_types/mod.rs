@@ -2,11 +2,15 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-pub mod iota_transaction;
-pub mod iota_object;
 pub mod iota_coin;
 pub mod iota_event;
+pub mod iota_gas_cost_summary;
 pub mod iota_move;
+pub mod iota_object;
+pub mod iota_object_response_error;
+pub mod iota_owner;
+pub mod iota_primitives;
+pub mod iota_transaction;
 
 pub use iota_transaction::*;
 pub use iota_object::*;

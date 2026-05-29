@@ -8,11 +8,11 @@ use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use iota_interaction::move_types::language_storage::StructTag;
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI};
-use iota_interaction::types::base_types::{IotaAddress, ObjectID};
+use iota_interaction::types::base_types::{IotaAddress, ObjectID, TypeTag};
 use iota_interaction::types::crypto::SignatureScheme;
 use iota_interaction::types::programmable_transaction_builder::ProgrammableTransactionBuilder;
 use iota_interaction::types::transaction::ProgrammableTransaction;
-use iota_interaction::types::{TypeTag, IOTA_FRAMEWORK_PACKAGE_ID};
+use iota_interaction::types::IOTA_FRAMEWORK_PACKAGE_ID;
 use iota_interaction::{ident_str, IotaClientTrait, IotaKeySignature, IotaTransactionBlockEffectsMutAPI, OptionalSync};
 use iota_sdk::rpc_types::{IotaObjectDataOptions, IotaObjectResponse};
 use iota_sdk::types::object::Owner;
@@ -292,8 +292,8 @@ impl Transaction for GetTestCoin {
     let mut ptb = ProgrammableTransactionBuilder::new();
     let coin = ptb.programmable_move_call(
       IOTA_FRAMEWORK_PACKAGE_ID,
-      ident_str!("coin").into(),
-      ident_str!("zero").into(),
+      ident_str!("coin").as_str().into(),
+      ident_str!("zero").as_str().into(),
       vec![TypeTag::Bool],
       vec![],
     );
@@ -309,7 +309,7 @@ impl Transaction for GetTestCoin {
       .created()
       .iter()
       .enumerate()
-      .filter(|(_, obj)| matches!(obj.owner, Owner::AddressOwner(address) if address == self.recipient))
+      .filter(|(_, obj)| matches!(obj.owner, Owner::Address(address) if address == self.recipient))
       .map(|(i, obj_ref)| (i, obj_ref.object_id()));
 
     let is_target_coin =

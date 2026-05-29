@@ -3,21 +3,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use fastcrypto::encoding::{Base58, Base64};
+use super::super::iota_types::{
+    base_types::{Identifier, IotaAddress, ObjectID, StructTag, TransactionDigest},
+    event::EventID,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use serde_with::{serde_as, DisplayFromStr};
+use serde_with::{DisplayFromStr, serde_as};
 
-use super::super::iota_types::{
-    base_types::{ObjectID, IotaAddress, TransactionDigest},
-    event::EventID,
-    iota_serde::{BigInt, IotaStructTag}
+use super::{
+    Page,
+    iota_primitives::StructTag as StructTagSchema,
 };
-use crate::move_core_types::{
-    identifier::Identifier,
-    language_storage::{StructTag},
-};
-
-use super::{Page};
 
 pub type EventPage = Page<IotaEvent, EventID>;
 
@@ -38,8 +35,8 @@ pub struct IotaEvent {
     pub transaction_module: Identifier,
     /// Sender's IOTA address.
     pub sender: IotaAddress,
-    #[serde_as(as = "IotaStructTag")]
     /// Move event type.
+    #[serde_as(as = "StructTagSchema")]
     pub type_: StructTag,
     /// Parsed json value of the event
     pub parsed_json: Value,
@@ -48,7 +45,7 @@ pub struct IotaEvent {
     pub bcs: BcsEvent,
     /// UTC timestamp in milliseconds since epoch (1/1/1970)
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde_as(as = "Option<BigInt<u64>>")]
+    #[serde_as(as = "Option<DisplayFromStr>")]
     pub timestamp_ms: Option<u64>,
 }
 
@@ -147,14 +144,13 @@ pub enum EventFilter {
         /// the Move package ID
         package: ObjectID,
         /// the module name
-        #[serde_as(as = "DisplayFromStr")]
         module: Identifier,
     },
     /// Return events with the given Move event struct name (struct tag).
     /// For example, if the event is defined in `0xabcd::MyModule`, and named
     /// `Foo`, then the struct tag is `0xabcd::MyModule::Foo`.
     MoveEventType(
-        #[serde_as(as = "IotaStructTag")]
+        #[serde_as(as = "StructTagSchema")]
         StructTag,
     ),
     /// Return events with the given Move module name where the event struct is
@@ -165,7 +161,6 @@ pub enum EventFilter {
         /// the Move package ID
         package: ObjectID,
         /// the module name
-        #[serde_as(as = "DisplayFromStr")]
         module: Identifier,
     },
     MoveEventField {
@@ -176,10 +171,10 @@ pub enum EventFilter {
     #[serde(rename_all = "camelCase")]
     TimeRange {
         /// left endpoint of time interval, milliseconds since epoch, inclusive
-        #[serde_as(as = "BigInt<u64>")]
+        #[serde_as(as = "DisplayFromStr")]
         start_time: u64,
         /// right endpoint of time interval, milliseconds since epoch, exclusive
-        #[serde_as(as = "BigInt<u64>")]
+        #[serde_as(as = "DisplayFromStr")]
         end_time: u64,
     },
 

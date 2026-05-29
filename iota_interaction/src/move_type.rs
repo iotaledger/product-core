@@ -3,8 +3,7 @@
 
 use serde::Serialize;
 
-use crate::types::base_types::{IotaAddress, ObjectID};
-use crate::types::TypeTag;
+use crate::types::base_types::{IotaAddress, ObjectID, TypeTag};
 use crate::IotaVerifiableCredential;
 
 pub enum TypedValue<'a, T: MoveType> {

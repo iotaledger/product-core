@@ -1,28 +1,21 @@
 // Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use iota_sdk_types::{StructTag, TypeTag};
 use serde::{Deserialize, Serialize};
 
 #[allow(unused)] // Kept in sync with original source, so keep as is.
 use super::super::{
-  balance::Balance,
-  base_types::{EpochId, ObjectID},
+  base_types::ObjectID,
   error::IotaError,
-  governance::StakedIota,
+  gas_coin::GasCoin,
   id::UID,
-  IOTA_FRAMEWORK_ADDRESS, IOTA_SYSTEM_ADDRESS,
-};
-#[allow(unused)] // Kept in sync with original source, so keep as is.
-use super::timelocked_staked_iota::{TIMELOCKED_STAKED_IOTA_MODULE_NAME, TIMELOCKED_STAKED_IOTA_STRUCT_NAME};
-use crate::ident_str;
-#[allow(unused)] // Kept in sync with original source, so keep as is.
-use crate::move_core_types::{
-  identifier::IdentStr,
-  language_storage::{StructTag, TypeTag},
 };
 
-pub const TIMELOCK_MODULE_NAME: &IdentStr = ident_str!("timelock");
-pub const TIMELOCK_STRUCT_NAME: &IdentStr = ident_str!("TimeLock");
+/// All basic outputs whose IDs start with this prefix represent vested rewards
+/// that were created during the stardust upgrade on IOTA mainnet.
+pub const VESTED_REWARD_ID_PREFIX: &str =
+    "0xb191c4bc825ac6983789e50545d5ef07a1d293a98ad974fc9498cb18";
 
 /// Rust version of the Move stardust::TimeLock type.
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
@@ -44,16 +37,6 @@ impl<T> TimeLock<T> {
             locked,
             expiration_timestamp_ms,
             label,
-        }
-    }
-
-    /// Get the TimeLock's `type`.
-    pub fn type_(type_param: TypeTag) -> StructTag {
-        StructTag {
-            address: IOTA_FRAMEWORK_ADDRESS,
-            module: TIMELOCK_MODULE_NAME.to_owned(),
-            name: TIMELOCK_STRUCT_NAME.to_owned(),
-            type_params: vec![type_param],
         }
     }
 
@@ -95,25 +78,26 @@ impl<'de, T> TimeLock<T>
     }
 }
 
-/// Is this other StructTag representing a TimeLock?
-pub fn is_timelock(other: &StructTag) -> bool {
-    other.address == IOTA_FRAMEWORK_ADDRESS
-        && other.module.as_ident_str() == TIMELOCK_MODULE_NAME
-        && other.name.as_ident_str() == TIMELOCK_STRUCT_NAME
-}
-
 /// Is this other StructTag representing a `TimeLock<Balance<T>>`?
 pub fn is_timelocked_balance(other: &StructTag) -> bool {
-    if !is_timelock(other) {
+    if !other.is_time_lock() {
         return false;
     }
 
-    if other.type_params.len() != 1 {
+    match &other.type_params()[0] {
+        TypeTag::Struct(tag) => tag.is_balance(),
+        _ => false,
+    }
+}
+
+/// Is this other StructTag representing a `TimeLock<Balance<IOTA>>`?
+pub fn is_timelocked_gas_balance(other: &StructTag) -> bool {
+    if !other.is_time_lock() {
         return false;
     }
 
-    match &other.type_params[0] {
-        TypeTag::Struct(tag) => Balance::is_balance(tag),
+    match &other.type_params()[0] {
+        TypeTag::Struct(tag) => GasCoin::is_gas_balance(tag),
         _ => false,
     }
 }

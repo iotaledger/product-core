@@ -4,6 +4,7 @@
 use std::hash::Hash;
 use std::str::FromStr;
 
+use anyhow::{Error, anyhow};
 use derive_more::{AsMut, AsRef, From};
 pub use enum_dispatch::enum_dispatch;
 use eyre::{eyre, Report};
@@ -22,14 +23,12 @@ use fastcrypto::error::{FastCryptoError, FastCryptoResult};
 use fastcrypto::hash::{Blake2b256, HashFunction};
 use fastcrypto::secp256k1::{Secp256k1KeyPair, Secp256k1PublicKey, Secp256k1PublicKeyAsBytes, Secp256k1Signature};
 use fastcrypto::secp256r1::{Secp256r1KeyPair, Secp256r1PublicKey, Secp256r1PublicKeyAsBytes, Secp256r1Signature};
-use fastcrypto_zkp::zk_login_utils::Bn254FrElement;
 use iota_sdk_types::crypto::IntentMessage;
-use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_with::{serde_as, Bytes};
 use strum::EnumString;
 
-use super::base_types::IotaAddress;
+use super::base_types::{IotaAddress, address_from_iota_pub_key};
 use super::error::{IotaError, IotaResult};
 use super::iota_serde::Readable;
 
@@ -301,26 +300,14 @@ impl PublicKey {
 /// Defines the compressed version of the public key that we pass around
 /// in IOTA.
 #[serde_as]
-#[derive(
-Copy,
-Clone,
-PartialEq,
-Eq,
-Hash,
-PartialOrd,
-Ord,
-Serialize,
-Deserialize,
-Debug // schemars::JsonSchema and AsRef are omitted here, having Debug instead 
-)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, Debug)] // schemars::JsonSchema and AsRef are omitted here, having Debug instead
 pub struct AuthorityPublicKeyBytes(
-    #[serde_as(as = "Readable<Base64, Bytes>")]
-    pub [u8; AuthorityPublicKey::LENGTH],
+    #[serde_as(as = "Readable<Base64, Bytes>")] pub [u8; AuthorityPublicKey::LENGTH],
 );
 
 // Enums for signature scheme signatures
 #[enum_dispatch]
-#[derive(Clone, JsonSchema, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Signature {
     Ed25519IotaSignature,
     Secp256k1IotaSignature,
@@ -404,11 +391,10 @@ impl ToFromBytes for Signature {
 //
 
 #[serde_as]
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash, AsRef, AsMut)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, AsRef, AsMut)]
 #[as_ref(forward)]
 #[as_mut(forward)]
 pub struct Ed25519IotaSignature(
-    #[schemars(with = "Base64")]
     #[serde_as(as = "Readable<Base64, Bytes>")]
     [u8; Ed25519PublicKey::LENGTH + Ed25519Signature::LENGTH + 1],
 );
@@ -451,11 +437,10 @@ impl Signer<Signature> for Ed25519KeyPair {
 // Secp256k1 Iota Signature port
 //
 #[serde_as]
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash, AsRef, AsMut)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, AsRef, AsMut)]
 #[as_ref(forward)]
 #[as_mut(forward)]
 pub struct Secp256k1IotaSignature(
-    #[schemars(with = "Base64")]
     #[serde_as(as = "Readable<Base64, Bytes>")]
     [u8; Secp256k1PublicKey::LENGTH + Secp256k1Signature::LENGTH + 1],
 );
@@ -491,11 +476,10 @@ impl Signer<Signature> for Secp256k1KeyPair {
 // Secp256r1 Iota Signature port
 //
 #[serde_as]
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash, AsRef, AsMut)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, AsRef, AsMut)]
 #[as_ref(forward)]
 #[as_mut(forward)]
 pub struct Secp256r1IotaSignature(
-    #[schemars(with = "Base64")]
     #[serde_as(as = "Readable<Base64, Bytes>")]
     [u8; Secp256r1PublicKey::LENGTH + Secp256r1Signature::LENGTH + 1],
 );
@@ -617,7 +601,7 @@ impl<S: IotaSignatureInner + Sized> IotaSignature for S {
         let digest = hasher.finalize().digest;
 
         let (sig, pk) = &self.get_verification_inputs()?;
-        let address = IotaAddress::from(pk);
+        let address = address_from_iota_pub_key(pk);
         if author != address {
             return Err(IotaError::IncorrectSigner {
                 error: format!("Incorrect signer, expected {author:?}, got {address:?}"),
@@ -631,7 +615,79 @@ impl<S: IotaSignatureInner + Sized> IotaSignature for S {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, Serialize, Debug, EnumString, strum::Display)]
+/// Something that we know how to hash and sign.
+pub trait Signable<W> {
+    fn write(&self, writer: &mut W);
+}
+
+pub trait SignableBytes
+where
+    Self: Sized,
+{
+    fn from_signable_bytes(bytes: &[u8]) -> Result<Self, Error>;
+}
+
+/// Activate the blanket implementation of `Signable` based on serde and BCS.
+/// * We use `serde_name` to extract a seed from the name of structs and enums.
+/// * We use `BCS` to generate canonical bytes suitable for hashing and signing.
+///
+/// # Safety
+/// We protect the access to this marker trait through a "sealed trait" pattern:
+/// impls must be add added here (nowehre else) which lets us note those impls
+/// MUST be on types that comply with the `serde_name` machinery
+/// for the below implementations not to panic. One way to check they work is to
+/// write a unit test for serialization to / deserialization from signable
+/// bytes.
+mod bcs_signable {
+
+    pub trait BcsSignable: serde::Serialize + serde::de::DeserializeOwned {}
+    impl BcsSignable for crate::types::transaction::TransactionData {}
+    impl BcsSignable for crate::types::object::ObjectInner {}
+}
+
+impl<T, W> Signable<W> for T
+where
+    T: bcs_signable::BcsSignable,
+    W: std::io::Write,
+{
+    fn write(&self, writer: &mut W) {
+        let name = serde_name::trace_name::<Self>().expect("Self must be a struct or an enum");
+        // Note: This assumes that names never contain the separator `::`.
+        write!(writer, "{name}::").expect("Hasher should not fail");
+        bcs::serialize_into(writer, &self).expect("Message serialization should not fail");
+    }
+}
+
+impl<T> SignableBytes for T
+where
+    T: bcs_signable::BcsSignable,
+{
+    fn from_signable_bytes(bytes: &[u8]) -> Result<Self, Error> {
+        // Remove name tag before deserialization using BCS
+        let name = serde_name::trace_name::<Self>().expect("Self should be a struct or an enum");
+        let name_byte_len = format!("{name}::").bytes().len();
+        Ok(bcs::from_bytes(bytes.get(name_byte_len..).ok_or_else(
+            || anyhow!("Failed to deserialize to {name}."),
+        )?)?)
+    }
+}
+
+fn hash<S: Signable<H>, H: HashFunction<DIGEST_SIZE>, const DIGEST_SIZE: usize>(
+    signable: &S,
+) -> [u8; DIGEST_SIZE] {
+    let mut digest = H::default();
+    signable.write(&mut digest);
+    let hash = digest.finalize();
+    hash.into()
+}
+
+pub fn default_hash<S: Signable<DefaultHash>>(signable: &S) -> [u8; 32] {
+    hash::<S, DefaultHash, 32>(signable)
+}
+
+#[derive(
+    Clone, Copy, Deserialize, Serialize, Debug, EnumString, strum::Display, PartialEq, Eq,
+)]
 #[strum(serialize_all = "lowercase")]
 pub enum SignatureScheme {
     ED25519,
