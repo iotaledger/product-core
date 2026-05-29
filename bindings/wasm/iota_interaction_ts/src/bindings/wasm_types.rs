@@ -484,16 +484,16 @@ impl TryFrom<WasmObjectRef> for ObjectRef {
     };
     let object_id = value.object_id().parse()?;
 
-    Ok((object_id, version, digest))
+    Ok(ObjectRef::new(object_id, version, digest))
   }
 }
 
 impl From<ObjectRef> for WasmObjectRef {
   fn from(value: ObjectRef) -> Self {
     let json_obj = serde_json::json!({
-      "objectId": value.0,
-      "version": value.1,
-      "digest": value.2,
+      "objectId": value.object_id,
+      "version": value.version,
+      "digest": value.digest,
     });
 
     json_obj
@@ -523,7 +523,7 @@ impl From<(ObjectID, SequenceNumber, bool)> for WasmSharedObjectRef {
 impl TryFrom<OwnedObjectRef> for WasmSharedObjectRef {
   type Error = TsSdkError;
   fn try_from(value: OwnedObjectRef) -> Result<Self, Self::Error> {
-    let Owner::Shared { initial_shared_version } = value.owner else {
+    let Owner::Shared(initial_shared_version) = value.owner else {
       return Err(TsSdkError::CommandArgumentError(CommandArgumentError::TypeMismatch));
     };
     let obj_id = value.object_id();

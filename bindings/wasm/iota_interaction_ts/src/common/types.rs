@@ -104,7 +104,7 @@ impl PromiseUint8Array {
     })?;
 
     #[allow(irrefutable_let_patterns)]
-    let TransactionKind::ProgrammableTransaction(pt) = tx_kind
+    let TransactionKind::Programmable(pt) = tx_kind
     else {
       return Err(TsSdkError::WasmError(
         "TransactionKind variant".to_owned(),

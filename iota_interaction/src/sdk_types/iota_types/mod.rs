@@ -18,6 +18,7 @@ pub mod gas;
 pub mod gas_coin;
 pub mod governance;
 pub mod id;
+pub mod iota_sdk_types_conversions;
 pub mod iota_serde;
 pub mod iota_types_lib;
 pub mod move_package;
@@ -28,9 +29,7 @@ pub mod stardust;
 pub mod storage;
 pub mod timelock;
 pub mod transaction;
-pub mod type_input;
 
 pub use iota_types_lib::*;
 
-pub use crate::move_core_types::identifier::Identifier;
-pub use crate::move_core_types::language_storage::TypeTag;
+pub use iota_sdk_types::{Identifier, StructTag, TypeTag};

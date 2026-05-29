@@ -13,25 +13,21 @@ use std::result::Result::Ok;
 use std::str::FromStr;
 use std::string::{String, ToString};
 
-use schemars::JsonSchema;
 use serde::de::{Deserializer, Error};
 use serde::ser::{Error as SerError, Serializer};
 use serde::{self, Deserialize, Serialize};
 use serde_with::{serde_as, DeserializeAs, DisplayFromStr, SerializeAs};
 use Result;
 
-use crate::move_core_types::account_address::AccountAddress;
-use crate::move_core_types::language_storage::{StructTag, TypeTag};
 use super::{parse_iota_struct_tag, parse_iota_type_tag};
 #[allow(unused)] // Kept in sync with original source, so keep as is.
 use super::{
-  IOTA_CLOCK_ADDRESS, IOTA_FRAMEWORK_ADDRESS, IOTA_SYSTEM_ADDRESS, IOTA_SYSTEM_STATE_ADDRESS, MOVE_STDLIB_ADDRESS,
-  STARDUST_ADDRESS,
+    base_types::{IotaAddress, StructTag, TypeTag},
 };
 
 /// The minimum and maximum protocol versions supported by this build.
 const MIN_PROTOCOL_VERSION: u64 = 1;      // Originally defined in crates/iota-protocol-config/src/lib.rs
-pub const MAX_PROTOCOL_VERSION: u64 = 1;  // Originally defined in crates/iota-protocol-config/src/lib.rs
+pub const MAX_PROTOCOL_VERSION: u64 = 26; // Originally defined in crates/iota-protocol-config/src/lib.rs
 
 // -----------------------------------------------------------------------------------------
 // Originally contained in crates/iota-protocol-config/src/lib.rs
@@ -39,9 +35,124 @@ pub const MAX_PROTOCOL_VERSION: u64 = 1;  // Originally defined in crates/iota-p
 
 // Record history of protocol version allocations here:
 //
-// Version 1: Original version.
-// Version 2: Don't redistribute slashed staking rewards, fix computation of
-// SystemEpochInfoEventV1.
+// Version 1:  Original version.
+// Version 2:  Don't redistribute slashed staking rewards, fix computation of
+//             SystemEpochInfoEventV1.
+// Version 3:  Set the `relocate_event_module` to be true so that the module
+//             that is associated as the "sending module" for an event is
+//             relocated by linkage.
+//             Add `Clock` based unlock to `Timelock` objects.
+// Version 4:  Introduce the `max_type_to_layout_nodes` config that sets the
+//             maximal nodes which are allowed when converting to a type layout.
+// Version 5:  Introduce fixed protocol-defined base fee, IotaSystemStateV2 and
+//             SystemEpochInfoEventV2.
+//             Disallow adding new modules in `deps-only` packages.
+//             Improve gas/wall time efficiency of some Move stdlib vector
+//             functions.
+//             Add new gas model version to update charging of functions.
+//             Enable proper conversion of certain type argument errors in the
+//             execution layer.
+// Version 6:  Bound size of values created in the adapter.
+// Version 7:  Improve handling of stake withdrawal from candidate validators.
+// Version 8:  Variants as type nodes.
+//             Enable smart ancestor selection for testnet.
+//             Enable probing for accepted rounds in round prober for testnet.
+//             Switch to distributed vote scoring in consensus in testnet.
+//             Enable zstd compression for consensus tonic network in testnet.
+//             Enable consensus garbage collection for testnet
+//             Enable the new consensus commit rule for testnet.
+//             Enable min_free_execution_slot for the shared object congestion
+//             tracker in devnet.
+// Version 9:  Disable smart ancestor selection for the testnet.
+//             Enable zstd compression for consensus tonic network in mainnet.
+//             Enable passkey auth in multisig for devnet.
+//             Remove the iota-bridge from the framework.
+// Version 10: Enable min_free_execution_slot for the shared object congestion
+//             tracker in all networks.
+//             Increase the committee size to 80 on all networks.
+//             Enable round prober in consensus for mainnet.
+//             Enable probing for accepted rounds in round prober for mainnet.
+//             Switch to distributed vote scoring in consensus for mainnet.
+//             Enable the new consensus commit rule for mainnet.
+//             Enable consensus garbage collection for mainnet with GC depth set
+//             to 60 rounds.
+//             Enable batching in synchronizer for testnet
+//             Enable the gas price feedback mechanism in devnet.
+//             Enable Identifier input validation.
+//             Removes unnecessary child object mutations
+//             Add additional signature checks
+//             Add additional linkage checks
+// Version 11: Framework fix regarding candidate validator commission rate.
+// Version 12: Enable the gas price feedback mechanism in all networks.
+//             Enable the normalization of PTB arguments.
+// Version 13: Introduce logic to allow the committee to be selected from a set
+//             of eligible active validators.
+//             Enable processing and tracking AuthorityCapabilitiesV1 from
+//             non-committee validators in the devnet.
+// Version 14: Switches the consensus protocol to Starfish in devnet.
+//             Enable median-based commit timestamp calculation in consensus,
+//             and enforce checkpoint timestamp monotonicity for testnet.
+//             Enable batched block sync for mainnet.
+//             Enable selecting committee only from active validators that
+//             support the next epoch's version and issued valid
+//             AuthorityCapabilities notification in testnet.
+// Version 15: Enable shared object transaction bursts of 10 times average load
+//             on devnet.
+// Version 16: Enable selecting committee only from active validators that
+//             support the next epoch's version and issued valid
+//             AuthorityCapabilities notification.
+//             Enable committing transactions only for traversed headers in
+//             Starfish.
+// Version 17: Increase the committee size to 100 on all networks.
+// Version 18: Enable passkey authentication support in testnet.
+// Version 19: Enable congestion limit overshoot in the gas price feedback
+//             mechanism on devnet.
+//             Enable a separate gas price feedback mechanism for transactions
+//             using randomness on devnet.
+//             Allow metadata bytes indexed with a dedicated key in compiled
+//             Move modules in devnet.
+//             Enable publishing package metadata v1 along with the package in
+//             devnet.
+//             Enable Move-based account authentication in devnet.
+//             Increase the base cost for transfer receive object in devnet.
+//             Switch consensus protocol to Starfish in testnet.
+//             Enable passkey authentication support in mainnet.
+//             Change epoch transaction will contain validator scores.
+//             Enable validator scoring on testnet and enable adjustment of
+//             validator rewards based on scores on Devnet.
+// Version 20: Supports the calculation of validator scores while still passing
+//             a default score value to the advance_epoch call. Enables this
+//             decoupling on Testnet; Devnet and Mainnet behavior remain the
+//             same.
+//             Introduce Dynamic Minimum Commission (IIP-8) on all networks.
+// Version 21: Enable overshoot of 100 in congestion control on testnet.
+//             Enable congestion limit overshoot in the gas price feedback
+//             mechanism on testnet.
+//             Enable a separate gas price feedback mechanism for transactions
+//             using randomness on testnet.
+//             Enable fast commit syncer for faster recovery in devnet.
+//             Add auth_context_tx native functions costs.
+//             Reduce max_auth_gas in Devnet.
+// Version 22: Enable overshoot of 100 in congestion control on all networks.
+//             Enable congestion limit overshoot in the gas price feedback
+//             mechanism on all networks.
+//             Enable a separate gas price feedback mechanism for transactions
+//             using randomness on all networks.
+//             Enable Move-based account authentication in testnet.
+//             Enable fast commit syncer for faster recovery on testnet.
+// Version 23: Enable Move native context (TxContext via native functions) in
+//             all networks. TxContext fields are read via native functions
+//             instead of being deserialized from a BCS-encoded struct.
+//             Enables sponsor, rgp, gas_price, and gas_budget to be exposed to
+//             Move.
+// Version 24: Switch consensus protocol to Starfish in all networks.
+//             Enable Move-based sponsor account authentication in devnet.
+//             Add AuthContext native functions cost for reading tx_data_bytes.
+//             Enable additional borrow checks.
+// Version 25: Deprecate zkLogin related parameters since zkLogin is no longer
+//             supported.
+// Version 26: Introduce a module to allow Move code to query protocol feature
+//             flags at runtime.
 #[derive(Copy, Clone, Debug, Hash, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ProtocolVersion(u64);
 
@@ -55,14 +166,10 @@ impl ProtocolVersion {
 
     pub const MAX: Self = Self(MAX_PROTOCOL_VERSION);
 
-    #[allow(unused)] // Kept in sync with original source, so keep as is.
-    #[cfg(not(msim))]
-    const MAX_ALLOWED: Self = Self::MAX;
-
-    // We create 3 additional "fake" versions in simulator builds so that we can
+    // We create one additional "fake" version in simulator builds so that we can
     // test upgrades.
     #[cfg(msim)]
-    pub const MAX_ALLOWED: Self = Self(MAX_PROTOCOL_VERSION + 3);
+    pub const MAX_ALLOWED: Self = Self(MAX_PROTOCOL_VERSION + 1);
 
     pub fn new(v: u64) -> Self {
         Self(v)
@@ -88,15 +195,6 @@ impl From<u64> for ProtocolVersion {
 // -----------------------------------------------------------------------------------------
 // End of originally contained in crates/iota-protocol-config/src/lib.rs section
 // -----------------------------------------------------------------------------------------
-
-#[inline]
-pub(crate) fn to_custom_deser_error<'de, D, E>(e: E) -> D::Error
-    where
-        E: Debug,
-        D: Deserializer<'de>,
-{
-    Error::custom(format!("byte deserialization failed, cause by: {e:?}"))
-}
 
 /// Use with serde_as to control serde for human-readable serialization and
 /// deserialization `H` : serde_as SerializeAs/DeserializeAs delegation for
@@ -164,30 +262,31 @@ impl SerializeAs<StructTag> for IotaStructTag {
     }
 }
 
-const IOTA_ADDRESSES: [AccountAddress; 7] = [
-    AccountAddress::ZERO,
-    AccountAddress::ONE,
-    IOTA_FRAMEWORK_ADDRESS,
-    IOTA_SYSTEM_ADDRESS,
-    STARDUST_ADDRESS,
-    IOTA_SYSTEM_STATE_ADDRESS,
-    IOTA_CLOCK_ADDRESS,
+const IOTA_ADDRESSES: [IotaAddress; 7] = [
+    IotaAddress::ZERO,
+    IotaAddress::STD,
+    IotaAddress::FRAMEWORK,
+    IotaAddress::SYSTEM,
+    IotaAddress::STARDUST,
+    IotaAddress::SYSTEM_STATE,
+    IotaAddress::CLOCK,
 ];
 /// Serialize StructTag as a string, retaining the leading zeros in the address.
 pub fn to_iota_struct_tag_string(value: &StructTag) -> Result<String, fmt::Error> {
     let mut f = String::new();
+    let address = value.address();
     // trim leading zeros if address is in IOTA_ADDRESSES
-    let address = if IOTA_ADDRESSES.contains(&value.address) {
-        value.address.short_str_lossless()
+    let address_str = if IOTA_ADDRESSES.contains(&address) {
+        address.to_short_hex()
     } else {
-        value.address.to_canonical_string(/* with_prefix */ false)
+        address.to_canonical_string(/* with_prefix */ true)
     };
 
-    write!(f, "0x{}::{}::{}", address, value.module, value.name)?;
-    if let Some(first_ty) = value.type_params.first() {
+    write!(f, "{}::{}::{}", address_str, value.module(), value.name())?;
+    if let Some(first_ty) = value.type_params().first() {
         write!(f, "<")?;
         write!(f, "{}", to_iota_type_tag_string(first_ty)?)?;
-        for ty in value.type_params.iter().skip(1) {
+        for ty in value.type_params().iter().skip(1) {
             write!(f, ", {}", to_iota_type_tag_string(ty)?)?;
         }
         write!(f, ">")?;
@@ -213,7 +312,6 @@ impl<'de> DeserializeAs<'de, StructTag> for IotaStructTag {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct IotaTypeTag;
 
 impl SerializeAs<TypeTag> for IotaTypeTag {
@@ -236,13 +334,35 @@ impl<'de> DeserializeAs<'de, TypeTag> for IotaTypeTag {
     }
 }
 
+/// A marker for type tags that are serialized as strings. Normally, a
+/// type tag is serialized as a string for readable formats, and as a byte array
+/// for non-readable formats. This marker can be used to serialize a type tag as
+/// a string even in non-readable formats.
+pub struct TypeName;
+
+impl SerializeAs<TypeTag> for TypeName {
+    fn serialize_as<S>(value: &TypeTag, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = value.to_canonical_string(false);
+        s.serialize(serializer)
+    }
+}
+
+impl<'de> DeserializeAs<'de, TypeTag> for TypeName {
+    fn deserialize_as<D>(deserializer: D) -> Result<TypeTag, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        parse_iota_type_tag(&s).map_err(D::Error::custom)
+    }
+}
+
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Copy, JsonSchema)]
-pub struct BigInt<T>(
-    #[schemars(with = "String")]
-    #[serde_as(as = "DisplayFromStr")]
-    T,
-)
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Copy)]
+pub struct BigInt<T>(#[serde_as(as = "DisplayFromStr")] T)
 where
     T: Display + FromStr,
     <T as FromStr>::Err: Display;
@@ -315,10 +435,8 @@ impl<T> Display for BigInt<T>
     }
 }
 
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Copy, JsonSchema)]
-#[schemars(rename = "SequenceNumberBigInt")]
-pub struct SequenceNumber(#[schemars(with = "BigInt<u64>")] u64);
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Copy)]
+pub struct SequenceNumber(u64);
 
 impl SerializeAs<super::base_types::SequenceNumber> for SequenceNumber {
     fn serialize_as<S>(
@@ -328,7 +446,7 @@ impl SerializeAs<super::base_types::SequenceNumber> for SequenceNumber {
         where
             S: Serializer,
     {
-        let s = value.value().to_string();
+        let s = value.to_string();
         s.serialize(serializer)
     }
 }
@@ -344,9 +462,9 @@ impl<'de> DeserializeAs<'de, super::base_types::SequenceNumber> for SequenceNumb
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Copy, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Copy)]
 #[serde(rename = "ProtocolVersion")]
-pub struct AsProtocolVersion(#[schemars(with = "BigInt<u64>")] u64);
+pub struct AsProtocolVersion(u64);
 
 impl SerializeAs<ProtocolVersion> for AsProtocolVersion {
     fn serialize_as<S>(value: &ProtocolVersion, serializer: S) -> Result<S::Ok, S::Error>

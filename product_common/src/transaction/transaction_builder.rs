@@ -14,7 +14,8 @@ use iota_interaction::types::base_types::{IotaAddress, ObjectRef};
 use iota_interaction::types::crypto::{IotaSignature as _, PublicKey, Signature};
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
 use iota_interaction::types::transaction::{
-  GasData, ProgrammableTransaction, TransactionData, TransactionDataAPI as _, TransactionKind,
+  GasData, ProgrammableTransaction, TransactionData, TransactionDataAPI as _, TransactionDataV1, TransactionExpiration,
+  TransactionKind,
 };
 use iota_interaction::{IotaClientTrait, IotaKeySignature, OptionalSend, OptionalSync};
 use iota_sdk_types::crypto::{Intent, IntentMessage};
@@ -91,7 +92,7 @@ pub trait Transaction: Sized {
 
 #[derive(Debug, Default, Clone)]
 struct PartialGasData {
-  payment: Vec<ObjectRef>,
+  objects: Vec<ObjectRef>,
   owner: Option<IotaAddress>,
   price: Option<u64>,
   budget: Option<u64>,
@@ -100,7 +101,7 @@ struct PartialGasData {
 impl From<GasData> for PartialGasData {
   fn from(value: GasData) -> Self {
     Self {
-      payment: value.payment,
+      objects: value.objects,
       owner: Some(value.owner),
       price: Some(value.price),
       budget: Some(value.budget),
@@ -111,8 +112,8 @@ impl From<GasData> for PartialGasData {
 impl PartialGasData {
   fn into_gas_data_with_defaults(self) -> GasData {
     GasData {
-      payment: self.payment,
-      owner: self.owner.unwrap_or_default(),
+      objects: self.objects,
+      owner: self.owner.unwrap_or(IotaAddress::ZERO),
       price: self.price.unwrap_or_default(),
       budget: self.budget.unwrap_or_default(),
     }
@@ -133,7 +134,7 @@ impl TryFrom<PartialGasData> for GasData {
       .ok_or_else(|| Error::GasIssue("missing gas budget".to_owned()))?;
 
     Ok(GasData {
-      payment: value.payment,
+      objects: value.objects,
       owner,
       price,
       budget,
@@ -156,6 +157,15 @@ impl MutGasDataRef<'_> {
   pub fn gas_data_mut(&mut self) -> &mut GasData {
     self.0.gas_data_mut()
   }
+}
+
+fn new_with_gas_data(sender: IotaAddress, gas_data: GasData, pt: ProgrammableTransaction) -> TransactionData {
+  TransactionData::V1(TransactionDataV1 {
+    sender,
+    gas_payment: gas_data,
+    kind: TransactionKind::Programmable(pt),
+    expiration: TransactionExpiration::default(),
+  })
 }
 
 /// Builds an executable transaction on a step by step manner.
@@ -200,11 +210,7 @@ where
     let gas_data = self.gas.clone().into_gas_data_with_defaults();
     let pt = self.get_or_init_programmable_tx(client).await?.clone();
 
-    Ok(TransactionData::new_with_gas_data(
-      TransactionKind::ProgrammableTransaction(pt),
-      sender,
-      gas_data,
-    ))
+    Ok(new_with_gas_data(sender, gas_data, pt))
   }
 
   /// Adds `signer`'s signature to this transaction's signatures' list.
@@ -273,7 +279,7 @@ where
     let gas_data = std::mem::replace(
       intent_msg.value.gas_data_mut(),
       GasData {
-        payment: vec![],
+        objects: vec![],
         owner: IotaAddress::ZERO,
         price: 0,
         budget: 0,
@@ -309,7 +315,7 @@ where
     C: CoreClientReadOnly + OptionalSync,
   {
     if self.sender.is_none() {
-      self.sender = Some(IotaAddress::default());
+      self.sender = Some(IotaAddress::ZERO);
     }
     let tx_data = self
       .transaction_data_with_partial_gas(client)
@@ -341,11 +347,7 @@ where
       .await
       .map_err(|e| Error::GasIssue(e.to_string()))?;
 
-    let tx_data = TransactionData::new_with_gas_data(
-      TransactionKind::ProgrammableTransaction(programmable_tx),
-      sender,
-      gas_data,
-    );
+    let tx_data = new_with_gas_data(sender, gas_data, programmable_tx);
 
     let mut signatures = self.signatures;
     let needs_client_signature = client_address == sender
@@ -474,7 +476,7 @@ impl<Tx> TransactionBuilder<Tx> {
 
   /// Sets the coins to use to cover the gas cost.
   pub fn with_gas_payment(mut self, coins: Vec<ObjectRef>) -> Self {
-    self.gas.payment = coins;
+    self.gas.objects = coins;
     self
   }
 
@@ -503,7 +505,7 @@ impl<Tx> TransactionBuilder<Tx> {
     effect: Tx,
   ) -> Result<Self, Error> {
     #[allow(irrefutable_let_patterns)]
-    let TransactionKind::ProgrammableTransaction(pt) = tx_data.kind().clone() else {
+    let TransactionKind::Programmable(pt) = tx_data.kind().clone() else {
       return Err(Error::TransactionBuildingFailed(
         "only programmable transactions are supported".to_string(),
       ));
@@ -527,7 +529,7 @@ impl<Tx> TransactionBuilder<Tx> {
 /// - client's address is set as the gas owner;
 /// - current gas price is fetched from a node;
 /// - budget is calculated by dry running the transaction;
-/// - payment is set to whatever IOTA coins the gas owner has, that satisfy the tx's budget;
+/// - objects is set to whatever IOTA coins the gas owner has, that satisfy the tx's budget;
 async fn complete_gas_data_for_tx<C, S>(
   pt: &ProgrammableTransaction,
   partial_gas_data: PartialGasData,
@@ -548,15 +550,15 @@ where
   } else {
     client.client_adapter().default_gas_budget(owner, pt).await?
   };
-  let payment = if !partial_gas_data.payment.is_empty() {
-    partial_gas_data.payment
+  let objects = if !partial_gas_data.objects.is_empty() {
+    partial_gas_data.objects
   } else {
     client.get_iota_coins_with_at_least_balance(owner, budget).await?
   };
 
   Ok(GasData {
     owner,
-    payment,
+    objects,
     price,
     budget,
   })
@@ -574,8 +576,6 @@ fn address_from_signature(signature: &Signature) -> IotaAddress {
 #[cfg(feature = "gas-station")]
 mod gas_station {
   use std::error;
-
-  use iota_interaction::rpc_types::IotaObjectRef;
 
   use super::*;
   use crate::gas_station::*;
@@ -671,22 +671,11 @@ mod gas_station {
       http_client,
     )
     .await?;
-    // Map coins to known format.
-    let gas_coins = gas_coins
-      .into_iter()
-      .map(
-        |IotaObjectRef {
-           object_id,
-           version,
-           digest,
-         }| (object_id, version, digest),
-      )
-      .collect();
 
     // Set sponsor information in tx's gas data.
     // Note: gas' price can be set automatically.
     tx_builder.gas.owner = Some(sponsor_address);
-    tx_builder.gas.payment = gas_coins;
+    tx_builder.gas.objects = gas_coins;
     tx_builder.gas.budget = Some(gas_budget);
 
     // Consume the builder into its parts.

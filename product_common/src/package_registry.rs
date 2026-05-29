@@ -228,7 +228,7 @@ impl PackageRegistry {
           .context(format!("invalid Move.history.json file: invalid versions for {chain_id}. versions is not an array"))?
           .iter()
           .try_fold(Vec::<ObjectID>::new(), |mut arr, v| {
-            let obj_id = ObjectID::from_hex_literal(
+            let obj_id = ObjectID::from_hex(
               v.as_str()
                   .context(format!("invalid Move.history.json file: invalid versions array element for {chain_id}. Elements need to be strings"))?
             )?;
@@ -281,7 +281,7 @@ mod tests {
 
   macro_rules! object_id {
     ($id:literal) => {
-      ObjectID::from_hex_literal($id).unwrap()
+      ObjectID::from_hex($id).unwrap()
     };
   }
 

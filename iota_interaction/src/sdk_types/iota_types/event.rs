@@ -5,11 +5,14 @@
 use std::str::FromStr;
 
 use anyhow::ensure;
+pub use iota_sdk_types::Event;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use super::digests::TransactionDigest;
-use super::iota_serde::{BigInt, Readable};
+use super::{
+    digests::TransactionDigest,
+    iota_serde::{BigInt, Readable}
+};
 
 /// Unique ID of an IOTA Event, the ID is a combination of transaction digest
 /// and event seq number.
