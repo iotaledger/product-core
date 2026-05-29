@@ -36,7 +36,7 @@ impl WasmManagedCoreClientReadOnly {
       .tf_components_package_id()
       .map(|pkg_id| pkg_id.parse())
       .transpose()
-      .map_err(|e: ObjectIDParseError| JsError::new(&e.to_string()))?;
+      .map_err(|e: AddressParseError| JsError::new(&e.to_string()))?;
     let network = wasm_core_client.network().parse().wasm_result()?;
     let iota_client_adapter = IotaClientAdapter::new(wasm_core_client.iota_client());
 
