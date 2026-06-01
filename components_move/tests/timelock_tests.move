@@ -376,7 +376,7 @@ public fun test_infinite_lock() {
     // Note: Infinite lock cannot be destroyed (tested separately)
     // Therefore we wrw using a test-only destroy here
     timelock::destroy_for_testing(lock);
-    clock::destroy_for_testing(clock); 
+    clock::destroy_for_testing(clock);
     ts.end();
 }
 
@@ -450,7 +450,7 @@ public fun test_infinite_vs_until_destroyed() {
 
     // This should fail with ETimelockNotExpired
     timelock::destroy(infinite_lock, &clock);
-    
+
     // These should never be reached
     clock::destroy_for_testing(clock);
     ts.end();
@@ -514,8 +514,8 @@ public fun test_all_lock_types_type_checks() {
 
     // Infinite lock can not be destroyed as usual, using test-only destroy instead
     timelock::destroy_for_testing(infinite_lock);
-    
+
     // Cleanup
     clock::destroy_for_testing(clock);
-    ts.end();    
+    ts.end();
 }
