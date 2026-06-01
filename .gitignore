@@ -20,3 +20,7 @@ docs
 
 # ignore IOTA build artifacts & package locks
 build
+
+# ignore folders created in CI for downloaded IOTA tooling
+/iota/
+/toml-cli/
