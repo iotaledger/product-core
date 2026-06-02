@@ -1,8 +1,12 @@
 {
   "aliases": {
+    "devnet": "daf90477",
     "mainnet": "6364aad5"
   },
   "envs": {
+    "daf90477": [
+      "0xa0dc5f54b757b6ebc53b4ffc85df975c7552297d04c91107a85a17acebbe5088"
+    ],
     "6364aad5": [
       "0x715d1661b457e96d508ee2108624d04dd4263ce496f3223ba36a7627edd75211"
     ]
