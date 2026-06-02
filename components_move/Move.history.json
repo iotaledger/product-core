@@ -1,10 +1,14 @@
 {
   "aliases": {
-    "testnet": "2304aa97"
+    "testnet": "2304aa97",
+    "devnet": "daf90477"
   },
   "envs": {
     "testnet": [
       "0x098767e6cd008f341847ad68089300375a274899b1c718e8cf8f5d57f96e8607"
+    ],
+    "daf90477": [
+      "0xa0dc5f54b757b6ebc53b4ffc85df975c7552297d04c91107a85a17acebbe5088"
     ]
   }
 }
