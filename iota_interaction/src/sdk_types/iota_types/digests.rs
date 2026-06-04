@@ -2,7 +2,7 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use iota_sdk_types::Digest;
+pub use iota_sdk_types::Digest;
 
 pub type CheckpointDigest = Digest;
 pub type CheckpointContentsDigest = Digest;

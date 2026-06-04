@@ -10,12 +10,13 @@ use std::string::String;
 use anyhow::{anyhow, bail};
 use fastcrypto::encoding::Base64;
 use super::iota_move::{IotaMoveStruct, IotaMoveValue};
+use super::iota_object_response_error::IotaObjectResponseError;
 use super::Page;
 use crate::types::base_types::{
     Identifier, IotaAddress, ObjectID, ObjectInfo, ObjectRef, ObjectType,
     SequenceNumber, StructTag};
 use crate::types::digests::{ObjectDigest, TransactionDigest};
-use crate::types::error::{IotaObjectResponseError, UserInputError, UserInputResult};
+use crate::types::error::{UserInputError, UserInputResult};
 use crate::types::move_package::{MovePackage, TypeOrigin, UpgradeInfo};
 use crate::types::object::Owner;
 
@@ -31,13 +32,11 @@ use super::{
     },
 };
 
-#[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct IotaObjectResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<IotaObjectData>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde_as(as = "Option<IotaObjectResponseErrorSchema>")]
     pub error: Option<IotaObjectResponseError>,
 }
 
@@ -193,7 +192,7 @@ impl IotaObjectData {
     pub fn object_type(&self) -> anyhow::Result<ObjectType> {
         self.type_
             .as_ref()
-            .ok_or_else(|| anyhow!("type is missing for object {:?}", self.object_id))
+            .ok_or_else(|| anyhow!("type is missing for object {}", self.object_id))
             .cloned()
     }
 

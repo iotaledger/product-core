@@ -96,28 +96,28 @@ impl TransactionDataAPI for TransactionData {
     fn sender(&self) -> IotaAddress {
         match self {
             Self::V1(v1) => v1.sender,
-            _ => unimplemented!("a new Transaction variant was added and needs to be handled"),
+            _ => unimplemented!("a new Transaction enum variant was added and needs to be handled"),
         }
     }
 
     fn kind(&self) -> &TransactionKind {
         match self {
             Self::V1(v1) => &v1.kind,
-            _ => unimplemented!("a new Transaction variant was added and needs to be handled"),
+            _ => unimplemented!("a new Transaction enum variant was added and needs to be handled"),
         }
     }
 
     fn kind_mut(&mut self) -> &mut TransactionKind {
         match self {
             Self::V1(v1) => &mut v1.kind,
-            _ => unimplemented!("a new Transaction variant was added and needs to be handled"),
+            _ => unimplemented!("a new Transaction enum variant was added and needs to be handled"),
         }
     }
 
     fn into_kind(self) -> TransactionKind {
         match self {
             Self::V1(v1) => v1.kind,
-            _ => unimplemented!("a new Transaction variant was added and needs to be handled"),
+            _ => unimplemented!("a new Transaction enum variant was added and needs to be handled"),
         }
     }
 
@@ -132,7 +132,7 @@ impl TransactionDataAPI for TransactionData {
     fn gas_data(&self) -> &GasData {
         match self {
             Self::V1(v1) => &v1.gas_payment,
-            _ => unimplemented!("a new Transaction variant was added and needs to be handled"),
+            _ => unimplemented!("a new Transaction enum variant was added and needs to be handled"),
         }
     }
 
