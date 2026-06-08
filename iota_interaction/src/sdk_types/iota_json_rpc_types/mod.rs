@@ -12,11 +12,14 @@ pub mod iota_owner;
 pub mod iota_primitives;
 pub mod iota_transaction;
 
-pub use iota_transaction::*;
-pub use iota_object::*;
 pub use iota_coin::*;
 pub use iota_event::*;
 pub use iota_move::*;
+pub use iota_object::*;
+pub use iota_object_response_error::*;
+pub use iota_owner::*;
+pub use iota_primitives::*;
+pub use iota_transaction::*;
 
 use serde::{Deserialize, Serialize};
 
@@ -26,7 +29,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Page<T, C> {
-    pub data: Vec<T>,
-    pub next_cursor: Option<C>,
-    pub has_next_page: bool,
+  pub data: Vec<T>,
+  pub next_cursor: Option<C>,
+  pub has_next_page: bool,
 }
