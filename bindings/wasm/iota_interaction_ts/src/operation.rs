@@ -44,25 +44,27 @@ impl Operation for WasmOperation {
         client: &impl ProductClient,
         tx_builder: TransactionBuilder<IotaClient>,
     ) -> Result<TransactionBuilder<IotaClient>, Self::Error> {
-        let abstract_client = JsValue::from(AbstractProductClient::new(client));
+        let abstract_client = AbstractProductClient::new(client);
+        let abstract_client_js = JsValue::from(abstract_client.clone());
+        let iota_client = tx_builder.get_client().clone();
         let tx = tx_builder
             .finish()
             .await
             .map_err(|e| WasmOperationError(Box::new(e)))?;
         let wasm_tx = {
             let prev = WasmTransaction::from_bcs_bytes(&tx.to_bcs())?;
-            self._to_transaction(abstract_client.unchecked_ref(), prev)
+            self._to_transaction(abstract_client_js.unchecked_ref(), prev)
                 .await?
         };
 
-        let ts_client = TsIotaClient::from(abstract_client.unchecked_into());
+        let ts_client = TsIotaClient::from(abstract_client);
         let tx_bytes = wasm_tx.build(ts_client).await?;
         let tx = Transaction::from_bcs(&tx_bytes).map_err(|e| WasmOperationError(Box::new(e)))?;
 
-        // TODO: turn tx into a TransactionBuilder and return it.
-        todo!();
-
-        Ok(wasm_tx)
+        let tx_builder = TransactionBuilder::try_from(tx)
+            .map_err(|e| WasmOperationError(Box::new(e)))?
+            .with_client(iota_client);
+        Ok(tx_builder)
     }
 
     async fn apply_effects(

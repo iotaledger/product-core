@@ -3,6 +3,7 @@
 
 pub mod product_client;
 pub mod operation;
+pub mod operation_builder;
 
 // #[cfg(target_arch = "wasm32")]
 mod bindings;

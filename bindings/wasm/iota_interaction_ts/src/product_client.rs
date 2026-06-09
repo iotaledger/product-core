@@ -27,6 +27,7 @@ extern "C" {
 
 /// A type implementing [ProductClient] which can be constructed from an arbitrary [WasmProductClient].
 #[wasm_bindgen(skip_typescript)]
+#[derive(Clone)]
 pub(crate) struct AbstractProductClient {
     pub(crate) network: Network,
     pub(crate) package_id: ObjectId,

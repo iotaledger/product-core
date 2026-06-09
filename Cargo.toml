@@ -12,8 +12,8 @@ members = ["product-core", "bindings/wasm/iota_interaction_ts"]
 [workspace.dependencies]
 iota-sdk = { git = "https://github.com/iotaledger/iota-rust-sdk.git" }
 thiserror = "2.0.17"
-url = "2.5.7"
-http = "1.4.0"
+url = { version = "2.5.7", features = ["serde"] }
+http = { version = "1.4.0" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 secret-storage = { git = "https://github.com/iotaledger/secret-storage.git", branch = "prototype/new-signer-api", features = [

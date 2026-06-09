@@ -14,3 +14,4 @@
 
 pub mod transaction;
 pub mod iota_client;
+pub mod transaction_signer;

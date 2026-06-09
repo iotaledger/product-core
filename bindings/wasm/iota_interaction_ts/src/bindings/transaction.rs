@@ -9,6 +9,7 @@ use crate::bindings::iota_client::TsIotaClient;
 #[wasm_bindgen(module = "@iota/iota-sdk/transactions")]
 extern "C" {
     #[wasm_bindgen(typescript_type = Transaction)]
+    #[derive(Clone)]
     pub type WasmTransaction;
 
     #[wasm_bindgen(static_method_of = WasmTransaction, js_name = from, catch)]

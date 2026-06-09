@@ -75,6 +75,10 @@ impl<O> OperationBuilder<O> {
         self.operation
     }
 
+    pub fn operation(&self) -> &O {
+        &self.operation
+    }
+
     pub fn gas_budget(mut self, gas_budget: u64) -> Self {
         self.gas_budget = Some(gas_budget);
         self
