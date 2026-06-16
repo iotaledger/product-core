@@ -17,7 +17,7 @@ to [rustup.rs](https://rustup.rs) for the installation.
 
 If you want to build the library from source you have to install additional build tools locally.
 
-### Install `wasm-bindgen-cli`
+#### Install `wasm-bindgen-cli`
 
 First you need to install [`wasm-bindgen-cli`](https://github.com/rustwasm/wasm-bindgen).
 A manual installation is required because we use the [Weak References](https://rustwasm.github.io/wasm-bindgen/reference/weak-references.html) feature,
@@ -27,7 +27,7 @@ which [`wasm-pack` does not expose](https://github.com/rustwasm/wasm-pack/issues
 cargo install --force wasm-bindgen-cli
 ```
 
-### Install `wasm-opt`
+#### Install `wasm-opt`
 
 To reduce the size of the wasm package, it is optimized with `wasm-opt`, which is part of [`binaryen`](https://github.com/WebAssembly/binaryen).
 
@@ -40,7 +40,7 @@ Some examples:
 
 ### 2. Install Dependencies
 
-After installing `wasm-bindgen-cli`, you can install the necessary dependencies using the following command:
+After installing local tooling, you can install the necessary dependencies using the following command:
 
 ```bash
 npm install
