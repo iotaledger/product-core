@@ -1,7 +1,7 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use iota_interaction::types::base_types::ObjectID;
+use iota_sdk_types::ObjectId;
 use phf::{phf_map, Map};
 
 use crate::network_name::NetworkName;
@@ -46,7 +46,7 @@ impl IdentityNetworkMetadata {
   }
 
   /// Returns the latest `IotaIdentity` package ID on this network.
-  pub fn latest_pkg_id(&self) -> ObjectID {
+  pub fn latest_pkg_id(&self) -> ObjectId {
     self
       .package
       .first()
@@ -56,8 +56,8 @@ impl IdentityNetworkMetadata {
   }
 
   /// Returns the ID for the `MigrationRegistry` on this network.
-  pub fn migration_registry(&self) -> ObjectID {
-    self.migration_registry.parse().expect("valid ObjectID")
+  pub fn migration_registry(&self) -> ObjectId {
+    self.migration_registry.parse().expect("valid ObjectId")
   }
 
   /// Returns a [`NetworkName`] if `alias` is set.

@@ -6,6 +6,7 @@ use std::option::Option;
 use std::result::Result;
 
 use async_trait::async_trait;
+use iota_sdk_types::ObjectId;
 use secret_storage::{SignatureScheme as SignatureSchemeSecretStorage, Signer};
 
 use crate::error::IotaRpcResult;
@@ -14,7 +15,7 @@ use crate::rpc_types::{
   IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
   IotaTransactionBlockEvents, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
-use crate::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
+use crate::types::base_types::{IotaAddress, SequenceNumber};
 use crate::types::crypto::{PublicKey, Signature};
 use crate::types::digests::TransactionDigest;
 use crate::types::dynamic_field::DynamicFieldName;
@@ -118,20 +119,20 @@ pub trait ReadTrait {
 
   async fn get_dynamic_field_object(
     &self,
-    parent_object_id: ObjectID,
+    parent_object_id: ObjectId,
     name: DynamicFieldName,
   ) -> IotaRpcResult<IotaObjectResponse>;
 
   async fn get_dynamic_field_object_v2(
     &self,
-    parent_object_id: ObjectID,
+    parent_object_id: ObjectId,
     name: DynamicFieldName,
     options: Option<IotaObjectDataOptions>,
   ) -> IotaRpcResult<IotaObjectResponse>;
 
   async fn get_object_with_options(
     &self,
-    object_id: ObjectID,
+    object_id: ObjectId,
     options: IotaObjectDataOptions,
   ) -> IotaRpcResult<IotaObjectResponse>;
 
@@ -139,7 +140,7 @@ pub trait ReadTrait {
     &self,
     address: IotaAddress,
     query: Option<IotaObjectResponseQuery>,
-    cursor: Option<ObjectID>,
+    cursor: Option<ObjectId>,
     limit: Option<usize>,
   ) -> IotaRpcResult<ObjectsPage>;
 
@@ -153,7 +154,7 @@ pub trait ReadTrait {
 
   async fn try_get_parsed_past_object(
     &self,
-    object_id: ObjectID,
+    object_id: ObjectId,
     version: SequenceNumber,
     options: IotaObjectDataOptions,
   ) -> IotaRpcResult<IotaPastObjectResponse>;
@@ -177,7 +178,7 @@ pub trait CoinReadTrait {
     &self,
     owner: IotaAddress,
     coin_type: Option<String>,
-    cursor: Option<ObjectID>,
+    cursor: Option<ObjectId>,
     limit: Option<usize>,
   ) -> IotaRpcResult<CoinPage>;
 }
@@ -258,7 +259,7 @@ pub trait IotaClientTrait {
 
   async fn get_past_object(
     &self,
-    object_id: ObjectID,
+    object_id: ObjectId,
     version: SequenceNumber,
   ) -> Result<IotaPastObjectResponse, Self::Error>;
 }

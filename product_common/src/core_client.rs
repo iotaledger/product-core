@@ -7,9 +7,10 @@ use iota_interaction::rpc_types::{
   IotaData, IotaObjectData, IotaObjectDataFilter, IotaObjectDataOptions, IotaObjectResponseQuery, IotaParsedData,
   OwnedObjectRef,
 };
-use iota_interaction::types::base_types::{IotaAddress, ObjectID, ObjectRef, StructTag};
+use iota_interaction::types::base_types::{IotaAddress, ObjectRef};
 use iota_interaction::types::crypto::PublicKey;
 use iota_interaction::{IotaClientTrait, IotaKeySignature, MoveType};
+use iota_sdk_types::{ObjectId, StructTag};
 use secret_storage::Signer;
 use serde::de::DeserializeOwned;
 
@@ -25,7 +26,7 @@ pub trait CoreClientReadOnly {
   ///
   /// The package ID uniquely identifies the deployed Contract on the
   /// IOTA network.
-  fn package_id(&self) -> ObjectID;
+  fn package_id(&self) -> ObjectId;
 
   /// Returns the name of the network the client is connected to.
   ///
@@ -40,12 +41,12 @@ pub trait CoreClientReadOnly {
   /// Returns the [`TfComponents`] package ID for this client's network, if applicable.
   ///
   /// Products that do not depend on `TfComponents` can rely on the default implementation.
-  fn tf_components_package_id(&self) -> Option<ObjectID> {
+  fn tf_components_package_id(&self) -> Option<ObjectId> {
     tf_components_registry::tf_components_package_id(self.network_name().as_ref())
   }
 
   /// Returns the IDs of all packages version, from initial to current.
-  fn package_history(&self) -> Vec<ObjectID> {
+  fn package_history(&self) -> Vec<ObjectId> {
     vec![self.package_id()]
   }
 
@@ -61,7 +62,7 @@ pub trait CoreClientReadOnly {
   ///
   /// Returns `Ok(T)` if the object is found and successfully deserialized,
   /// or an error if the operation fails.
-  async fn get_object_by_id<T: DeserializeOwned>(&self, object_id: ObjectID) -> anyhow::Result<T> {
+  async fn get_object_by_id<T: DeserializeOwned>(&self, object_id: ObjectId) -> anyhow::Result<T> {
     self
       .client_adapter()
       .read_api()
@@ -88,7 +89,7 @@ pub trait CoreClientReadOnly {
   ///
   /// Returns `Ok(Some(OwnedObjectRef))` if the object is found, `Ok(None)` if not found,
   /// or an error if the operation fails.
-  async fn get_object_ref_by_id(&self, object_id: ObjectID) -> anyhow::Result<Option<OwnedObjectRef>> {
+  async fn get_object_ref_by_id(&self, object_id: ObjectId) -> anyhow::Result<Option<OwnedObjectRef>> {
     self
       .client_adapter()
       .read_api()

@@ -4,8 +4,8 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
 
-use iota_interaction::types::execution_status::{
-  CommandArgumentError, ExecutionFailureStatus, PackageUpgradeError, TypeArgumentError,
+use iota_sdk_types::{
+  CommandArgumentError, ExecutionError as ExecutionFailureStatus, PackageUpgradeError, TypeArgumentError,
 };
 use serde::de::DeserializeOwned;
 use thiserror::Error as ThisError;

@@ -1,12 +1,14 @@
 // Copyright (c) 2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::types::{
-    base_types::{IotaAddress, ObjectID, SequenceNumber},
-    object::Owner,
-};
+use iota_sdk_types::{ObjectId, Owner};
+use crate::types::base_types::{IotaAddress, SequenceNumber};
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeAs, SerializeAs, serde_as};
+
+use super::iota_primitives::{
+    IotaAddress as IotaAddressSchema, SequenceNumberU64 as SequenceNumberU64Schema,
+};
 
 /// Enum of different types of ownership for an object.
 ///
@@ -27,14 +29,15 @@ use serde_with::{DeserializeAs, SerializeAs, serde_as};
 #[serde(rename = "Owner")]
 pub enum OwnerSchema {
     /// Object is exclusively owned by a single address, and is mutable.
-    AddressOwner(IotaAddress),
+    AddressOwner(#[serde_as(as = "IotaAddressSchema")] IotaAddress),
     /// Object is exclusively owned by a single object, and is mutable.
     /// The object ID is converted to IotaAddress as IotaAddress is
     /// universal.
-    ObjectOwner(IotaAddress),
+    ObjectOwner(#[serde_as(as = "IotaAddressSchema")] IotaAddress),
     /// Object is shared, can be used by any address, and is mutable.
     Shared {
         /// The version at which the object became shared
+        #[serde_as(as = "SequenceNumberU64Schema")]
         initial_shared_version: SequenceNumber,
     },
     /// Object is immutable, and hence ownership doesn't matter.
@@ -99,7 +102,7 @@ impl From<OwnerSchema> for Owner {
     fn from(value: OwnerSchema) -> Self {
         match value {
             OwnerSchema::AddressOwner(address) => Owner::Address(address),
-            OwnerSchema::ObjectOwner(address) => Owner::Object(ObjectID::from(address)),
+            OwnerSchema::ObjectOwner(address) => Owner::Object(ObjectId::from(address)),
             OwnerSchema::Shared {
                 initial_shared_version,
             } => Owner::Shared(initial_shared_version),

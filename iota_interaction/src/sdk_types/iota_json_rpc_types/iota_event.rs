@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use fastcrypto::encoding::{Base58, Base64};
-use super::super::iota_types::{
-    base_types::{Identifier, IotaAddress, ObjectID, StructTag, TransactionDigest},
+use iota_sdk_types::{Identifier, ObjectId, StructTag};
+use crate::types::{
+    base_types::{IotaAddress, TransactionDigest},
     event::EventID,
 };
 use serde::{Deserialize, Serialize};
@@ -13,10 +14,43 @@ use serde_with::{DisplayFromStr, serde_as};
 
 use super::{
     Page,
-    iota_primitives::StructTag as StructTagSchema,
+    iota_primitives::{
+        Base58 as Base58Schema, Identifier as IdentifierSchema,
+        IotaAddress as IotaAddressSchema, ObjectId as ObjectIdSchema, StructTag as StructTagSchema,
+    },
 };
 
 pub type EventPage = Page<IotaEvent, EventID>;
+
+/// Unique ID of an IOTA Event, the ID is a combination of transaction digest
+/// and event seq number.
+#[serde_as]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[serde(rename_all = "camelCase")]
+pub struct IotaEventID {
+    #[serde_as(as = "Base58Schema")]
+    pub tx_digest: TransactionDigest,
+    #[serde_as(as = "DisplayFromStr")]
+    pub event_seq: u64,
+}
+
+impl From<EventID> for IotaEventID {
+    fn from(id: EventID) -> Self {
+        Self {
+            tx_digest: id.tx_digest,
+            event_seq: id.event_seq,
+        }
+    }
+}
+
+impl From<IotaEventID> for EventID {
+    fn from(id: IotaEventID) -> Self {
+        Self {
+            tx_digest: id.tx_digest,
+            event_seq: id.event_seq,
+        }
+    }
+}
 
 #[serde_as]
 #[derive(Eq, PartialEq, Clone, Debug, Serialize, Deserialize)]
@@ -29,11 +63,13 @@ pub struct IotaEvent {
     /// This ID is the "cursor" for event querying.
     pub id: EventID,
     /// Move package where this event was emitted.
-    pub package_id: ObjectID,
-    #[serde_as(as = "DisplayFromStr")]
+    #[serde_as(as = "ObjectIdSchema")]
+    pub package_id: ObjectId,
+    #[serde_as(as = "IdentifierSchema")]
     /// Move module where this event was emitted.
     pub transaction_module: Identifier,
     /// Sender's IOTA address.
+    #[serde_as(as = "IotaAddressSchema")]
     pub sender: IotaAddress,
     /// Move event type.
     #[serde_as(as = "StructTagSchema")]
@@ -128,22 +164,31 @@ impl From<MaybeTaggedBcsEvent> for BcsEvent {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum EventFilter {
     /// Query by sender address.
-    Sender(IotaAddress),
+    Sender(
+        #[serde_as(as = "IotaAddressSchema")]
+        IotaAddress,
+    ),
     /// Return events emitted by the given transaction.
     Transaction(
         /// digest of the transaction, as base-64 encoded string
+        #[serde_as(as = "Base58Schema")]
         TransactionDigest,
     ),
     /// Return events emitted in a specified Package.
-    Package(ObjectID),
+    Package(
+        #[serde_as(as = "ObjectIdSchema")]
+        ObjectId,
+    ),
     /// Return events emitted in a specified Move module.
     /// If the event is defined in Module A but emitted in a tx with Module B,
     /// query `MoveModule` by module B returns the event.
     /// Query `MoveEventModule` by module A returns the event too.
     MoveModule {
         /// the Move package ID
-        package: ObjectID,
+        #[serde_as(as = "ObjectIdSchema")]
+        package: ObjectId,
         /// the module name
+        #[serde_as(as = "IdentifierSchema")]
         module: Identifier,
     },
     /// Return events with the given Move event struct name (struct tag).
@@ -159,8 +204,10 @@ pub enum EventFilter {
     /// event. Query `MoveModule` by module B returns the event too.
     MoveEventModule {
         /// the Move package ID
-        package: ObjectID,
+        #[serde_as(as = "ObjectIdSchema")]
+        package: ObjectId,
         /// the module name
+        #[serde_as(as = "IdentifierSchema")]
         module: Identifier,
     },
     MoveEventField {
