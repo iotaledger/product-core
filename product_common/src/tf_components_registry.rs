@@ -3,7 +3,7 @@
 
 use std::sync::LazyLock;
 
-use iota_interaction::types::base_types::ObjectID;
+use iota_sdk_types::ObjectId;
 
 use crate::package_registry::PackageRegistry;
 
@@ -17,6 +17,6 @@ static TF_COMPONENTS_PACKAGE_REGISTRY: LazyLock<PackageRegistry> = LazyLock::new
     .expect("TfComponents Move.history.json exists and is valid")
 });
 
-pub fn tf_components_package_id(network: &str) -> Option<ObjectID> {
+pub fn tf_components_package_id(network: &str) -> Option<ObjectId> {
   TF_COMPONENTS_PACKAGE_REGISTRY.package_id(network)
 }

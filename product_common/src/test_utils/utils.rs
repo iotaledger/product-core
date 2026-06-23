@@ -4,7 +4,7 @@
 use std::process::Output;
 
 use anyhow::Context as _;
-use iota_interaction::types::base_types::ObjectID;
+use iota_sdk_types::ObjectId;
 use serde::Deserialize;
 
 cfg_if::cfg_if! {
@@ -25,7 +25,7 @@ const FUND_WITH_ACTIVE_ADDRESS_FUNDING_VALUE: u64 = 500_000_000;
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct CoinOutput {
-  gas_coin_id: ObjectID,
+  gas_coin_id: ObjectId,
   nanos_balance: u64,
 }
 

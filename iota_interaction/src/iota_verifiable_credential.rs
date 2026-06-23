@@ -3,9 +3,9 @@
 
 use std::str::FromStr;
 
+use iota_sdk_types::{ObjectId, TypeTag};
 use serde::{Deserialize, Serialize};
 
-use crate::types::base_types::{ObjectID, TypeTag};
 use crate::{MoveType, TypedValue};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -24,11 +24,11 @@ impl IotaVerifiableCredential {
 }
 
 impl MoveType for IotaVerifiableCredential {
-  fn move_type(package: ObjectID) -> TypeTag {
+  fn move_type(package: ObjectId) -> TypeTag {
     TypeTag::from_str(&format!("{package}::public_vc::PublicVc")).expect("valid utf8")
   }
 
-  fn get_typed_value(&self, _package: ObjectID) -> TypedValue<'_, Self>
+  fn get_typed_value(&self, _package: ObjectId) -> TypedValue<'_, Self>
   where
     Self: MoveType,
     Self: Sized,

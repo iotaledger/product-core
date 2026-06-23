@@ -6,26 +6,33 @@ use serde_with::DisplayFromStr;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use super::super::iota_types::base_types::{ObjectID, ObjectRef, SequenceNumber, TransactionDigest};
+use iota_sdk_types::ObjectId;
+use super::super::iota_types::base_types::{ObjectRef, SequenceNumber, TransactionDigest};
 use super::super::iota_types::digests::ObjectDigest;
 use super::{
     Page,
-    iota_primitives::SequenceNumberString as SequenceNumberStringSchema,
+    iota_primitives::{
+        Base58 as Base58Schema, ObjectId as ObjectIdSchema,
+        SequenceNumberString as SequenceNumberStringSchema,
+    },
 };
 
-pub type CoinPage = Page<Coin, ObjectID>;
+pub type CoinPage = Page<Coin, ObjectId>;
 
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Coin {
     pub coin_type: String,
-    pub coin_object_id: ObjectID,
+    #[serde_as(as = "ObjectIdSchema")]
+    pub coin_object_id: ObjectId,
     #[serde_as(as = "SequenceNumberStringSchema")]
     pub version: SequenceNumber,
+    #[serde_as(as = "Base58Schema")]
     pub digest: ObjectDigest,
     #[serde_as(as = "DisplayFromStr")]
     pub balance: u64,
+    #[serde_as(as = "Base58Schema")]
     pub previous_transaction: TransactionDigest,
 }
 

@@ -3,12 +3,12 @@
 
 use std::result::Result as StdResult;
 
-use iota_interaction::types::base_types::{IotaAddress, ObjectID};
+use iota_interaction::types::base_types::IotaAddress;
 use iota_interaction::types::crypto::PublicKey;
 use iota_interaction_ts::bindings::{WasmIotaClient, WasmTransactionSigner};
 use iota_interaction_ts::core_client::{WasmCoreClient, WasmCoreClientReadOnly};
 use iota_interaction_ts::{IotaClientAdapter, WasmPublicKey};
-use iota_sdk_types::AddressParseError;
+use iota_sdk_types::{AddressParseError, ObjectId};
 use wasm_bindgen::prelude::*;
 
 use crate::bindings::wasm_error::{Result, WasmResult};
@@ -18,8 +18,8 @@ use crate::network_name::NetworkName;
 #[derive(Clone)]
 #[wasm_bindgen]
 pub struct WasmManagedCoreClientReadOnly {
-  package_history: Vec<ObjectID>,
-  tf_components_package_id: Option<ObjectID>,
+  package_history: Vec<ObjectId>,
+  tf_components_package_id: Option<ObjectId>,
   network: NetworkName,
   iota_client_adapter: IotaClientAdapter,
 }
@@ -105,15 +105,15 @@ impl WasmManagedCoreClientReadOnly {
 }
 
 impl CoreClientReadOnly for WasmManagedCoreClientReadOnly {
-  fn package_id(&self) -> ObjectID {
+  fn package_id(&self) -> ObjectId {
     *self.package_history.first().expect("at least one package in history")
   }
 
-  fn package_history(&self) -> Vec<ObjectID> {
+  fn package_history(&self) -> Vec<ObjectId> {
     self.package_history.clone()
   }
 
-  fn tf_components_package_id(&self) -> Option<ObjectID> {
+  fn tf_components_package_id(&self) -> Option<ObjectId> {
     self.tf_components_package_id
   }
 
@@ -224,15 +224,15 @@ impl WasmManagedCoreClient {
 }
 
 impl CoreClientReadOnly for WasmManagedCoreClient {
-  fn package_id(&self) -> ObjectID {
+  fn package_id(&self) -> ObjectId {
     CoreClientReadOnly::package_id(&self.read_only)
   }
 
-  fn package_history(&self) -> Vec<ObjectID> {
+  fn package_history(&self) -> Vec<ObjectId> {
     CoreClientReadOnly::package_history(&self.read_only)
   }
 
-  fn tf_components_package_id(&self) -> Option<ObjectID> {
+  fn tf_components_package_id(&self) -> Option<ObjectId> {
     CoreClientReadOnly::tf_components_package_id(&self.read_only)
   }
 

@@ -4,10 +4,11 @@
 use std::str::FromStr;
 
 use anyhow::anyhow;
-use iota_interaction::types::base_types::{IotaAddress, ObjectID};
+use iota_interaction::types::base_types::IotaAddress;
 use iota_interaction_ts::bindings::{WasmIotaTransactionBlockEffects, WasmIotaTransactionBlockEvents};
 use iota_interaction_ts::core_client::WasmCoreClientReadOnly;
 use iota_interaction_ts::wasm_error::{Result, WasmResult};
+use iota_sdk_types::ObjectId;
 use js_sys::Object;
 use wasm_bindgen::{JsCast, JsValue};
 
@@ -16,9 +17,9 @@ use super::transaction::WasmTransactionBuilder;
 use super::{WasmIotaAddress, WasmObjectID};
 use crate::transaction::transaction_builder::Transaction;
 
-/// Parses a `WasmObjectID` into an `ObjectID`.
-pub fn parse_wasm_object_id(wasm_object_id: &WasmObjectID) -> Result<ObjectID> {
-  ObjectID::from_str(wasm_object_id)
+/// Parses a `WasmObjectID` into an `ObjectId`.
+pub fn parse_wasm_object_id(wasm_object_id: &WasmObjectID) -> Result<ObjectId> {
+  ObjectId::from_str(wasm_object_id)
     .map_err(|e| anyhow!("Could not parse WasmObjectID: {}", e.to_string()))
     .wasm_result()
 }

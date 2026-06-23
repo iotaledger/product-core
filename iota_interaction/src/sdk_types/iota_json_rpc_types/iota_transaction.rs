@@ -4,7 +4,9 @@
 
 use std::fmt::{self, Display, Formatter};
 use std::vec::Vec;
-
+use iota_sdk_types::{
+    ExecutionStatus, ObjectId, Owner, TypeTag,
+};
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 use serde_with::{DisplayFromStr, serde_as};
@@ -13,9 +15,7 @@ use crate::iota_types::base_types::EpochId;
 use crate::iota_types::digests::{TransactionDigest, TransactionEventsDigest};
 use crate::iota_types::gas::GasCostSummary;
 use crate::iota_types::storage::{DeleteKind, WriteKind};
-use crate::types::base_types::{IotaAddress, ObjectID, ObjectRef, SequenceNumber, TypeTag};
-use crate::types::execution_status::ExecutionStatus;
-use crate::types::object::Owner;
+use crate::types::base_types::{IotaAddress, ObjectRef, SequenceNumber};
 use crate::types::parse_iota_type_tag;
 use crate::types::quorum_driver_types::ExecuteTransactionRequestType as NativeExecuteTransactionRequestType;
 
@@ -24,6 +24,8 @@ use super::{
     iota_gas_cost_summary::IotaGasCostSummary,
     iota_owner::OwnerSchema,
     iota_primitives::{
+        Base58 as Base58Schema,
+        IotaAddress as IotaAddressSchema, ObjectId as ObjectIdSchema,
         SequenceNumberString as SequenceNumberStringSchema,
     },
 };
@@ -182,7 +184,7 @@ pub trait IotaTransactionBlockEffectsAPI {
 
     /// Return an iterator of mutated objects, but excluding the gas object.
     fn mutated_excluding_gas(&self) -> Vec<OwnedObjectRef>;
-    fn modified_at_versions(&self) -> Vec<(ObjectID, SequenceNumber)>;
+    fn modified_at_versions(&self) -> Vec<(ObjectId, SequenceNumber)>;
     fn all_changed_objects(&self) -> Vec<(&OwnedObjectRef, WriteKind)>;
     fn all_deleted_objects(&self) -> Vec<(&ObjectRef, DeleteKind)>;
 }
@@ -194,7 +196,8 @@ pub trait IotaTransactionBlockEffectsAPI {
     rename_all = "camelCase"
 )]
 pub struct IotaTransactionBlockEffectsModifiedAtVersions {
-    object_id: ObjectID,
+    #[serde_as(as = "ObjectIdSchema")]
+    object_id: ObjectId,
     #[serde_as(as = "SequenceNumberStringSchema")]
     sequence_number: SequenceNumber,
 }
@@ -221,6 +224,7 @@ pub struct IotaTransactionBlockEffectsV1 {
     #[serde_as(as = "Vec<ObjectRefSchema>")]
     pub shared_objects: Vec<ObjectRef>,
     /// The transaction digest
+    #[serde_as(as = "Base58Schema")]
     pub transaction_digest: TransactionDigest,
     /// ObjectRef and owner of new objects created.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -252,9 +256,11 @@ pub struct IotaTransactionBlockEffectsV1 {
     /// The digest of the events emitted during execution,
     /// can be None if the transaction does not emit any event.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde_as(as = "Option<Base58Schema>")]
     pub events_digest: Option<TransactionEventsDigest>,
     /// The set of transaction digests this transaction depends on.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde_as(as = "Vec<Base58Schema>")]
     pub dependencies: Vec<TransactionDigest>,
 }
 
@@ -316,7 +322,7 @@ impl IotaTransactionBlockEffectsAPI for IotaTransactionBlockEffectsV1 {
             .collect()
     }
 
-    fn modified_at_versions(&self) -> Vec<(ObjectID, SequenceNumber)> {
+    fn modified_at_versions(&self) -> Vec<(ObjectId, SequenceNumber)> {
         self.modified_at_versions
             .iter()
             .map(|v| (v.object_id, v.sequence_number))
@@ -369,6 +375,7 @@ pub struct IotaTransactionBlockEvents {
 pub struct DevInspectArgs {
     /// The sponsor of the gas for the transaction, might be different from the
     /// sender.
+    #[serde_as(as = "Option<IotaAddressSchema>")]
     pub gas_sponsor: Option<IotaAddress>,
     /// The gas budget for the transaction.
     #[serde_as(as = "Option<DisplayFromStr>")]
@@ -540,7 +547,7 @@ pub struct OwnedObjectRef {
 }
 
 impl OwnedObjectRef {
-    pub fn object_id(&self) -> ObjectID {
+    pub fn object_id(&self) -> ObjectId {
         self.reference.object_id
     }
     pub fn version(&self) -> SequenceNumber {

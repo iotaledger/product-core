@@ -5,13 +5,12 @@ use std::str::FromStr;
 use fastcrypto::encoding::{Base64, Encoding};
 use fastcrypto::traits::EncodeDecodeBase64 as _;
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEvents, OwnedObjectRef};
-use iota_interaction::types::base_types::{IotaAddress, ObjectID, ObjectRef, SequenceNumber};
+use iota_interaction::types::base_types::{IotaAddress, ObjectRef, SequenceNumber};
 use iota_interaction::types::crypto::{IotaKeyPair, PublicKey, Signature};
 use iota_interaction::types::digests::TransactionDigest;
-use iota_interaction::types::execution_status::CommandArgumentError;
-use iota_interaction::types::object::Owner;
 use iota_interaction::types::transaction::TransactionData;
 use iota_interaction::ProgrammableTransactionBcs;
+use iota_sdk_types::{CommandArgumentError, ObjectId, Owner};
 use js_sys::{Promise, Uint8Array};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -504,8 +503,8 @@ impl From<ObjectRef> for WasmObjectRef {
   }
 }
 
-impl From<(ObjectID, SequenceNumber, bool)> for WasmSharedObjectRef {
-  fn from(value: (ObjectID, SequenceNumber, bool)) -> Self {
+impl From<(ObjectId, SequenceNumber, bool)> for WasmSharedObjectRef {
+  fn from(value: (ObjectId, SequenceNumber, bool)) -> Self {
     let json_obj = serde_json::json!({
       "objectId": value.0,
       "initialSharedVersion": value.1,

@@ -8,15 +8,15 @@ use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use iota_interaction::move_types::language_storage::StructTag;
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI};
-use iota_interaction::types::base_types::{IotaAddress, ObjectID, TypeTag};
+use iota_interaction::types::base_types::IotaAddress;
 use iota_interaction::types::crypto::SignatureScheme;
 use iota_interaction::types::programmable_transaction_builder::ProgrammableTransactionBuilder;
 use iota_interaction::types::transaction::ProgrammableTransaction;
 use iota_interaction::types::IOTA_FRAMEWORK_PACKAGE_ID;
 use iota_interaction::{ident_str, IotaClientTrait, IotaKeySignature, IotaTransactionBlockEffectsMutAPI, OptionalSync};
 use iota_sdk::rpc_types::{IotaObjectDataOptions, IotaObjectResponse};
-use iota_sdk::types::object::Owner;
 use iota_sdk::IotaClient;
+use iota_sdk_types::{ObjectId, Owner, TypeTag};
 use lazy_static::lazy_static;
 use secret_storage::Signer;
 use serde::Deserialize;
@@ -60,7 +60,7 @@ lazy_static! {
 ///
 /// # Returns
 ///
-/// * `Ok(ObjectID)` - The package ID.
+/// * `Ok(ObjectId)` - The package ID.
 ///
 /// # Errors
 ///
@@ -69,7 +69,7 @@ pub async fn init_product_package(
   iota_client: &IotaClient,
   cached_pkg_file: Option<&str>,
   script_file: Option<&str>,
-) -> anyhow::Result<ObjectID> {
+) -> anyhow::Result<ObjectId> {
   let network_id = iota_client.read_api().get_chain_identifier().await?;
   let address = get_active_address().await?;
 
@@ -141,7 +141,7 @@ pub async fn get_active_address() -> anyhow::Result<IotaAddress> {
 ///
 /// # Returns
 ///
-/// * `Ok(ObjectID)` - The package ID.
+/// * `Ok(ObjectId)` - The package ID.
 ///
 /// # Errors
 ///
@@ -150,7 +150,7 @@ pub async fn publish_package(
   active_address: IotaAddress,
   script_file: &str,
   cached_pkg_file: &str,
-) -> anyhow::Result<ObjectID> {
+) -> anyhow::Result<ObjectId> {
   let output = Command::new("sh").arg(script_file).output().await?;
   let stdout = std::str::from_utf8(&output.stdout).unwrap();
 
@@ -159,9 +159,9 @@ pub async fn publish_package(
     anyhow::bail!("Failed to publish move package: \n\n{stdout}\n\n{stderr}");
   }
 
-  let package_id: ObjectID = {
+  let package_id: ObjectId = {
     let stdout_trimmed = stdout.trim();
-    ObjectID::from_str(stdout_trimmed).with_context(|| {
+    ObjectId::from_str(stdout_trimmed).with_context(|| {
       let stderr = std::str::from_utf8(&output.stderr).unwrap();
       format!("failed to find PRODUCT_IOTA_PKG_ID in response from: '{stdout_trimmed}'; {stderr}")
     })?
@@ -210,7 +210,7 @@ pub async fn get_balance(address: IotaAddress) -> anyhow::Result<u64> {
 
 /// Retrieves a test coin for the given recipient.
 #[cfg(feature = "transaction")]
-pub async fn get_test_coin<S, C>(recipient: IotaAddress, client: &C) -> anyhow::Result<ObjectID>
+pub async fn get_test_coin<S, C>(recipient: IotaAddress, client: &C) -> anyhow::Result<ObjectId>
 where
   S: Signer<IotaKeySignature> + OptionalSync,
   C: CoreClient<S> + OptionalSync,
@@ -281,7 +281,7 @@ pub struct GetTestCoin {
 #[cfg(feature = "transaction")]
 #[async_trait]
 impl Transaction for GetTestCoin {
-  type Output = ObjectID;
+  type Output = ObjectId;
 
   type Error = Error;
 

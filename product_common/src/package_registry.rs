@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 
 use anyhow::Context;
-use iota_interaction::types::base_types::ObjectID;
+use iota_sdk_types::ObjectId;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
@@ -36,12 +36,12 @@ impl Env {
 }
 
 /// A published package's metadata for a certain environment.
-#[deprecated = "Use Vec<ObjectID> with PackageRegistry::insert_env_history() instead."]
+#[deprecated = "Use Vec<ObjectId> with PackageRegistry::insert_env_history() instead."]
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Metadata {
-  pub original_published_id: ObjectID,
-  pub latest_published_id: ObjectID,
+  pub original_published_id: ObjectId,
+  pub latest_published_id: ObjectId,
   #[serde(deserialize_with = "deserialize_u64_from_str")]
   pub published_version: u64,
 }
@@ -49,7 +49,7 @@ pub struct Metadata {
 #[allow(deprecated)]
 impl Metadata {
   /// Create a new [Metadata] assuming a newly published package.
-  pub fn from_package_id(package: ObjectID) -> Self {
+  pub fn from_package_id(package: ObjectId) -> Self {
     Self {
       original_published_id: package,
       latest_published_id: package,
@@ -97,7 +97,7 @@ where
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct PackageRegistry {
   aliases: HashMap<String, String>,
-  envs: HashMap<String, Vec<ObjectID>>,
+  envs: HashMap<String, Vec<ObjectId>>,
 }
 
 impl PackageRegistry {
@@ -106,13 +106,13 @@ impl PackageRegistry {
   ///
   /// ID at position `0` is the first ever published version of the package, `1` is
   /// the second, and so forth until the last, which is the currently active version.
-  pub fn history(&self, chain: &str) -> Option<&[ObjectID]> {
+  pub fn history(&self, chain: &str) -> Option<&[ObjectId]> {
     let from_alias = || self.aliases.get(chain).and_then(|chain_id| self.envs.get(chain_id));
     self.envs.get(chain).or_else(from_alias).map(|v| v.as_slice())
   }
 
   /// Returns this package's latest version ID for a given chain.
-  pub fn package_id(&self, chain: &str) -> Option<ObjectID> {
+  pub fn package_id(&self, chain: &str) -> Option<ObjectId> {
     self.history(chain).and_then(|versions| versions.last()).copied()
   }
 
@@ -126,7 +126,7 @@ impl PackageRegistry {
 
   /// Removes the environment specified by the alias from the registry.
   /// Returns the removed environment's versions if it existed, or `None` if the alias was not found.
-  pub fn remove_env_by_alias(&mut self, alias: &str) -> Option<Vec<ObjectID>> {
+  pub fn remove_env_by_alias(&mut self, alias: &str) -> Option<Vec<ObjectId>> {
     if let Some(chain_id) = self.aliases.remove(alias) {
       self.envs.remove(&chain_id)
     } else {
@@ -135,7 +135,7 @@ impl PackageRegistry {
   }
 
   /// Returns the envs of this package registry.
-  pub fn envs(&self) -> &HashMap<String, Vec<ObjectID>> {
+  pub fn envs(&self) -> &HashMap<String, Vec<ObjectId>> {
     &self.envs
   }
 
@@ -165,7 +165,7 @@ impl PackageRegistry {
   }
 
   /// Adds or replaces this package's id history for a given environment.
-  pub fn insert_env_history(&mut self, env: Env, history: Vec<ObjectID>) {
+  pub fn insert_env_history(&mut self, env: Env, history: Vec<ObjectId>) {
     let Env { chain_id, alias } = env;
 
     if let Some(alias) = alias {
@@ -182,7 +182,7 @@ impl PackageRegistry {
 
   /// Inserts a new package version for a given chain. If the chain does not exist, it is created.
   /// If the new package version is the same as the last one, it is not added again.
-  pub fn insert_new_package_version(&mut self, chain_id: &str, package: ObjectID) {
+  pub fn insert_new_package_version(&mut self, chain_id: &str, package: ObjectId) {
     let history = self.envs.entry(chain_id.to_string()).or_default();
     if history.last() != Some(&package) {
       history.push(package)
@@ -223,17 +223,17 @@ impl PackageRegistry {
       .context("invalid Move.history.json file: `envs` is not a JSON object literal")?
       .into_iter()
       .try_fold(ret_val, |mut registry, (chain_id, versions)| {
-        let versions: Vec<ObjectID> = versions
+        let versions: Vec<ObjectId> = versions
           .as_array()
           .context(format!("invalid Move.history.json file: invalid versions for {chain_id}. versions is not an array"))?
           .iter()
-          .try_fold(Vec::<ObjectID>::new(), |mut arr, v| {
-            let obj_id = ObjectID::from_hex(
+          .try_fold(Vec::<ObjectId>::new(), |mut arr, v| {
+            let obj_id = ObjectId::from_hex(
               v.as_str()
                   .context(format!("invalid Move.history.json file: invalid versions array element for {chain_id}. Elements need to be strings"))?
             )?;
             arr.push(obj_id);
-            Ok::<Vec<ObjectID>, anyhow::Error>(arr)
+            Ok::<Vec<ObjectId>, anyhow::Error>(arr)
           })?;
         registry.envs.insert(chain_id.clone(), versions);
         Ok(registry)
@@ -281,7 +281,7 @@ mod tests {
 
   macro_rules! object_id {
     ($id:literal) => {
-      ObjectID::from_hex($id).unwrap()
+      ObjectId::from_hex($id).unwrap()
     };
   }
 

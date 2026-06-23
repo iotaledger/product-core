@@ -11,7 +11,7 @@ use iota_interaction::rpc_types::{
   CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaObjectDataOptions, IotaObjectResponse,
   IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
-use iota_interaction::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
+use iota_interaction::types::base_types::{IotaAddress, SequenceNumber};
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
@@ -19,6 +19,7 @@ use iota_interaction::types::event::EventID;
 use iota_interaction::types::iota_serde::BigInt;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
 use iota_interaction::types::transaction::{TransactionData, TransactionKind};
+use iota_sdk_types::ObjectId;
 use js_sys::Promise;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -200,7 +201,7 @@ impl ManagedWasmIotaClient {
    */
   pub async fn get_dynamic_field_object(
     &self,
-    parent_object_id: ObjectID,
+    parent_object_id: ObjectId,
     name: DynamicFieldName,
   ) -> IotaRpcResult<IotaObjectResponse> {
     let params: WasmGetDynamicFieldObjectParams =
@@ -229,7 +230,7 @@ impl ManagedWasmIotaClient {
    */
   pub async fn get_dynamic_field_object_v2(
     &self,
-    parent_object_id: ObjectID,
+    parent_object_id: ObjectId,
     name: DynamicFieldName,
     options: Option<IotaObjectDataOptions>,
   ) -> IotaRpcResult<IotaObjectResponse> {
@@ -259,7 +260,7 @@ impl ManagedWasmIotaClient {
 
   pub async fn get_object_with_options(
     &self,
-    object_id: ObjectID,
+    object_id: ObjectId,
     options: IotaObjectDataOptions,
   ) -> IotaRpcResult<IotaObjectResponse> {
     let params: WasmGetObjectParams =
@@ -287,7 +288,7 @@ impl ManagedWasmIotaClient {
     &self,
     address: IotaAddress,
     query: Option<IotaObjectResponseQuery>,
-    cursor: Option<ObjectID>,
+    cursor: Option<ObjectId>,
     limit: Option<usize>,
   ) -> IotaRpcResult<ObjectsPage> {
     let params: WasmGetOwnedObjectsParams = serde_wasm_bindgen::to_value(&GetOwnedObjectsParams::new(
@@ -356,7 +357,7 @@ impl ManagedWasmIotaClient {
 
   pub async fn try_get_parsed_past_object(
     &self,
-    _object_id: ObjectID,
+    _object_id: ObjectId,
     _version: SequenceNumber,
     _options: IotaObjectDataOptions,
   ) -> IotaRpcResult<IotaPastObjectResponse> {
@@ -421,7 +422,7 @@ impl ManagedWasmIotaClient {
     &self,
     owner: IotaAddress,
     coin_type: Option<String>,
-    cursor: Option<ObjectID>,
+    cursor: Option<ObjectId>,
     limit: Option<usize>,
   ) -> IotaRpcResult<CoinPage> {
     let params: WasmGetCoinsParams = serde_wasm_bindgen::to_value(&GetCoinsParams::new(

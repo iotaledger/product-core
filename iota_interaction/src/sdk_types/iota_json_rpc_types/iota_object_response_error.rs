@@ -1,14 +1,19 @@
 // Copyright (c) 2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::types::{
-    base_types::{ObjectID, SequenceNumber},
-    digests::ObjectDigest,
-};
+use iota_sdk_types::ObjectId;
+use crate::types::{base_types::SequenceNumber, digests::ObjectDigest};
 use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 use strum::{AsRefStr, IntoStaticStr};
 use thiserror::Error;
 
+use super::iota_primitives::{
+    Base58 as Base58Schema, ObjectId as ObjectIdSchema,
+    SequenceNumberU64 as SequenceNumberU64Schema,
+};
+
+#[serde_as]
 #[derive(
     Eq,
     PartialEq,
@@ -25,20 +30,25 @@ use thiserror::Error;
 pub enum IotaObjectResponseError {
     #[error("Object {object_id} does not exist")]
     NotExists {
-        object_id: ObjectID,
+        #[serde_as(as = "ObjectIdSchema")]
+        object_id: ObjectId,
     },
     #[error("Cannot find dynamic field for parent object {parent_object_id}")]
     DynamicFieldNotFound {
-        parent_object_id: ObjectID,
+        #[serde_as(as = "ObjectIdSchema")]
+        parent_object_id: ObjectId,
     },
     #[error(
         "Object has been deleted object_id: {object_id} at version: {version} in digest {digest}"
     )]
     Deleted {
-        object_id: ObjectID,
+        #[serde_as(as = "ObjectIdSchema")]
+        object_id: ObjectId,
         /// Object version.
+        #[serde_as(as = "SequenceNumberU64Schema")]
         version: SequenceNumber,
         /// Base64 string representing the object digest
+        #[serde_as(as = "Base58Schema")]
         digest: ObjectDigest,
     },
     #[error("Unknown Error")]

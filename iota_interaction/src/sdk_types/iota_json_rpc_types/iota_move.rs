@@ -2,25 +2,29 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::boxed::Box;
-use std::collections::BTreeMap;
-use std::fmt::{self, Display, Formatter, Write};
+use std::{
+    collections::BTreeMap,
+    fmt::{self, Display, Formatter, Write},
+};
 
+use iota_sdk_types::{Identifier, ObjectId, StructTag};
 use crate::types::{
-    base_types::{Identifier, IotaAddress, ObjectID, StructTag},
+    base_types::IotaAddress,
     iota_sdk_types_conversions::struct_tag_core_to_sdk,
 };
 use itertools::Itertools;
+
+use crate::move_core_types::annotated_value::{MoveStruct, MoveValue, MoveVariant};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serde_with::serde_as;
 use tracing::warn;
 
-use crate::move_core_types::annotated_value::{MoveStruct, MoveValue, MoveVariant};
-
 use super::iota_primitives::{
-    StructTag as StructTagSchema,
+    IotaAddress as IotaAddressSchema, ObjectId as ObjectIdSchema, StructTag as StructTagSchema,
 };
+
+pub type IotaMoveTypeParameterIndex = u16;
 
 #[serde_as]
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
@@ -29,10 +33,16 @@ pub enum IotaMoveValue {
     // u64 and u128 are converted to String to avoid overflow
     Number(u32),
     Bool(bool),
-    Address(IotaAddress),
+    Address(
+        #[serde_as(as = "IotaAddressSchema")]
+        IotaAddress,
+    ),
     Vector(Vec<IotaMoveValue>),
     String(String),
-    UID { id: ObjectID },
+    UID {
+        #[serde_as(as = "ObjectIdSchema")]
+        id: ObjectId,
+    },
     Struct(IotaMoveStruct),
     Option(Box<Option<IotaMoveValue>>),
     Variant(IotaMoveVariant),
@@ -309,7 +319,7 @@ fn try_convert_type(
             let id = values.remove("id").cloned().map(IotaMoveValue::from);
             if let Some(IotaMoveValue::Address(address)) = id {
                 return Some(IotaMoveValue::UID {
-                    id: ObjectID::from(address),
+                    id: ObjectId::from(address),
                 });
             }
         }

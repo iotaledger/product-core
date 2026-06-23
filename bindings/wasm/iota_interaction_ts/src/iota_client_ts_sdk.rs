@@ -11,7 +11,7 @@ use iota_interaction::rpc_types::{
   IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
   IotaTransactionBlockEvents, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
-use iota_interaction::types::base_types::{IotaAddress, ObjectID, SequenceNumber};
+use iota_interaction::types::base_types::{IotaAddress, SequenceNumber};
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
@@ -25,6 +25,7 @@ use iota_interaction::{
   CoinReadTrait, EventTrait, IotaClientTrait, IotaKeySignature, IotaTransactionBlockResponseT, QuorumDriverTrait,
   ReadTrait,
 };
+use iota_sdk_types::ObjectId;
 use secret_storage::Signer;
 
 use crate::bindings::{ManagedWasmIotaClient, WasmIotaClient, WasmIotaTransactionBlockResponseWrapper};
@@ -161,7 +162,7 @@ impl ReadTrait for ReadAdapter {
 
   async fn get_dynamic_field_object(
     &self,
-    parent_object_id: ObjectID,
+    parent_object_id: ObjectId,
     name: DynamicFieldName,
   ) -> IotaRpcResult<IotaObjectResponse> {
     self.client.get_dynamic_field_object(parent_object_id, name).await
@@ -169,7 +170,7 @@ impl ReadTrait for ReadAdapter {
 
   async fn get_dynamic_field_object_v2(
     &self,
-    parent_object_id: ObjectID,
+    parent_object_id: ObjectId,
     name: DynamicFieldName,
     options: Option<IotaObjectDataOptions>,
   ) -> IotaRpcResult<IotaObjectResponse> {
@@ -181,7 +182,7 @@ impl ReadTrait for ReadAdapter {
 
   async fn get_object_with_options(
     &self,
-    object_id: ObjectID,
+    object_id: ObjectId,
     options: IotaObjectDataOptions,
   ) -> IotaRpcResult<IotaObjectResponse> {
     self.client.get_object_with_options(object_id, options).await
@@ -191,7 +192,7 @@ impl ReadTrait for ReadAdapter {
     &self,
     address: IotaAddress,
     query: Option<IotaObjectResponseQuery>,
-    cursor: Option<ObjectID>,
+    cursor: Option<ObjectId>,
     limit: Option<usize>,
   ) -> IotaRpcResult<ObjectsPage> {
     self.client.get_owned_objects(address, query, cursor, limit).await
@@ -213,7 +214,7 @@ impl ReadTrait for ReadAdapter {
 
   async fn try_get_parsed_past_object(
     &self,
-    _object_id: ObjectID,
+    _object_id: ObjectId,
     _version: SequenceNumber,
     _options: IotaObjectDataOptions,
   ) -> IotaRpcResult<IotaPastObjectResponse> {
@@ -305,7 +306,7 @@ impl CoinReadTrait for CoinReadAdapter {
     &self,
     owner: IotaAddress,
     coin_type: Option<String>,
-    cursor: Option<ObjectID>,
+    cursor: Option<ObjectId>,
     limit: Option<usize>,
   ) -> IotaRpcResult<CoinPage> {
     self.client.get_coins(owner, coin_type, cursor, limit).await
@@ -385,7 +386,7 @@ impl IotaClientTrait for IotaClientTsSdk {
 
   async fn get_past_object(
     &self,
-    object_id: ObjectID,
+    object_id: ObjectId,
     version: SequenceNumber,
   ) -> Result<IotaPastObjectResponse, Self::Error> {
     self

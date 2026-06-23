@@ -2,33 +2,39 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::cmp::Ordering;
-use std::collections::BTreeMap;
-use std::fmt::{self, Display, Formatter, Write};
-use std::string::String;
+use std::{
+    cmp::Ordering,
+    collections::BTreeMap,
+    fmt,
+    fmt::{Display, Formatter, Write},
+};
 
 use anyhow::{anyhow, bail};
 use fastcrypto::encoding::Base64;
+use iota_sdk_types::{Identifier, ObjectId, Owner, StructTag};
+use crate::types::{
+    base_types::{
+        IotaAddress, ObjectDigest, ObjectInfo, ObjectRef, ObjectType, SequenceNumber,
+        TransactionDigest,
+    },
+    error::{ExecutionError, UserInputError, UserInputResult},
+    move_package::{MovePackage, TypeOrigin, UpgradeInfo},
+};
 use super::iota_move::{IotaMoveStruct, IotaMoveValue};
 use super::iota_object_response_error::IotaObjectResponseError;
 use super::Page;
-use crate::types::base_types::{
-    Identifier, IotaAddress, ObjectID, ObjectInfo, ObjectRef, ObjectType,
-    SequenceNumber, StructTag};
-use crate::types::digests::{ObjectDigest, TransactionDigest};
-use crate::types::error::{UserInputError, UserInputResult};
-use crate::types::move_package::{MovePackage, TypeOrigin, UpgradeInfo};
-use crate::types::object::Owner;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{DeserializeAs, DisplayFromStr, SerializeAs, serde_as};
 
 use super::{
-    iota_object_response_error::IotaObjectResponseError as IotaObjectResponseErrorSchema,
     iota_owner::OwnerSchema,
     iota_primitives::{
-        SequenceNumberString as SequenceNumberStringSchema, StructTag as StructTagSchema,
+        Base58 as Base58Schema, Identifier as IdentifierSchema,
+        IotaAddress as IotaAddressSchema, ObjectId as ObjectIdSchema,
+        SequenceNumberString as SequenceNumberStringSchema,
+        SequenceNumberU64 as SequenceNumberU64Schema, StructTag as StructTagSchema,
     },
 };
 
@@ -105,7 +111,7 @@ impl IotaObjectResponse {
         None
     }
 
-    pub fn object_id(&self) -> Result<ObjectID, anyhow::Error> {
+    pub fn object_id(&self) -> Result<ObjectId, anyhow::Error> {
         Ok(match (&self.data, &self.error) {
             (Some(obj_data), None) => obj_data.object_id,
             (None, Some(IotaObjectResponseError::NotExists { object_id })) => *object_id,
@@ -141,11 +147,13 @@ pub struct DisplayFieldsResponse {
 #[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase", rename = "ObjectData")]
 pub struct IotaObjectData {
-    pub object_id: ObjectID,
+    #[serde_as(as = "ObjectIdSchema")]
+    pub object_id: ObjectId,
     /// Object version.
     #[serde_as(as = "SequenceNumberStringSchema")]
     pub version: SequenceNumber,
     /// Base64 string representing the object digest
+    #[serde_as(as = "Base58Schema")]
     pub digest: ObjectDigest,
     /// The type of the object. Default to be None unless
     /// IotaObjectDataOptions.showType is set to true
@@ -162,6 +170,7 @@ pub struct IotaObjectData {
     /// Default to be None unless IotaObjectDataOptions.
     /// showPreviousTransaction is set to true
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde_as(as = "Option<Base58Schema>")]
     pub previous_transaction: Option<TransactionDigest>,
     /// The amount of IOTA we would rebate if this object gets deleted.
     /// This number is re-calculated each time the object is mutated based on
@@ -365,14 +374,18 @@ impl IotaObjectResponse {
     }
 }
 
+#[serde_as]
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", rename = "ObjectRef")]
 pub struct ObjectRefSchema {
     /// Hex code as string representing the object id
-    pub object_id: ObjectID,
+    #[serde_as(as = "ObjectIdSchema")]
+    pub object_id: ObjectId,
     /// Object version.
+    #[serde_as(as = "SequenceNumberU64Schema")]
     pub version: SequenceNumber,
     /// Base64 string representing the object digest
+    #[serde_as(as = "Base58Schema")]
     pub digest: ObjectDigest,
 }
 
@@ -565,6 +578,7 @@ pub struct IotaRawMoveObject {
     #[serde(rename = "type")]
     #[serde_as(as = "StructTagSchema")]
     pub type_: StructTag,
+    #[serde_as(as = "SequenceNumberU64Schema")]
     pub version: SequenceNumber,
     #[serde_as(as = "Base64")]
     pub bcs_bytes: Vec<u8>,
@@ -597,7 +611,7 @@ pub struct IotaTypeOrigin {
     // `struct_name` alias to support backwards compatibility with the old name
     pub datatype_name: Identifier,
     /// `Storage ID` of the package, where the given type first appeared.
-    pub package: ObjectID,
+    pub package: ObjectId,
 }
 
 impl From<TypeOrigin> for IotaTypeOrigin {
@@ -627,9 +641,10 @@ impl From<IotaTypeOrigin> for TypeOrigin {
 /// Directly modifying any field is undefined behavior. The fields are only
 /// public for read-only access.
 #[serde_as]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct IotaUpgradeInfo {
     /// `Storage ID`/`Package ID` of the referred package.
-    pub upgraded_id: ObjectID,
+    pub upgraded_id: ObjectId,
     /// The version of the package at `upgraded_id`.
     pub upgraded_version: SequenceNumber,
 }
@@ -656,12 +671,15 @@ impl From<IotaUpgradeInfo> for UpgradeInfo {
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 #[serde(rename = "RawMovePackage", rename_all = "camelCase")]
 pub struct IotaRawMovePackage {
-    pub id: ObjectID,
+    #[serde_as(as = "ObjectIdSchema")]
+    pub id: ObjectId,
+    #[serde_as(as = "SequenceNumberU64Schema")]
     pub version: SequenceNumber,
     #[serde_as(as = "BTreeMap<_, Base64>")]
     pub module_map: BTreeMap<String, Vec<u8>>,
     pub type_origin_table: Vec<TypeOrigin>,
-    pub linkage_table: BTreeMap<ObjectID, UpgradeInfo>,
+    #[serde_as(as = "BTreeMap<ObjectIdSchema, _>")]
+    pub linkage_table: BTreeMap<ObjectId, IotaUpgradeInfo>,
 }
 
 impl From<MovePackage> for IotaRawMovePackage {
@@ -670,16 +688,44 @@ impl From<MovePackage> for IotaRawMovePackage {
             id: p.id(),
             version: p.version(),
             module_map: p
-                .serialized_module_map()
-                .iter()
-                .map(|(k, v)| (k.to_string(), v.clone()))
+                .modules
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
                 .collect(),
-            type_origin_table: p.type_origin_table().clone(),
-            linkage_table: p.linkage_table().clone(),
+            type_origin_table: p.type_origin_table,
+            linkage_table: p
+                .linkage_table
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
         }
     }
 }
 
+impl IotaRawMovePackage {
+    pub fn to_move_package(
+        &self,
+        max_move_package_size: u64,
+    ) -> Result<MovePackage, ExecutionError> {
+        Ok(MovePackage::new(
+            self.id,
+            self.version,
+            self.module_map
+                .iter()
+                .map(|(k, v)| (Identifier::new_unchecked(k), v.clone()))
+                .collect(),
+            max_move_package_size,
+            self.type_origin_table.clone(),
+            self.linkage_table
+                .clone()
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+        )?)
+    }
+}
+
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "status", content = "details", rename = "ObjectRead")]
 #[expect(clippy::large_enum_variant)]
@@ -687,17 +733,29 @@ pub enum IotaPastObjectResponse {
     /// The object exists and is found with this version
     VersionFound(IotaObjectData),
     /// The object does not exist
-    ObjectNotExists(ObjectID),
+    ObjectNotExists(
+        #[serde_as(as = "ObjectIdSchema")]
+        ObjectId,
+    ),
     /// The object is found to be deleted with this version
     ObjectDeleted(
+        #[serde_as(as = "ObjectRefSchema")]
         ObjectRef,
     ),
     /// The object exists but not found with this version
-    VersionNotFound(ObjectID, SequenceNumber),
+    VersionNotFound(
+        #[serde_as(as = "ObjectIdSchema")]
+        ObjectId,
+        #[serde_as(as = "SequenceNumberU64Schema")]
+        SequenceNumber,
+    ),
     /// The asked object version is higher than the latest
     VersionTooHigh {
-        object_id: ObjectID,
+        #[serde_as(as = "ObjectIdSchema")]
+        object_id: ObjectId,
+        #[serde_as(as = "SequenceNumberU64Schema")]
         asked_version: SequenceNumber,
+        #[serde_as(as = "SequenceNumberU64Schema")]
         latest_version: SequenceNumber,
     },
 }
@@ -760,14 +818,16 @@ pub struct IotaMovePackage {
     pub disassembled: BTreeMap<String, Value>,
 }
 
-pub type ObjectsPage = Page<IotaObjectResponse, ObjectID>;
+// CheckpointedObjectID is not available at the moment
+pub type ObjectsPage = Page<IotaObjectResponse, ObjectId>;
 
 #[serde_as]
 #[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 #[serde(rename = "GetPastObjectRequest", rename_all = "camelCase")]
 pub struct IotaGetPastObjectRequest {
     /// the ID of the queried object
-    pub object_id: ObjectID,
+    #[serde_as(as = "ObjectIdSchema")]
+    pub object_id: ObjectId,
     /// the version of the queried object.
     #[serde_as(as = "SequenceNumberStringSchema")]
     pub version: SequenceNumber,
@@ -780,12 +840,17 @@ pub enum IotaObjectDataFilter {
     MatchAny(Vec<IotaObjectDataFilter>),
     MatchNone(Vec<IotaObjectDataFilter>),
     /// Query by type a specified Package.
-    Package(ObjectID),
+    Package(
+        #[serde_as(as = "ObjectIdSchema")]
+        ObjectId,
+    ),
     /// Query by type a specified Move module.
     MoveModule {
         /// the Move package ID
-        package: ObjectID,
+        #[serde_as(as = "ObjectIdSchema")]
+        package: ObjectId,
         /// the module name
+        #[serde_as(as = "IdentifierSchema")]
         module: Identifier,
     },
     /// Query by type
@@ -793,11 +858,23 @@ pub enum IotaObjectDataFilter {
         #[serde_as(as = "StructTagSchema")]
         StructTag,
     ),
-    AddressOwner(IotaAddress),
-    ObjectOwner(ObjectID),
-    ObjectId(ObjectID),
+    AddressOwner(
+        #[serde_as(as = "IotaAddressSchema")]
+        IotaAddress,
+    ),
+    ObjectOwner(
+        #[serde_as(as = "ObjectIdSchema")]
+        ObjectId,
+    ),
+    ObjectId(
+        #[serde_as(as = "ObjectIdSchema")]
+        ObjectId,
+    ),
     // allow querying for multiple object ids
-    ObjectIds(Vec<ObjectID>),
+    ObjectIds(
+        #[serde_as(as = "Vec<ObjectIdSchema>")]
+        Vec<ObjectId>,
+    ),
     Version(
         #[serde_as(as = "DisplayFromStr")]
         u64,
@@ -840,11 +917,11 @@ impl IotaObjectDataFilter {
                 }
             }
             IotaObjectDataFilter::MoveModule { package, module } => {
-                matches!(&object.type_, ObjectType::Struct(s) if &ObjectID::from(s.address()) == package
+                matches!(&object.type_, ObjectType::Struct(s) if &ObjectId::from(s.address()) == package
                         && s.module() == module)
             }
             IotaObjectDataFilter::Package(p) => {
-                matches!(&object.type_, ObjectType::Struct(s) if &ObjectID::from(s.address()) == p)
+                matches!(&object.type_, ObjectType::Struct(s) if &ObjectId::from(s.address()) == p)
             }
             IotaObjectDataFilter::AddressOwner(a) => {
                 matches!(object.owner, Owner::Address(addr) if &addr == a)
