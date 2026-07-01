@@ -3,12 +3,15 @@
 
 use std::borrow::Cow;
 
-use iota_sdk::types::TypeTag;
-
-use crate::network::Network;
+use crate::{network::Network, product_client::ProductClient};
+use iota_sdk::{
+    move_types::iota_framework::object::UID,
+    types::{ObjectId, TypeTag},
+};
+use serde::{Deserialize, Deserializer};
 
 pub trait MoveType {
-    fn move_type(network: Network) -> Result<TypeTag, UnknownTypeForNetwork>;
+    fn move_type(client: &impl ProductClient) -> TypeTag;
 }
 
 #[derive(Debug, Clone, thiserror::Error)]
@@ -26,4 +29,11 @@ impl UnknownTypeForNetwork {
             network,
         }
     }
+}
+
+pub fn deserialize_object_id_from_uid<'de, D>(deserializer: D) -> Result<ObjectId, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    UID::deserialize(deserializer).map(|uid| *uid.object_id())
 }

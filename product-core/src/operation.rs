@@ -108,7 +108,7 @@ impl<O: Operation> OperationBuilder<O> {
     ) -> Result<(O, Transaction), OperationError> {
         let tx_builder = self
             .operation
-            .to_transaction(client, self.initialize_tx_builder(sender_signer, client))
+            .to_transaction(client, self.initialize_tx_builder(sender_signer, client.as_ref()))
             .await
             .map_err(|e| OperationError::Build(e.into()))?;
 
@@ -127,7 +127,7 @@ impl<O: Operation> OperationBuilder<O> {
     ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
         let tx_builder = self
             .operation
-            .to_transaction(client, self.initialize_tx_builder(signer, client))
+            .to_transaction(client, self.initialize_tx_builder(signer, client.as_ref()))
             .await?;
 
         let mut effects = tx_builder.execute(signer, WaitForTx::Finalized).await?;
@@ -147,7 +147,7 @@ impl<O: Operation> OperationBuilder<O> {
     ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
         let tx_builder = self
             .operation
-            .to_transaction(client, self.initialize_tx_builder(sender_signer, client))
+            .to_transaction(client, self.initialize_tx_builder(sender_signer, client.as_ref()))
             .await?;
 
         let mut effects = tx_builder
@@ -169,7 +169,7 @@ impl<O: Operation> OperationBuilder<O> {
     ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
         let mut tx_builder = self
             .operation
-            .to_transaction(client, self.initialize_tx_builder(signer, client))
+            .to_transaction(client, self.initialize_tx_builder(signer, client.as_ref()))
             .await?;
         {
             let tx_builder_gas_station = tx_builder.gas_station_sponsor(gas_station_options.url);

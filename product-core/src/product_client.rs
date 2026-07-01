@@ -1,25 +1,26 @@
 // Copyright 2020-2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::ops::Deref;
+use std::pin::pin;
 
-use futures::stream::Stream;
+use futures::{StreamExt, TryStreamExt, stream::Stream};
 use iota_sdk::{
     graphql_client::{
         Client as IotaClient, Page, error::Error as IotaClientError, query_types::ObjectFilter,
         streams::stream_paginated_query,
     },
-    types::ObjectId,
+    types::{Address, ObjectId},
 };
 use serde::de::DeserializeOwned;
 
-use crate::{move_type::MoveType, network::Network};
+use crate::{move_type::MoveType, network::Network, type_origin_table::TypeOriginTable};
 
-pub trait ProductClient: Deref<Target = IotaClient> + Sized {
+pub trait ProductClient: AsRef<IotaClient> + Sized + Send + Sync {
     fn network(&self) -> Network;
+    fn type_origin_table(&self) -> &TypeOriginTable;
     fn package_id(&self) -> ObjectId;
 
-    fn objects_content_stream<'a, T>(
+    fn objects_content_stream<T>(
         &self,
         filter: impl Into<Option<ObjectFilter>>,
     ) -> impl Stream<Item = Result<T, IotaClientError>>
@@ -33,6 +34,27 @@ pub trait ProductClient: Deref<Target = IotaClient> + Sized {
             move |page_info| objects_content_paginatated(self, filter.clone(), page_info.cursor),
             Direction::Forward,
         )
+    }
+
+    fn find_object_for_address<'a, T, F>(
+        &'a self,
+        address: Address,
+        pred: F,
+    ) -> impl Future<Output = Result<Option<T>, IotaClientError>>
+    where
+        T: DeserializeOwned + MoveType + Clone + Unpin,
+        F: Fn(&T) -> bool + 'a,
+    {
+        async move {
+            let object_stream = self
+                .objects_content_stream::<T>(ObjectFilter {
+                    owner: Some(address),
+                    type_: Some(T::move_type(self).to_string()),
+                    ..Default::default()
+                })
+                .try_filter(|obj| std::future::ready(pred(obj)));
+            pin!(object_stream).next().await.transpose()
+        }
     }
 }
 
@@ -55,7 +77,7 @@ where
         cursor,
         limit: None,
     };
-    let pagination = client.pagination_filter(pagination_filter).await;
+    let pagination = client.as_ref().pagination_filter(pagination_filter).await;
     let operation = ObjectsQuery::build(ObjectsQueryArgs {
         after: pagination.after,
         before: pagination.before,
@@ -64,7 +86,7 @@ where
         last: pagination.last,
     });
 
-    let response = client.run_query(&operation).await?;
+    let response = client.as_ref().run_query(&operation).await?;
 
     let oc = response.objects;
     let page_info = oc.page_info;
