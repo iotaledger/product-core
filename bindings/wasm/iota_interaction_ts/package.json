@@ -39,7 +39,7 @@
     "typescript": "^5.7.3"
   },
   "peerDependencies": {
-    "@iota/iota-sdk": "^1.14.0"
+    "@iota/iota-sdk": "^1.15.0"
   },
   "engines": {
     "node": ">=20"
