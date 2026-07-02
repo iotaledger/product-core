@@ -5,7 +5,7 @@
 use std::fmt::{self, Display, Formatter};
 use std::vec::Vec;
 use iota_sdk_types::{
-    ExecutionStatus, ObjectId, Owner, TypeTag,
+    Address, ExecutionStatus, ObjectId, Owner, TypeTag,
 };
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
@@ -15,7 +15,7 @@ use crate::iota_types::base_types::EpochId;
 use crate::iota_types::digests::{TransactionDigest, TransactionEventsDigest};
 use crate::iota_types::gas::GasCostSummary;
 use crate::iota_types::storage::{DeleteKind, WriteKind};
-use crate::types::base_types::{IotaAddress, ObjectRef, SequenceNumber};
+use crate::types::base_types::{ObjectRef, SequenceNumber};
 use crate::types::parse_iota_type_tag;
 use crate::types::quorum_driver_types::ExecuteTransactionRequestType as NativeExecuteTransactionRequestType;
 
@@ -25,7 +25,7 @@ use super::{
     iota_owner::OwnerSchema,
     iota_primitives::{
         Base58 as Base58Schema,
-        IotaAddress as IotaAddressSchema, ObjectId as ObjectIdSchema,
+        Address as AddressSchema, ObjectId as ObjectIdSchema,
         SequenceNumberString as SequenceNumberStringSchema,
     },
 };
@@ -375,8 +375,8 @@ pub struct IotaTransactionBlockEvents {
 pub struct DevInspectArgs {
     /// The sponsor of the gas for the transaction, might be different from the
     /// sender.
-    #[serde_as(as = "Option<IotaAddressSchema>")]
-    pub gas_sponsor: Option<IotaAddress>,
+    #[serde_as(as = "Option<AddressSchema>")]
+    pub gas_sponsor: Option<Address>,
     /// The gas budget for the transaction.
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub gas_budget: Option<u64>,

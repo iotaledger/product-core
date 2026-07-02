@@ -7,10 +7,10 @@ use iota_interaction::rpc_types::{
   IotaData, IotaObjectData, IotaObjectDataFilter, IotaObjectDataOptions, IotaObjectResponseQuery, IotaParsedData,
   OwnedObjectRef,
 };
-use iota_interaction::types::base_types::{IotaAddress, ObjectRef};
+use iota_interaction::types::base_types::ObjectRef;
 use iota_interaction::types::crypto::PublicKey;
 use iota_interaction::{IotaClientTrait, IotaKeySignature, MoveType};
-use iota_sdk_types::{ObjectId, StructTag};
+use iota_sdk_types::{Address, ObjectId, StructTag};
 use secret_storage::Signer;
 use serde::de::DeserializeOwned;
 
@@ -115,7 +115,7 @@ pub trait CoreClientReadOnly {
   /// # Returns
   ///
   /// Returns `Ok(Some(T))` if the object is found, `Ok(None)` if not found,
-  async fn find_object_for_address<T, P>(&self, address: IotaAddress, predicate: P) -> anyhow::Result<Option<T>>
+  async fn find_object_for_address<T, P>(&self, address: Address, predicate: P) -> anyhow::Result<Option<T>>
   where
     T: MoveType + DeserializeOwned,
     P: Fn(&T) -> bool + Send,
@@ -179,11 +179,7 @@ pub trait CoreClientReadOnly {
   /// # Returns
   ///
   /// Returns `Ok(Vec<ObjectRef>)` if the coins are found, or an error if the operation fails.
-  async fn get_iota_coins_with_at_least_balance(
-    &self,
-    owner: IotaAddress,
-    balance: u64,
-  ) -> anyhow::Result<Vec<ObjectRef>> {
+  async fn get_iota_coins_with_at_least_balance(&self, owner: Address, balance: u64) -> anyhow::Result<Vec<ObjectRef>> {
     let mut coins = self
       .client_adapter()
       .coin_read_api()
@@ -210,7 +206,7 @@ pub trait CoreClientReadOnly {
   /// that matches `tag` and for which `predicate` returns `true`.
   async fn find_owned_ref_for_address<P>(
     &self,
-    address: IotaAddress,
+    address: Address,
     tag: StructTag,
     predicate: P,
   ) -> Result<Option<ObjectRef>, anyhow::Error>
@@ -253,7 +249,7 @@ pub trait CoreClient<S: Signer<IotaKeySignature>>: CoreClientReadOnly {
   fn signer(&self) -> &S;
 
   /// Returns this Client's sender address
-  fn sender_address(&self) -> IotaAddress;
+  fn sender_address(&self) -> Address;
 
   /// Returns the bytes of the sender's public key.
   fn sender_public_key(&self) -> &PublicKey;

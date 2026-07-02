@@ -6,11 +6,11 @@ use std::str::FromStr as _;
 
 use anyhow::{anyhow, Context as _};
 use fastcrypto::traits::EncodeDecodeBase64 as _;
+use iota_sdk_types::Address;
 use jsonpath_rust::JsonPathQuery as _;
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::types::base_types::IotaAddress;
 use crate::types::crypto::PublicKey;
 
 #[derive(Debug, Clone)]
@@ -75,10 +75,10 @@ impl IotaCliWrapper {
   }
 
   /// Returns the current active address.
-  pub fn get_active_address(&self) -> anyhow::Result<IotaAddress> {
+  pub fn get_active_address(&self) -> anyhow::Result<Address> {
     self
       .run_command("client active-address")
-      .and_then(|value| serde_json::from_value(value).context("failed to parse IotaAddress from output"))
+      .and_then(|value| serde_json::from_value(value).context("failed to parse Address from output"))
   }
 
   fn get_key_impl(&self, json_path_query: &str) -> anyhow::Result<Option<(PublicKey, String)>> {
@@ -104,8 +104,8 @@ impl IotaCliWrapper {
   }
 
   /// Returns the public key of a given address, if any.
-  pub fn get_key(&self, address: IotaAddress) -> anyhow::Result<Option<(PublicKey, String)>> {
-    let query = format!("$[?(@.iotaAddress==\"{address}\")]");
+  pub fn get_key(&self, address: Address) -> anyhow::Result<Option<(PublicKey, String)>> {
+    let query = format!("$[?(@.Address==\"{address}\")]");
     self.get_key_impl(&query)
   }
 

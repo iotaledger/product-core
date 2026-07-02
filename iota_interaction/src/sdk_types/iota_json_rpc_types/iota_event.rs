@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use fastcrypto::encoding::{Base58, Base64};
-use iota_sdk_types::{Identifier, ObjectId, StructTag};
+use iota_sdk_types::{Address, Identifier, ObjectId, StructTag};
 use crate::types::{
-    base_types::{IotaAddress, TransactionDigest},
+    base_types::TransactionDigest,
     event::EventID,
 };
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,7 @@ use super::{
     Page,
     iota_primitives::{
         Base58 as Base58Schema, Identifier as IdentifierSchema,
-        IotaAddress as IotaAddressSchema, ObjectId as ObjectIdSchema, StructTag as StructTagSchema,
+        Address as AddressSchema, ObjectId as ObjectIdSchema, StructTag as StructTagSchema,
     },
 };
 
@@ -69,8 +69,8 @@ pub struct IotaEvent {
     /// Move module where this event was emitted.
     pub transaction_module: Identifier,
     /// Sender's IOTA address.
-    #[serde_as(as = "IotaAddressSchema")]
-    pub sender: IotaAddress,
+    #[serde_as(as = "AddressSchema")]
+    pub sender: Address,
     /// Move event type.
     #[serde_as(as = "StructTagSchema")]
     pub type_: StructTag,
@@ -165,8 +165,8 @@ impl From<MaybeTaggedBcsEvent> for BcsEvent {
 pub enum EventFilter {
     /// Query by sender address.
     Sender(
-        #[serde_as(as = "IotaAddressSchema")]
-        IotaAddress,
+        #[serde_as(as = "AddressSchema")]
+        Address,
     ),
     /// Return events emitted by the given transaction.
     Transaction(

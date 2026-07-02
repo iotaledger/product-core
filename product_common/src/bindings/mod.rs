@@ -15,5 +15,5 @@ pub mod utils;
 
 pub use iota_interaction_ts::wasm_error;
 
-pub type WasmIotaAddress = String;
+pub type WasmAddress = String;
 pub type WasmObjectID = String;

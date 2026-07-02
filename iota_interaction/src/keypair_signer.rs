@@ -3,9 +3,9 @@
 
 use anyhow::anyhow;
 use async_trait::async_trait;
+use iota_sdk_types::Address;
 use secret_storage::{Error as SecretStorageError, Signer};
 
-use crate::types::base_types::IotaAddress;
 use crate::types::crypto::{IotaKeyPair, PublicKey, Signature};
 use crate::types::transaction::TransactionData;
 use crate::IotaKeySignature;
@@ -46,10 +46,10 @@ impl KeyPairSigner {
 #[cfg_attr(feature = "send-sync-transaction", async_trait)]
 #[cfg_attr(not(feature = "send-sync-transaction"), async_trait(?Send))]
 impl Signer<IotaKeySignature> for KeyPairSigner {
-  type KeyId = IotaAddress;
+  type KeyId = Address;
 
   fn key_id(&self) -> Self::KeyId {
-    IotaAddress::from(&self.0.public())
+    Address::from(&self.0.public())
   }
 
   async fn public_key(&self) -> Result<PublicKey, SecretStorageError> {

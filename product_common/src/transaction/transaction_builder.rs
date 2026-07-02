@@ -10,15 +10,13 @@ use iota_interaction::rpc_types::{
   IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI as _, IotaTransactionBlockEvents,
   IotaTransactionBlockResponseOptions,
 };
-use iota_interaction::types::base_types::{IotaAddress, ObjectRef};
+use iota_interaction::types::base_types::ObjectRef;
 use iota_interaction::types::crypto::{IotaSignature as _, PublicKey, Signature};
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
-use iota_interaction::types::transaction::{
-  GasData, ProgrammableTransaction, TransactionData, TransactionDataAPI as _, TransactionDataV1, TransactionExpiration,
-  TransactionKind,
-};
+use iota_interaction::types::transaction::{GasData, TransactionData, TransactionDataAPI as _, TransactionDataV1};
 use iota_interaction::{IotaClientTrait, IotaKeySignature, OptionalSend, OptionalSync};
 use iota_sdk_types::crypto::{Intent, IntentMessage};
+use iota_sdk_types::{Address, ProgrammableTransaction, TransactionExpiration, TransactionKind};
 use itertools::Itertools;
 use secret_storage::Signer;
 
@@ -93,7 +91,7 @@ pub trait Transaction: Sized {
 #[derive(Debug, Default, Clone)]
 struct PartialGasData {
   objects: Vec<ObjectRef>,
-  owner: Option<IotaAddress>,
+  owner: Option<Address>,
   price: Option<u64>,
   budget: Option<u64>,
 }
@@ -113,7 +111,7 @@ impl PartialGasData {
   fn into_gas_data_with_defaults(self) -> GasData {
     GasData {
       objects: self.objects,
-      owner: self.owner.unwrap_or(IotaAddress::ZERO),
+      owner: self.owner.unwrap_or(Address::ZERO),
       price: self.price.unwrap_or_default(),
       budget: self.budget.unwrap_or_default(),
     }
@@ -159,7 +157,7 @@ impl MutGasDataRef<'_> {
   }
 }
 
-fn new_with_gas_data(sender: IotaAddress, gas_data: GasData, pt: ProgrammableTransaction) -> TransactionData {
+fn new_with_gas_data(sender: Address, gas_data: GasData, pt: ProgrammableTransaction) -> TransactionData {
   TransactionData::V1(TransactionDataV1 {
     sender,
     gas_payment: gas_data,
@@ -172,7 +170,7 @@ fn new_with_gas_data(sender: IotaAddress, gas_data: GasData, pt: ProgrammableTra
 #[derive(Debug)]
 pub struct TransactionBuilder<Tx> {
   programmable_tx: Option<ProgrammableTransaction>,
-  sender: Option<IotaAddress>,
+  sender: Option<Address>,
   gas: PartialGasData,
   signatures: Vec<Signature>,
   tx: Tx,
@@ -227,7 +225,7 @@ where
       .public_key()
       .await
       .map_err(|e| Error::TransactionBuildingFailed(e.to_string()))?;
-    let signer_address = IotaAddress::from(&pk);
+    let signer_address = Address::from(&pk);
 
     let matches_sender = self.sender.map_or(true, |sender| sender == signer_address);
     let matches_gas_owner = self.gas.owner.map_or(true, |owner| owner == signer_address);
@@ -280,7 +278,7 @@ where
       intent_msg.value.gas_data_mut(),
       GasData {
         objects: vec![],
-        owner: IotaAddress::ZERO,
+        owner: Address::ZERO,
         price: 0,
         budget: 0,
       },
@@ -315,7 +313,7 @@ where
     C: CoreClientReadOnly + OptionalSync,
   {
     if self.sender.is_none() {
-      self.sender = Some(IotaAddress::ZERO);
+      self.sender = Some(Address::ZERO);
     }
     let tx_data = self
       .transaction_data_with_partial_gas(client)
@@ -463,7 +461,7 @@ impl<Tx> TransactionBuilder<Tx> {
   }
 
   /// Sets the address that will execute the transaction.
-  pub fn with_sender(mut self, sender: IotaAddress) -> Self {
+  pub fn with_sender(mut self, sender: Address) -> Self {
     self.sender = Some(sender);
     self
   }
@@ -481,7 +479,7 @@ impl<Tx> TransactionBuilder<Tx> {
   }
 
   /// Sets the gas owner.
-  pub fn with_gas_owner(mut self, address: IotaAddress) -> Self {
+  pub fn with_gas_owner(mut self, address: Address) -> Self {
     self.gas.owner = Some(address);
     self
   }
@@ -565,12 +563,12 @@ where
 }
 
 /// Extract the signer's address from an IOTA [Signature].
-fn address_from_signature(signature: &Signature) -> IotaAddress {
+fn address_from_signature(signature: &Signature) -> Address {
   let scheme = signature.scheme();
   let pk_bytes = signature.public_key_bytes();
   let pk = PublicKey::try_from_bytes(scheme, pk_bytes).expect("valid signature hence valid key");
 
-  IotaAddress::from(&pk)
+  Address::from(&pk)
 }
 
 #[cfg(feature = "gas-station")]

@@ -14,7 +14,7 @@ use fastcrypto::encoding::Base64;
 use iota_sdk_types::{Identifier, ObjectId, Owner, StructTag};
 use crate::types::{
     base_types::{
-        IotaAddress, ObjectDigest, ObjectInfo, ObjectRef, ObjectType, SequenceNumber,
+        Address, ObjectDigest, ObjectInfo, ObjectRef, ObjectType, SequenceNumber,
         TransactionDigest,
     },
     error::{ExecutionError, UserInputError, UserInputResult},
@@ -32,7 +32,7 @@ use super::{
     iota_owner::OwnerSchema,
     iota_primitives::{
         Base58 as Base58Schema, Identifier as IdentifierSchema,
-        IotaAddress as IotaAddressSchema, ObjectId as ObjectIdSchema,
+        Address as AddressSchema, ObjectId as ObjectIdSchema,
         SequenceNumberString as SequenceNumberStringSchema,
         SequenceNumberU64 as SequenceNumberU64Schema, StructTag as StructTagSchema,
     },
@@ -859,8 +859,8 @@ pub enum IotaObjectDataFilter {
         StructTag,
     ),
     AddressOwner(
-        #[serde_as(as = "IotaAddressSchema")]
-        IotaAddress,
+        #[serde_as(as = "AddressSchema")]
+        Address,
     ),
     ObjectOwner(
         #[serde_as(as = "ObjectIdSchema")]

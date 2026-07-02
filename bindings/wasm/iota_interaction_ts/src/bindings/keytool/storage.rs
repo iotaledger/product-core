@@ -3,9 +3,9 @@
 
 use std::str::FromStr;
 
-use iota_interaction::types::base_types::IotaAddress;
 use iota_interaction::types::crypto::{IotaKeyPair, SignatureScheme};
 use iota_interaction::KeytoolStorage;
+use iota_sdk_types::Address;
 use js_sys::{Array, JsString};
 use wasm_bindgen::prelude::*;
 
@@ -53,7 +53,7 @@ impl WasmKeytoolStorage {
   /// to sign transactions. If no address is provided the current active
   /// one will be used.
   pub fn signer(&self, address: Option<String>) -> Result<WasmKeytoolSigner> {
-    let address = address.map(|s| IotaAddress::from_str(&s)).transpose().wasm_result()?;
+    let address = address.map(|s| Address::from_str(&s)).transpose().wasm_result()?;
     let mut signer_builder = self.0.signer();
     if let Some(address) = address {
       signer_builder = signer_builder.with_address(address);

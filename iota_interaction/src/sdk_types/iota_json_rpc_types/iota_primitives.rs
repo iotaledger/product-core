@@ -25,11 +25,12 @@ use fastcrypto::{
 use iota_sdk_types::{
     Digest, Identifier as NativeIdentifier, ObjectId as NativeObjectId,
     StructTag as NativeStructTag, TypeTag as NativeTypeTag,
+    Address as NativeAddress, 
 };
 
 use crate::types::{
     self as iota_types,
-    base_types::{IotaAddress as NativeIotaAddress, SequenceNumber},
+    base_types::SequenceNumber,
     iota_serde::{to_iota_struct_tag_string, to_iota_type_tag_string},
     parse_iota_struct_tag, parse_iota_type_tag,
     signature::GenericSignature as NativeGenericSignature,
@@ -38,11 +39,11 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error as _, se
 use serde_with::{DeserializeAs, DisplayFromStr, SerializeAs, serde_as};
 
 /// A schema type that defines the JSON representation of the
-/// [`IotaAddress`](iota_types::base_types::IotaAddress) type.
-pub struct IotaAddress;
+/// [`Address`](iota_sdk_types::Address) type.
+pub struct Address;
 
-impl SerializeAs<NativeIotaAddress> for IotaAddress {
-    fn serialize_as<S>(value: &NativeIotaAddress, serializer: S) -> Result<S::Ok, S::Error>
+impl SerializeAs<NativeAddress> for Address {
+    fn serialize_as<S>(value: &NativeAddress, serializer: S) -> Result<S::Ok, S::Error>
     where
       S: Serializer,
     {
@@ -50,8 +51,8 @@ impl SerializeAs<NativeIotaAddress> for IotaAddress {
     }
 }
 
-impl<'de> DeserializeAs<'de, NativeIotaAddress> for IotaAddress {
-    fn deserialize_as<D>(deserializer: D) -> Result<NativeIotaAddress, D::Error>
+impl<'de> DeserializeAs<'de, NativeAddress> for Address {
+    fn deserialize_as<D>(deserializer: D) -> Result<NativeAddress, D::Error>
     where
       D: Deserializer<'de>,
     {

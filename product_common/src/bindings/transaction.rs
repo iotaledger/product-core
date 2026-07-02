@@ -164,7 +164,7 @@ impl WasmTransactionBuilder {
   pub fn with_sender(mut self, sender: &str) -> Result<Self> {
     let sender = sender
       .parse()
-      .map_err(|e| anyhow!("failed to parse IotaAddress: {e}"))
+      .map_err(|e| anyhow!("failed to parse Address: {e}"))
       .wasm_result()?;
     self.0 = self.0.with_sender(sender);
     Ok(self)

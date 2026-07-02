@@ -8,11 +8,11 @@ use fastcrypto::ed25519::Ed25519Signature;
 use fastcrypto::secp256k1::Secp256k1Signature;
 use fastcrypto::secp256r1::Secp256r1Signature;
 use fastcrypto::traits::Signer;
+use iota_sdk_types::Address;
 use serde::Deserialize;
 
 use super::internal::IotaCliWrapper;
 use super::KeytoolSignerBuilder;
-use crate::types::base_types::IotaAddress;
 use crate::types::crypto::{IotaKeyPair, PublicKey, SignatureScheme as IotaSignatureScheme};
 
 #[derive(Clone, Default)]
@@ -77,11 +77,11 @@ impl KeytoolStorage {
     Ok(alias)
   }
 
-  /// Uses the private key corresponding to [IotaAddress] `address` to sign `data`.
+  /// Uses the private key corresponding to [Address] `address` to sign `data`.
   /// ## Notes
   /// - SHA-512 is used to produce signatures when the key is ed25519.
   /// - SHA-256 is used otherwise.
-  pub fn sign_raw(&self, address: IotaAddress, data: impl AsRef<[u8]>) -> anyhow::Result<Vec<u8>> {
+  pub fn sign_raw(&self, address: Address, data: impl AsRef<[u8]>) -> anyhow::Result<Vec<u8>> {
     let cmd = format!("keytool export {address}");
     let keypair = {
       let json_output = self.iota_cli_wrapper.run_command(&cmd)?;
@@ -117,8 +117,8 @@ impl KeytoolStorage {
     Ok(())
   }
 
-  /// Returns the [PublicKey] for the given [IotaAddress] together with its alias.
-  pub fn get_key(&self, address: IotaAddress) -> anyhow::Result<Option<(PublicKey, String)>> {
+  /// Returns the [PublicKey] for the given [Address] together with its alias.
+  pub fn get_key(&self, address: Address) -> anyhow::Result<Option<(PublicKey, String)>> {
     self.iota_cli_wrapper.get_key(address)
   }
 
@@ -131,7 +131,7 @@ impl KeytoolStorage {
 #[derive(Deserialize)]
 struct KeyGenOutput {
   alias: String,
-  address: IotaAddress,
+  address: Address,
 }
 
 #[derive(Deserialize)]

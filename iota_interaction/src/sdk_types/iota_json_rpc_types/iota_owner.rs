@@ -1,13 +1,13 @@
 // Copyright (c) 2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use iota_sdk_types::{ObjectId, Owner};
-use crate::types::base_types::{IotaAddress, SequenceNumber};
+use iota_sdk_types::{Address, ObjectId, Owner};
+use crate::types::base_types::SequenceNumber;
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeAs, SerializeAs, serde_as};
 
 use super::iota_primitives::{
-    IotaAddress as IotaAddressSchema, SequenceNumberU64 as SequenceNumberU64Schema,
+    Address as AddressSchema, SequenceNumberU64 as SequenceNumberU64Schema,
 };
 
 /// Enum of different types of ownership for an object.
@@ -29,11 +29,11 @@ use super::iota_primitives::{
 #[serde(rename = "Owner")]
 pub enum OwnerSchema {
     /// Object is exclusively owned by a single address, and is mutable.
-    AddressOwner(#[serde_as(as = "IotaAddressSchema")] IotaAddress),
+    AddressOwner(#[serde_as(as = "AddressSchema")] Address),
     /// Object is exclusively owned by a single object, and is mutable.
-    /// The object ID is converted to IotaAddress as IotaAddress is
+    /// The object ID is converted to Address as Address is
     /// universal.
-    ObjectOwner(#[serde_as(as = "IotaAddressSchema")] IotaAddress),
+    ObjectOwner(#[serde_as(as = "AddressSchema")] Address),
     /// Object is shared, can be used by any address, and is mutable.
     Shared {
         /// The version at which the object became shared

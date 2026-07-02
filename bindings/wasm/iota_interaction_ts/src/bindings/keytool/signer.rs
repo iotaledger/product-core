@@ -4,8 +4,8 @@
 use std::str::FromStr;
 
 use fastcrypto::traits::EncodeDecodeBase64 as _;
-use iota_interaction::types::base_types::IotaAddress;
 use iota_interaction::{KeytoolSigner, KeytoolSignerBuilder};
+use iota_sdk_types::Address;
 use secret_storage::Signer;
 use serde_json::Value;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -40,11 +40,7 @@ impl WasmKeytoolSigner {
   /// to use the current active address and the binary found in $PATH.
   #[wasm_bindgen(constructor)]
   pub fn new(address: Option<String>, iota_bin_location: Option<String>) -> Result<WasmKeytoolSigner> {
-    let address = address
-      .as_deref()
-      .map(IotaAddress::from_str)
-      .transpose()
-      .wasm_result()?;
+    let address = address.as_deref().map(Address::from_str).transpose().wasm_result()?;
 
     let builder = address
       .map(|address| KeytoolSignerBuilder::new().with_address(address))

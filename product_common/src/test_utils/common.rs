@@ -8,15 +8,13 @@ use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use iota_interaction::move_types::language_storage::StructTag;
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI};
-use iota_interaction::types::base_types::IotaAddress;
 use iota_interaction::types::crypto::SignatureScheme;
 use iota_interaction::types::programmable_transaction_builder::ProgrammableTransactionBuilder;
-use iota_interaction::types::transaction::ProgrammableTransaction;
 use iota_interaction::types::IOTA_FRAMEWORK_PACKAGE_ID;
 use iota_interaction::{ident_str, IotaClientTrait, IotaKeySignature, IotaTransactionBlockEffectsMutAPI, OptionalSync};
 use iota_sdk::rpc_types::{IotaObjectDataOptions, IotaObjectResponse};
 use iota_sdk::IotaClient;
-use iota_sdk_types::{ObjectId, Owner, TypeTag};
+use iota_sdk_types::{Address, ObjectId, Owner, ProgrammableTransaction, TypeTag};
 use lazy_static::lazy_static;
 use secret_storage::Signer;
 use serde::Deserialize;
@@ -115,12 +113,12 @@ pub async fn get_cached_id(network_id: &str, cached_pkg_file: Option<&str>) -> a
 ///
 /// # Returns
 ///
-/// * `Ok(IotaAddress)` - The active address.
+/// * `Ok(Address)` - The active address.
 ///
 /// # Errors
 ///
 /// * `anyhow::Error` - An error occurred.
-pub async fn get_active_address() -> anyhow::Result<IotaAddress> {
+pub async fn get_active_address() -> anyhow::Result<Address> {
   Command::new("iota")
     .arg("client")
     .arg("active-address")
@@ -128,7 +126,7 @@ pub async fn get_active_address() -> anyhow::Result<IotaAddress> {
     .output()
     .await
     .context("Failed to execute command")
-    .and_then(|output| Ok(serde_json::from_slice::<IotaAddress>(&output.stdout)?))
+    .and_then(|output| Ok(serde_json::from_slice::<Address>(&output.stdout)?))
 }
 
 /// Publishes the product package.
@@ -147,7 +145,7 @@ pub async fn get_active_address() -> anyhow::Result<IotaAddress> {
 ///
 /// * `anyhow::Error` - An error occurred.
 pub async fn publish_package(
-  active_address: IotaAddress,
+  active_address: Address,
   script_file: &str,
   cached_pkg_file: &str,
 ) -> anyhow::Result<ObjectId> {
@@ -186,7 +184,7 @@ struct GasObjectHelper {
 }
 
 /// Retrieves the balance of the given address.
-pub async fn get_balance(address: IotaAddress) -> anyhow::Result<u64> {
+pub async fn get_balance(address: Address) -> anyhow::Result<u64> {
   let output = Command::new("iota")
     .arg("client")
     .arg("gas")
@@ -210,7 +208,7 @@ pub async fn get_balance(address: IotaAddress) -> anyhow::Result<u64> {
 
 /// Retrieves a test coin for the given recipient.
 #[cfg(feature = "transaction")]
-pub async fn get_test_coin<S, C>(recipient: IotaAddress, client: &C) -> anyhow::Result<ObjectId>
+pub async fn get_test_coin<S, C>(recipient: Address, client: &C) -> anyhow::Result<ObjectId>
 where
   S: Signer<IotaKeySignature> + OptionalSync,
   C: CoreClient<S> + OptionalSync,
@@ -230,12 +228,12 @@ where
 ///
 /// # Returns
 ///
-/// * `Ok(IotaAddress)` - The new address.
+/// * `Ok(Address)` - The new address.
 ///
 /// # Errors
 ///
 /// * `anyhow::Error` - An error occurred.
-pub async fn make_address(key_type: SignatureScheme) -> anyhow::Result<IotaAddress> {
+pub async fn make_address(key_type: SignatureScheme) -> anyhow::Result<Address> {
   if !matches!(
     key_type,
     SignatureScheme::ED25519 | SignatureScheme::Secp256k1 | SignatureScheme::Secp256r1
@@ -275,7 +273,7 @@ pub async fn make_address(key_type: SignatureScheme) -> anyhow::Result<IotaAddre
 /// A transaction that creates a coin for a given recipient.
 #[derive(Debug, Clone)]
 pub struct GetTestCoin {
-  recipient: IotaAddress,
+  recipient: Address,
 }
 
 #[cfg(feature = "transaction")]

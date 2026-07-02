@@ -8,9 +8,9 @@ use fastcrypto::hash::HashFunction;
 use iota_interaction::types::transaction::TransactionData;
 use iota_interaction::IotaKeySignature;
 use iota_keys::keystore::{AccountKeystore, InMemKeystore};
-use iota_sdk::types::base_types::IotaAddress;
 use iota_sdk::types::crypto::SignatureScheme;
 use iota_sdk_types::crypto::Intent;
+use iota_sdk_types::Address;
 use secret_storage::{SignatureScheme as SignerSignatureScheme, Signer as SignerTrait};
 use tokio::sync::RwLock;
 
@@ -67,14 +67,14 @@ impl InMemSigner {
   }
 
   /// Returns the address of the selected alias
-  pub async fn get_address(&self) -> anyhow::Result<IotaAddress> {
+  pub async fn get_address(&self) -> anyhow::Result<Address> {
     let alias = self.selected_alias.read().await;
     let address = self.keystore.get_address_by_alias(alias.clone())?;
     Ok(*address)
   }
 
   /// Add a new alias to the keystore
-  pub async fn add_alias(&mut self, alias: &str) -> anyhow::Result<(String, IotaAddress)> {
+  pub async fn add_alias(&mut self, alias: &str) -> anyhow::Result<(String, Address)> {
     let (address, _, _) = self
       .keystore
       .generate_and_add_new_key(SignatureScheme::ED25519, Some(alias.into()), None, None)

@@ -11,15 +11,15 @@ use iota_interaction::rpc_types::{
   CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaObjectDataOptions, IotaObjectResponse,
   IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
-use iota_interaction::types::base_types::{IotaAddress, SequenceNumber};
+use iota_interaction::types::base_types::SequenceNumber;
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
 use iota_interaction::types::event::EventID;
 use iota_interaction::types::iota_serde::BigInt;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
-use iota_interaction::types::transaction::{TransactionData, TransactionKind};
-use iota_sdk_types::ObjectId;
+use iota_interaction::types::transaction::TransactionData;
+use iota_sdk_types::{Address, ObjectId, TransactionKind};
 use js_sys::Promise;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -165,7 +165,7 @@ impl ManagedWasmIotaClient {
 
   pub async fn dev_inspect_transaction_block(
     &self,
-    sender_address: IotaAddress,
+    sender_address: Address,
     tx: TransactionKind,
     gas_price: Option<BigInt<u64>>,
     epoch: Option<BigInt<u64>>,
@@ -286,7 +286,7 @@ impl ManagedWasmIotaClient {
 
   pub async fn get_owned_objects(
     &self,
-    address: IotaAddress,
+    address: Address,
     query: Option<IotaObjectResponseQuery>,
     cursor: Option<ObjectId>,
     limit: Option<usize>,
@@ -420,7 +420,7 @@ impl ManagedWasmIotaClient {
 
   pub async fn get_coins(
     &self,
-    owner: IotaAddress,
+    owner: Address,
     coin_type: Option<String>,
     cursor: Option<ObjectId>,
     limit: Option<usize>,
