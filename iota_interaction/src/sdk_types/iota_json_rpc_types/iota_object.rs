@@ -11,14 +11,15 @@ use std::{
 
 use anyhow::{anyhow, bail};
 use fastcrypto::encoding::Base64;
-use iota_sdk_types::{Identifier, ObjectId, Owner, StructTag};
+use iota_sdk_types::{
+    Address, Identifier, ObjectId, Owner, StructTag,
+    move_package::{MovePackage, TypeOrigin, UpgradeInfo},
+};
 use crate::types::{
     base_types::{
-        Address, ObjectDigest, ObjectInfo, ObjectRef, ObjectType, SequenceNumber,
-        TransactionDigest,
+        ObjectDigest, ObjectInfo, ObjectRef, ObjectType, SequenceNumber, TransactionDigest,
     },
     error::{ExecutionError, UserInputError, UserInputResult},
-    move_package::{MovePackage, TypeOrigin, UpgradeInfo},
 };
 use super::iota_move::{IotaMoveStruct, IotaMoveValue};
 use super::iota_object_response_error::IotaObjectResponseError;
@@ -31,10 +32,10 @@ use serde_with::{DeserializeAs, DisplayFromStr, SerializeAs, serde_as};
 use super::{
     iota_owner::OwnerSchema,
     iota_primitives::{
-        Base58 as Base58Schema, Identifier as IdentifierSchema,
-        Address as AddressSchema, ObjectId as ObjectIdSchema,
-        SequenceNumberString as SequenceNumberStringSchema,
-        SequenceNumberU64 as SequenceNumberU64Schema, StructTag as StructTagSchema,
+        Address as AddressSchema, Base58 as Base58Schema,
+        Identifier as IdentifierSchema, ObjectId as ObjectIdSchema,
+        SequenceNumberString as SequenceNumberStringSchema, SequenceNumberU64,
+        StructTag as StructTagSchema,
     },
 };
 
@@ -382,8 +383,7 @@ pub struct ObjectRefSchema {
     #[serde_as(as = "ObjectIdSchema")]
     pub object_id: ObjectId,
     /// Object version.
-    #[serde_as(as = "SequenceNumberU64Schema")]
-    pub version: SequenceNumber,
+    pub version: SequenceNumberU64,
     /// Base64 string representing the object digest
     #[serde_as(as = "Base58Schema")]
     pub digest: ObjectDigest,
@@ -413,15 +413,15 @@ impl From<ObjectRef> for ObjectRefSchema {
     fn from(oref: ObjectRef) -> Self {
         Self {
             object_id: oref.object_id,
-            version: oref.version,
+            version: oref.version.into(),
             digest: oref.digest,
         }
         }
-    }
+}
 
 impl From<ObjectRefSchema> for ObjectRef {
     fn from(oref: ObjectRefSchema) -> Self {
-        ObjectRef::new(oref.object_id, oref.version, oref.digest)
+        ObjectRef::new(oref.object_id, oref.version.into(), oref.digest)
     }
 }
 
@@ -578,8 +578,7 @@ pub struct IotaRawMoveObject {
     #[serde(rename = "type")]
     #[serde_as(as = "StructTagSchema")]
     pub type_: StructTag,
-    #[serde_as(as = "SequenceNumberU64Schema")]
-    pub version: SequenceNumber,
+    pub version: SequenceNumberU64,
     #[serde_as(as = "Base64")]
     pub bcs_bytes: Vec<u8>,
 }
@@ -673,8 +672,7 @@ impl From<IotaUpgradeInfo> for UpgradeInfo {
 pub struct IotaRawMovePackage {
     #[serde_as(as = "ObjectIdSchema")]
     pub id: ObjectId,
-    #[serde_as(as = "SequenceNumberU64Schema")]
-    pub version: SequenceNumber,
+    pub version: SequenceNumberU64,
     #[serde_as(as = "BTreeMap<_, Base64>")]
     pub module_map: BTreeMap<String, Vec<u8>>,
     pub type_origin_table: Vec<TypeOrigin>,
@@ -686,7 +684,7 @@ impl From<MovePackage> for IotaRawMovePackage {
     fn from(p: MovePackage) -> Self {
         Self {
             id: p.id(),
-            version: p.version(),
+            version: p.version().into(),
             module_map: p
                 .modules
                 .into_iter()
@@ -709,7 +707,7 @@ impl IotaRawMovePackage {
     ) -> Result<MovePackage, ExecutionError> {
         Ok(MovePackage::new(
             self.id,
-            self.version,
+            self.version.into(),
             self.module_map
                 .iter()
                 .map(|(k, v)| (Identifier::new_unchecked(k), v.clone()))
@@ -746,17 +744,14 @@ pub enum IotaPastObjectResponse {
     VersionNotFound(
         #[serde_as(as = "ObjectIdSchema")]
         ObjectId,
-        #[serde_as(as = "SequenceNumberU64Schema")]
-        SequenceNumber,
+        SequenceNumberU64,
     ),
     /// The asked object version is higher than the latest
     VersionTooHigh {
         #[serde_as(as = "ObjectIdSchema")]
         object_id: ObjectId,
-        #[serde_as(as = "SequenceNumberU64Schema")]
-        asked_version: SequenceNumber,
-        #[serde_as(as = "SequenceNumberU64Schema")]
-        latest_version: SequenceNumber,
+        asked_version: SequenceNumberU64,
+        latest_version: SequenceNumberU64,
     },
 }
 
@@ -772,7 +767,7 @@ impl IotaPastObjectResponse {
             Self::VersionFound(o) => Ok(o),
             Self::VersionNotFound(id, seq_num) => Err(UserInputError::ObjectNotFound {
                 object_id: *id,
-                version: Some(*seq_num),
+                version: Some((*seq_num).into()),
             }),
             Self::VersionTooHigh {
                 object_id,
@@ -780,8 +775,8 @@ impl IotaPastObjectResponse {
                 latest_version,
             } => Err(UserInputError::ObjectSequenceNumberTooHigh {
                 object_id: *object_id,
-                asked_version: *asked_version,
-                latest_version: *latest_version,
+                asked_version: (*asked_version).into(),
+                latest_version: (*latest_version).into(),
             }),
         }
     }
@@ -797,7 +792,7 @@ impl IotaPastObjectResponse {
             Self::VersionFound(o) => Ok(o),
             Self::VersionNotFound(object_id, version) => Err(UserInputError::ObjectNotFound {
                 object_id,
-                version: Some(version),
+                version: Some(version.into()),
             }),
             Self::VersionTooHigh {
                 object_id,
@@ -805,8 +800,8 @@ impl IotaPastObjectResponse {
                 latest_version,
             } => Err(UserInputError::ObjectSequenceNumberTooHigh {
                 object_id,
-                asked_version,
-                latest_version,
+                asked_version: asked_version.into(),
+                latest_version: latest_version.into(),
             }),
         }
     }

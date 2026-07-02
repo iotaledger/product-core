@@ -6,6 +6,7 @@ use std::fmt::{self, Display, Formatter};
 use std::vec::Vec;
 use iota_sdk_types::{
     Address, ExecutionStatus, ObjectId, Owner, TypeTag,
+    gas::GasCostSummary,
 };
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
@@ -13,7 +14,6 @@ use serde_with::{DisplayFromStr, serde_as};
 
 use crate::iota_types::base_types::EpochId;
 use crate::iota_types::digests::{TransactionDigest, TransactionEventsDigest};
-use crate::iota_types::gas::GasCostSummary;
 use crate::iota_types::storage::{DeleteKind, WriteKind};
 use crate::types::base_types::{ObjectRef, SequenceNumber};
 use crate::types::parse_iota_type_tag;

@@ -113,26 +113,48 @@ impl<'de> DeserializeAs<'de, iota_types::base_types::SequenceNumber> for Sequenc
     }
 }
 
-/// A schema type that defines the JSON representation of the
-/// [`SequenceNumber`] type as a u64
-/// integer and uses the default serialization.
-pub struct SequenceNumberU64;
+/// JSON representation of a [`SequenceNumber`] as a u64 integer.
+///
+/// This serializes to a number as opposed to the SDK type that serializes
+/// as a string.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SequenceNumberU64(SequenceNumber);
 
-impl SerializeAs<SequenceNumber> for SequenceNumberU64 {
-    fn serialize_as<S>(value: &SequenceNumber, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
-    {
-        value.as_u64().serialize(serializer)
+impl From<SequenceNumber> for SequenceNumberU64 {
+    fn from(value: SequenceNumber) -> Self {
+        Self(value)
     }
 }
 
-impl<'de> DeserializeAs<'de, SequenceNumber> for SequenceNumberU64 {
-    fn deserialize_as<D>(deserializer: D) -> Result<SequenceNumber, D::Error>
+impl From<SequenceNumberU64> for SequenceNumber {
+    fn from(value: SequenceNumberU64) -> Self {
+        value.0
+    }
+}
+
+impl std::fmt::Display for SequenceNumberU64 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl Serialize for SequenceNumberU64 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-      D: Deserializer<'de>,
+        S: Serializer,
     {
-        Ok(SequenceNumber::from_u64(u64::deserialize(deserializer)?))
+        self.0.as_u64().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for SequenceNumberU64 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Self(SequenceNumber::from_u64(u64::deserialize(
+            deserializer,
+        )?)))
     }
 }
 
