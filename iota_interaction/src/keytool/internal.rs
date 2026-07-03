@@ -105,7 +105,7 @@ impl IotaCliWrapper {
 
   /// Returns the public key of a given address, if any.
   pub fn get_key(&self, address: Address) -> anyhow::Result<Option<(PublicKey, String)>> {
-    let query = format!("$[?(@.Address==\"{address}\")]");
+    let query = format!("$[?(@.iotaAddress==\"{address}\")]");
     self.get_key_impl(&query)
   }
 
