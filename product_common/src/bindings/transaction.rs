@@ -8,11 +8,12 @@ use async_trait::async_trait;
 use fastcrypto::traits::EncodeDecodeBase64;
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEvents};
 use iota_interaction::types::crypto::Signature;
-use iota_interaction::types::transaction::{ProgrammableTransaction, TransactionData, TransactionDataAPI as _};
+use iota_interaction::types::transaction::{TransactionData, TransactionDataAPI as _};
 use iota_interaction_ts::bindings::{
   WasmIotaTransactionBlockEffects, WasmIotaTransactionBlockEvents, WasmIotaTransactionBlockResponse, WasmObjectRef,
   WasmTransactionDataBuilder,
 };
+use iota_sdk_types::ProgrammableTransaction;
 use iota_interaction_ts::core_client::{WasmCoreClient, WasmCoreClientReadOnly};
 use js_sys::{JsString, Reflect};
 use wasm_bindgen::prelude::wasm_bindgen;
