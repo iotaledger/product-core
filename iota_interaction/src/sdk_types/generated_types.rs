@@ -9,11 +9,10 @@ use super::iota_types::quorum_driver_types::ExecuteTransactionRequestType;
 use super::types::crypto::Signature;
 use super::types::transaction::TransactionData;
 use crate::rpc_types::{DevInspectArgs, EventFilter, IotaObjectDataFilter, IotaObjectDataOptions};
-use crate::types::base_types::IotaAddress;
+use iota_sdk_types::{Address, TransactionKind};
 use crate::types::dynamic_field::DynamicFieldName;
 use crate::types::event::EventID;
 use crate::types::iota_serde::{BigInt, SequenceNumber};
-use crate::types::transaction::TransactionKind;
 // The types defined in this file:
 // * do not exist in the iota rust sdk
 // * have an equivalent type in the iota typescript sdk
@@ -309,7 +308,7 @@ pub struct DevInspectTransactionBlockParams {
 
 impl DevInspectTransactionBlockParams {
   pub fn new(
-    sender_address: IotaAddress,
+    sender_address: Address,
     tx: TransactionKind,
     gas_price: Option<BigInt<u64>>,
     epoch: Option<BigInt<u64>>,

@@ -7,9 +7,8 @@ use std::{
     fmt::{self, Display, Formatter, Write},
 };
 
-use iota_sdk_types::{Identifier, ObjectId, StructTag};
+use iota_sdk_types::{Identifier, ObjectId, StructTag, Address};
 use crate::types::{
-    base_types::IotaAddress,
     iota_sdk_types_conversions::struct_tag_core_to_sdk,
 };
 use itertools::Itertools;
@@ -21,7 +20,7 @@ use serde_with::serde_as;
 use tracing::warn;
 
 use super::iota_primitives::{
-    IotaAddress as IotaAddressSchema, ObjectId as ObjectIdSchema, StructTag as StructTagSchema,
+    Address as AddressSchema, ObjectId as ObjectIdSchema, StructTag as StructTagSchema,
 };
 
 pub type IotaMoveTypeParameterIndex = u16;
@@ -34,8 +33,8 @@ pub enum IotaMoveValue {
     Number(u32),
     Bool(bool),
     Address(
-        #[serde_as(as = "IotaAddressSchema")]
-        IotaAddress,
+        #[serde_as(as = "AddressSchema")]
+        Address,
     ),
     Vector(Vec<IotaMoveValue>),
     String(String),
@@ -116,7 +115,7 @@ impl From<MoveValue> for IotaMoveValue {
                 IotaMoveValue::Struct(value.into())
             }
             MoveValue::Signer(value) | MoveValue::Address(value) => {
-                IotaMoveValue::Address(IotaAddress::new(value.into_bytes()))
+                IotaMoveValue::Address(Address::new(value.into_bytes()))
             }
             MoveValue::Variant(MoveVariant {
                 type_,

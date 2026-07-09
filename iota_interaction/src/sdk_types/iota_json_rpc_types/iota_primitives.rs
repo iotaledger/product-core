@@ -25,11 +25,12 @@ use fastcrypto::{
 use iota_sdk_types::{
     Digest, Identifier as NativeIdentifier, ObjectId as NativeObjectId,
     StructTag as NativeStructTag, TypeTag as NativeTypeTag,
+    Address as NativeAddress, 
 };
 
 use crate::types::{
     self as iota_types,
-    base_types::{IotaAddress as NativeIotaAddress, SequenceNumber},
+    base_types::SequenceNumber,
     iota_serde::{to_iota_struct_tag_string, to_iota_type_tag_string},
     parse_iota_struct_tag, parse_iota_type_tag,
     signature::GenericSignature as NativeGenericSignature,
@@ -38,11 +39,11 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error as _, se
 use serde_with::{DeserializeAs, DisplayFromStr, SerializeAs, serde_as};
 
 /// A schema type that defines the JSON representation of the
-/// [`IotaAddress`](iota_types::base_types::IotaAddress) type.
-pub struct IotaAddress;
+/// [`Address`](iota_sdk_types::Address) type.
+pub struct Address;
 
-impl SerializeAs<NativeIotaAddress> for IotaAddress {
-    fn serialize_as<S>(value: &NativeIotaAddress, serializer: S) -> Result<S::Ok, S::Error>
+impl SerializeAs<NativeAddress> for Address {
+    fn serialize_as<S>(value: &NativeAddress, serializer: S) -> Result<S::Ok, S::Error>
     where
       S: Serializer,
     {
@@ -50,8 +51,8 @@ impl SerializeAs<NativeIotaAddress> for IotaAddress {
     }
 }
 
-impl<'de> DeserializeAs<'de, NativeIotaAddress> for IotaAddress {
-    fn deserialize_as<D>(deserializer: D) -> Result<NativeIotaAddress, D::Error>
+impl<'de> DeserializeAs<'de, NativeAddress> for Address {
+    fn deserialize_as<D>(deserializer: D) -> Result<NativeAddress, D::Error>
     where
       D: Deserializer<'de>,
     {
@@ -112,26 +113,48 @@ impl<'de> DeserializeAs<'de, iota_types::base_types::SequenceNumber> for Sequenc
     }
 }
 
-/// A schema type that defines the JSON representation of the
-/// [`SequenceNumber`] type as a u64
-/// integer and uses the default serialization.
-pub struct SequenceNumberU64;
+/// JSON representation of a [`SequenceNumber`] as a u64 integer.
+///
+/// This serializes to a number as opposed to the SDK type that serializes
+/// as a string.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SequenceNumberU64(SequenceNumber);
 
-impl SerializeAs<SequenceNumber> for SequenceNumberU64 {
-    fn serialize_as<S>(value: &SequenceNumber, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
-    {
-        value.as_u64().serialize(serializer)
+impl From<SequenceNumber> for SequenceNumberU64 {
+    fn from(value: SequenceNumber) -> Self {
+        Self(value)
     }
 }
 
-impl<'de> DeserializeAs<'de, SequenceNumber> for SequenceNumberU64 {
-    fn deserialize_as<D>(deserializer: D) -> Result<SequenceNumber, D::Error>
+impl From<SequenceNumberU64> for SequenceNumber {
+    fn from(value: SequenceNumberU64) -> Self {
+        value.0
+    }
+}
+
+impl std::fmt::Display for SequenceNumberU64 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl Serialize for SequenceNumberU64 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-      D: Deserializer<'de>,
+        S: Serializer,
     {
-        Ok(SequenceNumber::from_u64(u64::deserialize(deserializer)?))
+        self.0.as_u64().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for SequenceNumberU64 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Self(SequenceNumber::from_u64(u64::deserialize(
+            deserializer,
+        )?)))
     }
 }
 

@@ -6,7 +6,7 @@ use std::option::Option;
 use std::result::Result;
 
 use async_trait::async_trait;
-use iota_sdk_types::ObjectId;
+use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction, TransactionKind};
 use secret_storage::{SignatureScheme as SignatureSchemeSecretStorage, Signer};
 
 use crate::error::IotaRpcResult;
@@ -15,14 +15,14 @@ use crate::rpc_types::{
   IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
   IotaTransactionBlockEvents, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
-use crate::types::base_types::{IotaAddress, SequenceNumber};
+use crate::types::base_types::SequenceNumber;
 use crate::types::crypto::{PublicKey, Signature};
 use crate::types::digests::TransactionDigest;
 use crate::types::dynamic_field::DynamicFieldName;
 use crate::types::event::EventID;
 use crate::types::iota_serde::BigInt;
 use crate::types::quorum_driver_types::ExecuteTransactionRequestType;
-use crate::types::transaction::{ProgrammableTransaction, TransactionData, TransactionKind};
+use crate::types::transaction::TransactionData;
 use crate::OptionalSend;
 #[cfg(feature = "send-sync-transaction")]
 use crate::OptionalSync;
@@ -138,7 +138,7 @@ pub trait ReadTrait {
 
   async fn get_owned_objects(
     &self,
-    address: IotaAddress,
+    address: Address,
     query: Option<IotaObjectResponseQuery>,
     cursor: Option<ObjectId>,
     limit: Option<usize>,
@@ -161,7 +161,7 @@ pub trait ReadTrait {
 
   async fn dev_inspect_transaction_block(
     &self,
-    sender_address: IotaAddress,
+    sender_address: Address,
     tx: TransactionKind,
     gas_price: Option<BigInt<u64>>,
     epoch: Option<BigInt<u64>>,
@@ -176,7 +176,7 @@ pub trait CoinReadTrait {
 
   async fn get_coins(
     &self,
-    owner: IotaAddress,
+    owner: Address,
     coin_type: Option<String>,
     cursor: Option<ObjectId>,
     limit: Option<usize>,
@@ -249,11 +249,8 @@ pub trait IotaClientTrait {
     Self::Error,
   >;
 
-  async fn default_gas_budget(
-    &self,
-    sender_address: IotaAddress,
-    tx: &ProgrammableTransaction,
-  ) -> Result<u64, Self::Error>;
+  async fn default_gas_budget(&self, sender_address: Address, tx: &ProgrammableTransaction)
+    -> Result<u64, Self::Error>;
 
   async fn get_previous_version(&self, iod: IotaObjectData) -> Result<Option<IotaObjectData>, Self::Error>;
 

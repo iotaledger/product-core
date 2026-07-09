@@ -1,10 +1,9 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use iota_sdk_types::{ObjectId, TypeTag};
+use iota_sdk_types::{Address, ObjectId, TypeTag};
 use serde::Serialize;
 
-use crate::types::base_types::IotaAddress;
 use crate::IotaVerifiableCredential;
 
 pub enum TypedValue<'a, T: MoveType> {
@@ -62,7 +61,7 @@ impl MoveType for bool {
   }
 }
 
-impl MoveType for IotaAddress {
+impl MoveType for Address {
   fn move_type(_package: ObjectId) -> TypeTag {
     TypeTag::Address
   }

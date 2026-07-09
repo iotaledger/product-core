@@ -6,10 +6,10 @@ use std::path::{Path, PathBuf};
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
 use fastcrypto::encoding::{Base64, Encoding};
+use iota_sdk_types::Address;
 use secret_storage::{Error as SecretStorageError, Signer};
 
 use super::internal::IotaCliWrapper;
-use crate::types::base_types::IotaAddress;
 use crate::types::crypto::{PublicKey, Signature};
 use crate::types::transaction::TransactionData;
 use crate::IotaKeySignature;
@@ -17,7 +17,7 @@ use crate::IotaKeySignature;
 /// Builder structure to ease the creation of a [KeytoolSigner].
 #[derive(Debug, Default)]
 pub struct KeytoolSignerBuilder {
-  address: Option<IotaAddress>,
+  address: Option<Address>,
   iota_bin: Option<PathBuf>,
 }
 
@@ -31,7 +31,7 @@ impl KeytoolSignerBuilder {
 
   /// Sets the address the signer will use.
   /// Defaults to current active address if no address is provided.
-  pub fn with_address(mut self, address: IotaAddress) -> Self {
+  pub fn with_address(mut self, address: Address) -> Self {
     self.address = Some(address);
     self
   }
@@ -70,7 +70,7 @@ impl KeytoolSignerBuilder {
 pub struct KeytoolSigner {
   public_key: PublicKey,
   iota_cli_wrapper: IotaCliWrapper,
-  address: IotaAddress,
+  address: Address,
 }
 
 impl KeytoolSigner {
@@ -79,8 +79,8 @@ impl KeytoolSigner {
     KeytoolSignerBuilder::default()
   }
 
-  /// Returns the [IotaAddress] used by this [KeytoolSigner].
-  pub fn address(&self) -> IotaAddress {
+  /// Returns the [Address] used by this [KeytoolSigner].
+  pub fn address(&self) -> Address {
     self.address
   }
 
@@ -93,7 +93,7 @@ impl KeytoolSigner {
 #[cfg_attr(feature = "send-sync-transaction", async_trait)]
 #[cfg_attr(not(feature = "send-sync-transaction"), async_trait(?Send))]
 impl Signer<IotaKeySignature> for KeytoolSigner {
-  type KeyId = IotaAddress;
+  type KeyId = Address;
 
   fn key_id(&self) -> Self::KeyId {
     self.address

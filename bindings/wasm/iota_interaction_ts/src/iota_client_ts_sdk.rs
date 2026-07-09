@@ -11,21 +11,19 @@ use iota_interaction::rpc_types::{
   IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
   IotaTransactionBlockEvents, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
-use iota_interaction::types::base_types::{IotaAddress, SequenceNumber};
+use iota_interaction::types::base_types::SequenceNumber;
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
 use iota_interaction::types::event::EventID;
 use iota_interaction::types::iota_serde::BigInt;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
-use iota_interaction::types::transaction::{
-  ProgrammableTransaction as ProgrammableTransactionSdk, TransactionData, TransactionDataAPI as _, TransactionKind,
-};
+use iota_interaction::types::transaction::{TransactionData, TransactionDataAPI as _};
 use iota_interaction::{
   CoinReadTrait, EventTrait, IotaClientTrait, IotaKeySignature, IotaTransactionBlockResponseT, QuorumDriverTrait,
   ReadTrait,
 };
-use iota_sdk_types::ObjectId;
+use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction as ProgrammableTransactionSdk, TransactionKind};
 use secret_storage::Signer;
 
 use crate::bindings::{ManagedWasmIotaClient, WasmIotaClient, WasmIotaTransactionBlockResponseWrapper};
@@ -190,7 +188,7 @@ impl ReadTrait for ReadAdapter {
 
   async fn get_owned_objects(
     &self,
-    address: IotaAddress,
+    address: Address,
     query: Option<IotaObjectResponseQuery>,
     cursor: Option<ObjectId>,
     limit: Option<usize>,
@@ -228,7 +226,7 @@ impl ReadTrait for ReadAdapter {
 
   async fn dev_inspect_transaction_block(
     &self,
-    sender_address: IotaAddress,
+    sender_address: Address,
     tx: TransactionKind,
     gas_price: Option<BigInt<u64>>,
     epoch: Option<BigInt<u64>>,
@@ -304,7 +302,7 @@ impl CoinReadTrait for CoinReadAdapter {
 
   async fn get_coins(
     &self,
-    owner: IotaAddress,
+    owner: Address,
     coin_type: Option<String>,
     cursor: Option<ObjectId>,
     limit: Option<usize>,
@@ -374,7 +372,7 @@ impl IotaClientTrait for IotaClientTsSdk {
 
   async fn default_gas_budget(
     &self,
-    _sender_address: IotaAddress,
+    _sender_address: Address,
     _tx: &ProgrammableTransactionSdk,
   ) -> Result<u64, Self::Error> {
     Ok(50_000_000)
@@ -425,7 +423,7 @@ impl IotaClientTsSdk {
       .public_key()
       .await
       .map_err(|e| TsSdkError::WasmError(String::from("SecretStorage"), e.to_string()))?;
-    let sender_address = IotaAddress::from(&sender_public_key);
+    let sender_address = Address::from(&sender_public_key);
     if sender_address != tx.sender() {
       return Err(TsSdkError::WasmError("SDK".to_owned(), format!("transaction data needs to be signed by address {}, but client can only provide signature for address {sender_address}", tx.sender())));
     }

@@ -10,9 +10,10 @@ use std::time::Duration;
 use fastcrypto::encoding::{Base64, Encoding as _};
 use fastcrypto::traits::EncodeDecodeBase64 as _;
 use iota_interaction::rpc_types::IotaTransactionBlockEffects;
-use iota_interaction::types::base_types::{IotaAddress, ObjectRef};
+use iota_interaction::types::base_types::ObjectRef;
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::transaction::TransactionData;
+use iota_sdk_types::Address;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::http_client::{HeaderMap, HttpClient, Method, Request, Url, UrlParsingError};
@@ -363,7 +364,7 @@ struct ReserveGasResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct ReserveGasResult {
-  pub(crate) sponsor_address: IotaAddress,
+  pub(crate) sponsor_address: Address,
   pub(crate) reservation_id: u64,
   pub(crate) gas_coins: Vec<ObjectRef>,
 }

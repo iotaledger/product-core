@@ -3,12 +3,11 @@
 
 use std::result::Result as StdResult;
 
-use iota_interaction::types::base_types::IotaAddress;
 use iota_interaction::types::crypto::PublicKey;
 use iota_interaction_ts::bindings::{WasmIotaClient, WasmTransactionSigner};
 use iota_interaction_ts::core_client::{WasmCoreClient, WasmCoreClientReadOnly};
 use iota_interaction_ts::{IotaClientAdapter, WasmPublicKey};
-use iota_sdk_types::{AddressParseError, ObjectId};
+use iota_sdk_types::{Address, AddressParseError, ObjectId};
 use wasm_bindgen::prelude::*;
 
 use crate::bindings::wasm_error::{Result, WasmResult};
@@ -129,7 +128,7 @@ impl CoreClientReadOnly for WasmManagedCoreClientReadOnly {
 #[wasm_bindgen]
 pub struct WasmManagedCoreClient {
   signer: WasmTransactionSigner,
-  sender_address: IotaAddress,
+  sender_address: Address,
   public_key: PublicKey,
   read_only: WasmManagedCoreClientReadOnly,
 }
@@ -246,7 +245,7 @@ impl CoreClientReadOnly for WasmManagedCoreClient {
 }
 
 impl CoreClient<WasmTransactionSigner> for WasmManagedCoreClient {
-  fn sender_address(&self) -> IotaAddress {
+  fn sender_address(&self) -> Address {
     self.sender_address
   }
 

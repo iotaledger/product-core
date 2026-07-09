@@ -1,8 +1,8 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use iota_interaction::types::transaction::TransactionKind;
 use iota_interaction::ProgrammableTransactionBcs;
+use iota_sdk_types::TransactionKind;
 use js_sys::{Promise, Uint8Array};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;

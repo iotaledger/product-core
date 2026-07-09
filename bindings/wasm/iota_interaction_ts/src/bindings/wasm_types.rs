@@ -5,12 +5,12 @@ use std::str::FromStr;
 use fastcrypto::encoding::{Base64, Encoding};
 use fastcrypto::traits::EncodeDecodeBase64 as _;
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEvents, OwnedObjectRef};
-use iota_interaction::types::base_types::{IotaAddress, ObjectRef, SequenceNumber};
+use iota_interaction::types::base_types::{ObjectRef, SequenceNumber};
 use iota_interaction::types::crypto::{IotaKeyPair, PublicKey, Signature};
 use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::transaction::TransactionData;
 use iota_interaction::ProgrammableTransactionBcs;
-use iota_sdk_types::{CommandArgumentError, ObjectId, Owner};
+use iota_sdk_types::{Address, CommandArgumentError, ObjectId, Owner};
 use js_sys::{Promise, Uint8Array};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -377,7 +377,7 @@ extern "C" {
   #[wasm_bindgen(js_name = toRawBytes, method)]
   pub fn to_raw_bytes(this: &WasmPublicKey) -> Vec<u8>;
 
-  #[wasm_bindgen(js_name = toIotaAddress, method)]
+  #[wasm_bindgen(js_name = toAddress, method)]
   pub fn to_iota_address(this: &WasmPublicKey) -> String;
 
   #[wasm_bindgen(method)]
@@ -449,7 +449,7 @@ impl TryFrom<&'_ PublicKey> for WasmPublicKey {
 
     debug_assert_eq!(pk_bytes, &wasm_pk.to_raw_bytes());
     debug_assert_eq!(
-      IotaAddress::from(pk),
+      Address::from(pk),
       wasm_pk.to_iota_address().parse().expect("valid iota address")
     );
 
@@ -465,7 +465,7 @@ impl TryFrom<WasmPublicKey> for PublicKey {
 
     debug_assert_eq!(&wasm_pk.to_raw_bytes(), pk.as_ref());
     debug_assert_eq!(
-      IotaAddress::from(&pk),
+      Address::from(&pk),
       wasm_pk.to_iota_address().parse().expect("valid iota address")
     );
 
@@ -598,7 +598,7 @@ impl WasmIotaTransactionBlockResponseWrapper {
 
 pub async fn execute_transaction(
   iota_client: &WasmIotaClient,       // --> Binding: WasmIotaClient
-  sender_address: IotaAddress,        // --> Binding: String
+  sender_address: Address,            // --> Binding: String
   tx_bcs: ProgrammableTransactionBcs, // --> Binding: Vec<u8>
   signer: WasmStorageSigner,          // --> Binding: WasmStorageSigner
   gas_budget: Option<u64>,            // --> Binding: Option<u64>,

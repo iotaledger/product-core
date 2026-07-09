@@ -4,17 +4,16 @@
 use std::str::FromStr;
 
 use anyhow::anyhow;
-use iota_interaction::types::base_types::IotaAddress;
 use iota_interaction_ts::bindings::{WasmIotaTransactionBlockEffects, WasmIotaTransactionBlockEvents};
 use iota_interaction_ts::core_client::WasmCoreClientReadOnly;
 use iota_interaction_ts::wasm_error::{Result, WasmResult};
-use iota_sdk_types::ObjectId;
+use iota_sdk_types::{Address, ObjectId};
 use js_sys::Object;
 use wasm_bindgen::{JsCast, JsValue};
 
 use super::core_client::WasmManagedCoreClientReadOnly;
 use super::transaction::WasmTransactionBuilder;
-use super::{WasmIotaAddress, WasmObjectID};
+use super::{WasmAddress, WasmObjectID};
 use crate::transaction::transaction_builder::Transaction;
 
 /// Parses a `WasmObjectID` into an `ObjectId`.
@@ -24,10 +23,10 @@ pub fn parse_wasm_object_id(wasm_object_id: &WasmObjectID) -> Result<ObjectId> {
     .wasm_result()
 }
 
-/// Parses a `WasmIotaAddress` into an `IotaAddress`.
-pub fn parse_wasm_iota_address(wasm_iota_address: &WasmIotaAddress) -> Result<IotaAddress> {
-  IotaAddress::from_str(wasm_iota_address)
-    .map_err(|e| anyhow!("Could not parse WasmIotaAddress: {}", e.to_string()))
+/// Parses a `WasmAddress` into an `Address`.
+pub fn parse_wasm_iota_address(wasm_iota_address: &WasmAddress) -> Result<Address> {
+  Address::from_str(wasm_iota_address)
+    .map_err(|e| anyhow!("Could not parse WasmAddress: {}", e.to_string()))
     .wasm_result()
 }
 
