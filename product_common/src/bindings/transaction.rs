@@ -13,8 +13,8 @@ use iota_interaction_ts::bindings::{
   WasmIotaTransactionBlockEffects, WasmIotaTransactionBlockEvents, WasmIotaTransactionBlockResponse, WasmObjectRef,
   WasmTransactionDataBuilder,
 };
-use iota_sdk_types::ProgrammableTransaction;
 use iota_interaction_ts::core_client::{WasmCoreClient, WasmCoreClientReadOnly};
+use iota_sdk_types::ProgrammableTransaction;
 use js_sys::{JsString, Reflect};
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsCast as _, JsValue};
