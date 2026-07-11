@@ -9,6 +9,13 @@ use iota_sdk_types::ObjectId;
 
 use super::package_registry::{Env, PackageRegistry};
 
+fn serialize_registry(registry: &PackageRegistry) -> anyhow::Result<String> {
+  // Keep both init and update byte-for-byte consistent, including the final newline.
+  let mut json = serde_json::to_string_pretty(registry)?;
+  json.push('\n');
+  Ok(json)
+}
+
 /// Helper function to extract an ID field from a TOML table with proper error handling.
 ///
 /// # Arguments
@@ -106,6 +113,8 @@ impl PackageRegistry {
 /// * should be added to the git repository also containing the library and the Move package
 /// * should be updated by a `build.rs` script in the library package, whenever the `Move.lock` file of the Move package
 ///   changes - see below for a `build.rs`  example using the `MoveHistoryManager`
+/// * is serialized deterministically with sorted object keys, chronological package-version arrays, and one trailing
+///   newline
 ///
 /// Edge cases in `Move.history.json` handling:
 /// * Network Resets<br> In case of network resets (for example on devnet), packages already published on the network
@@ -131,7 +140,7 @@ impl PackageRegistry {
 /// When the library is built and the timestamp of the `Move.lock` file has changed, the `MoveHistoryManager`
 /// will check if the `Move.lock` file exists and the `Move.history.json` file will be:
 /// * created, if a `Move.lock` file exists, but the `Move.history.json` file does not exist yet
-/// * updated, if both the `Move.lock` file and the `Move.history.json` file exist
+/// * synchronized, if both files exist; the history file is rewritten only when its canonical content changes
 ///
 /// If the `Move.lock` file doesn't exist the whole processing is skipped.
 ///
@@ -191,7 +200,7 @@ impl MoveHistoryManager {
   ///
   /// # Arguments
   /// * `move_lock_path` - Path to the `Move.lock` file.
-  /// * `history_file_path` - Path to the `Move.history.toml` file.
+  /// * `history_file_path` - Path to the `Move.history.json` file.
   /// * `additional_aliases_to_watch` - List of environment aliases to be watched additionally to those environments,
   ///   being watched per default (see function `get_default_aliases_to_watch()` for more details). Examples:
   ///   * Watch only defaults environments: `new(move_lock_path, history_file_path, vec![])`
@@ -256,7 +265,7 @@ impl MoveHistoryManager {
   ///
   /// This method checks for the existence of both the Move.lock and Move history files,
   /// and performs the appropriate action:
-  /// - If Move.lock exists and the history file exists: Updates the history file
+  /// - If Move.lock exists and the history file exists: Synchronizes it and writes only when the content changes
   /// - If Move.lock exists but the history file doesn't: Creates a new history file
   /// - If Move.lock doesn't exist: Skips any action
   ///
@@ -281,14 +290,15 @@ impl MoveHistoryManager {
       return Ok(());
     }
 
-    // The move_lock_file exists
     if self.history_file_exists() {
-      // If the output file already exists, update it.
       console_out(format!("File `{move_history_path}` already exists, updating..."));
-      self.update()?;
-      console_out(format!(
-        "Successfully updated `{move_history_path}` with content of `{move_lock_path}`"
-      ));
+      if self.update()? {
+        console_out(format!(
+          "Successfully updated `{move_history_path}` with content of `{move_lock_path}`"
+        ));
+      } else {
+        console_out(format!("File `{move_history_path}` is already up to date"));
+      }
     } else {
       // If the output file does not exist, create it.
       console_out(format!("File `{move_history_path}` does not exist, creating..."));
@@ -300,7 +310,10 @@ impl MoveHistoryManager {
     Ok(())
   }
 
-  /// Creates an initial Move.history.json file from a Move.lock file
+  /// Creates an initial Move.history.json file from a Move.lock file.
+  ///
+  /// The generated file uses the same deterministic formatting and trailing-newline policy as [`Self::update`].
+  ///
   /// Will only take those environment aliases into account, listed in `aliases_to_watch()`.
   pub fn init(&self) -> anyhow::Result<()> {
     let move_lock_content = fs::read_to_string(&self.move_lock_path)
@@ -309,7 +322,7 @@ impl MoveHistoryManager {
     let registry = PackageRegistry::from_move_lock_content(&move_lock_content, &self.aliases_to_watch)
       .context("Failed to parse Move.lock file")?;
 
-    let json_content = serde_json::to_string_pretty(&registry)?;
+    let json_content = serialize_registry(&registry)?;
 
     fs::write(&self.history_file_path, json_content)
       .with_context(|| format!("Failed to write to output file: {}", self.history_file_path.display()))?;
@@ -317,8 +330,21 @@ impl MoveHistoryManager {
     Ok(())
   }
 
-  /// Updates an existing Move.history.json file with new package versions from a Move.lock file
-  pub fn update(&self) -> anyhow::Result<()> {
+  /// Synchronizes an existing Move.history.json file with a Move.lock file.
+  ///
+  /// Existing package history is preserved. A new `latest-published-id` is appended only when it differs from the
+  /// active package ID, and watched aliases are updated from `Move.lock`. The canonical output is compared with the
+  /// existing file before writing.
+  ///
+  /// # Returns
+  ///
+  /// Returns `true` if the history file was written, or `false` if it was already byte-for-byte up to date.
+  ///
+  /// # Errors
+  ///
+  /// Returns an error if either file cannot be read, either file contains invalid data, serialization fails, or changed
+  /// content cannot be written.
+  pub fn update(&self) -> anyhow::Result<bool> {
     // Read and deserialize existing package history
     let history_content = fs::read_to_string(&self.history_file_path).with_context(|| {
       format!(
@@ -349,8 +375,13 @@ impl MoveHistoryManager {
       registry.update_alias(alias.clone(), chain_id.clone());
     }
 
-    // Serialize and write updated registry
-    let updated_json_content = serde_json::to_string_pretty(&registry)?;
+    // Avoid touching the file when the canonical bytes are already present. This prevents build scripts from changing
+    // timestamps or creating unrelated working-tree diffs during ordinary Cargo and rust-analyzer builds.
+    let updated_json_content = serialize_registry(&registry)?;
+
+    if updated_json_content == history_content {
+      return Ok(false);
+    }
 
     fs::write(&self.history_file_path, updated_json_content).with_context(|| {
       format!(
@@ -359,12 +390,13 @@ impl MoveHistoryManager {
       )
     })?;
 
-    Ok(())
+    Ok(true)
   }
 }
 
 #[cfg(test)]
 mod tests {
+  use std::cell::RefCell;
   use std::fs;
 
   use tempfile::TempDir;
@@ -518,6 +550,54 @@ original-published-id = "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed20
     assert!(content.contains("\"0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08\""));
     assert!(!content.contains("\"ecc0606a\": ["));
     assert!(!content.contains("\"0xfbddb4631d027b2c4f0b4b90c020713d258ed32bdb342b5397f4da71edb7478b\""));
+    assert!(content.ends_with('\n'));
+  }
+
+  #[test]
+  fn init_and_update_use_the_same_canonical_formatting() {
+    let (_temp_dir, history_path, _move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::MoveLock);
+
+    history_manager.init().unwrap();
+    let initialized_content = fs::read_to_string(&history_path).unwrap();
+    assert!(!history_manager.update().unwrap());
+
+    assert_eq!(fs::read_to_string(&history_path).unwrap(), initialized_content);
+    assert!(initialized_content.ends_with('\n'));
+    assert!(!initialized_content.ends_with("\n\n"));
+  }
+
+  #[test]
+  fn no_op_update_reports_history_is_already_up_to_date() {
+    let (_temp_dir, _history_path, _move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::MoveLock);
+    history_manager.init().unwrap();
+    let messages = RefCell::new(Vec::new());
+
+    history_manager
+      .manage_history_file(|message| messages.borrow_mut().push(message))
+      .unwrap();
+
+    assert!(messages
+      .borrow()
+      .iter()
+      .any(|message| message.contains("already up to date")));
+  }
+
+  #[cfg(unix)]
+  #[test]
+  fn no_op_update_does_not_rewrite_history_file() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let (_temp_dir, history_path, _move_lock_path, history_manager) =
+      setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::MoveLock);
+    history_manager.init().unwrap();
+    let original_content = fs::read_to_string(&history_path).unwrap();
+    fs::set_permissions(&history_path, fs::Permissions::from_mode(0o444)).unwrap();
+
+    assert!(!history_manager.update().unwrap());
+
+    assert_eq!(fs::read_to_string(&history_path).unwrap(), original_content);
   }
 
   #[test]
@@ -535,24 +615,26 @@ original-published-id = "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed20
       setup_missing_history_file_test("Move.history.json", "Move.lock", InitialTestFile::HistoryFile);
 
     let updated_move_lock = r#"
-[env.mainnet]
-chain-id = "6364aad5"
-latest-published-id = "0x94cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de09"
-original-published-id = "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
+      [env.mainnet]
+      chain-id = "6364aad5"
+      latest-published-id = "0x94cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de09"
+      original-published-id = "0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08"
 
-[env.testnet]
-chain-id = "2304aa97"
-latest-published-id = "0x332741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc666"
-original-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
+      [env.testnet]
+      chain-id = "2304aa97"
+      latest-published-id = "0x332741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc666"
+      original-published-id = "0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555"
 
-[env.localnet]
-chain-id = "ecc0606a"
-original-published-id = "0xfbddb4631d027b2c4f0b4b90c020713d258ed32bdb342b5397f4da71edb7478b"
-latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e279251033a"
-"#;
+      [env.localnet]
+      chain-id = "ecc0606a"
+      original-published-id = "0xfbddb4631d027b2c4f0b4b90c020713d258ed32bdb342b5397f4da71edb7478b"
+      latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e279251033a"
+      "#;
     fs::write(&move_lock_path, updated_move_lock).unwrap();
 
-    history_manager.update().unwrap();
+    assert!(history_manager.update().unwrap());
+    let first_update = fs::read_to_string(&history_path).unwrap();
+    assert!(!history_manager.update().unwrap());
 
     let updated_content = fs::read_to_string(&history_path).unwrap();
     let registry = PackageRegistry::from_package_history_json_str(&updated_content).unwrap();
@@ -560,6 +642,7 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     assert_eq!(registry.history("6364aad5").unwrap().len(), 2);
     assert_eq!(registry.history("2304aa97").unwrap().len(), 2);
     assert_eq!(registry.history("ecc0606a"), None);
+    assert_eq!(updated_content, first_update);
   }
 
   #[test]
@@ -578,7 +661,9 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
 
     fs::write(&move_lock_path, create_test_move_lock()).unwrap();
 
-    history_manager.update().unwrap();
+    assert!(history_manager.update().unwrap());
+    let first_update = fs::read_to_string(&history_path).unwrap();
+    assert!(!history_manager.update().unwrap());
 
     let updated_content = fs::read_to_string(&history_path).unwrap();
     let registry = PackageRegistry::from_package_history_json_str(&updated_content).unwrap();
@@ -586,6 +671,7 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
     // Should still have only 1 version each since we're adding the same versions
     assert_eq!(registry.history("6364aad5").unwrap().len(), 1);
     assert_eq!(registry.history("2304aa97").unwrap().len(), 1);
+    assert_eq!(updated_content, first_update);
   }
 
   #[test]
@@ -710,8 +796,8 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
 
   [env.devnet]
   chain-id = "e678123a"
-  original-published-id = "0xabc123def456789012345678901234567890abcd"
-  latest-published-id = "0xabc123def456789012345678901234567890abcd"
+  original-published-id = "0xabc123def456789012345678901234567890abcdef1234567890abcdef123456"
+  latest-published-id = "0xabc123def456789012345678901234567890abcdef1234567890abcdef123456"
   "#;
     fs::write(&move_lock_path, updated_move_lock).unwrap();
 
@@ -778,8 +864,8 @@ latest-published-id = "0x0d88bcecde97585d50207a029a85d7ea0bacf73ab741cbaa975a6e2
 
   [env.localnet]
   chain-id = "12345678"
-  original-published-id="0xabc123def456789012345678901234567890abcd"
-  latest-published-id="0xabc123def456789012345678901234567890abcd"
+  original-published-id="0xabc123def456789012345678901234567890abcdef1234567890abcdef123456"
+  latest-published-id="0xabc123def456789012345678901234567890abcdef1234567890abcdef123456"
   "#;
     fs::write(&move_lock_path, updated_move_lock).unwrap();
 

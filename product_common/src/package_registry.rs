@@ -1,7 +1,7 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use anyhow::Context;
 use iota_sdk_types::ObjectId;
@@ -75,6 +75,9 @@ where
 /// - Environment mappings that associate chain IDs with the history of package versions. The history of package
 ///   versions is ordered chronologically, with the latest version at the end of the array.
 ///
+/// Aliases and chain IDs are stored in sorted maps so serializing a registry always emits object keys in the same
+/// order. Package version vectors are never sorted because their order is meaningful.
+///
 /// # Initialization using `Move.history.json` files
 ///
 /// The registry can be initialized from a `Move.history.json` file using the function
@@ -96,8 +99,10 @@ where
 /// that can be used to manage the `Move.history.json` file. See there for more details.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct PackageRegistry {
-  aliases: HashMap<String, String>,
-  envs: HashMap<String, Vec<ObjectId>>,
+  // Sorted keys make the persisted registry deterministic across processes.
+  aliases: BTreeMap<String, String>,
+  // Only map keys are sorted; each version vector remains in chronological order.
+  envs: BTreeMap<String, Vec<ObjectId>>,
 }
 
 impl PackageRegistry {
@@ -134,13 +139,15 @@ impl PackageRegistry {
     }
   }
 
-  /// Returns the envs of this package registry.
-  pub fn envs(&self) -> &HashMap<String, Vec<ObjectId>> {
+  /// Returns the environments ordered lexicographically by chain ID.
+  ///
+  /// Each environment's version vector remains in publication order, with the active package ID last.
+  pub fn envs(&self) -> &BTreeMap<String, Vec<ObjectId>> {
     &self.envs
   }
 
-  /// Returns the aliases of this package registry.
-  pub fn aliases(&self) -> &HashMap<String, String> {
+  /// Returns the aliases ordered lexicographically by alias.
+  pub fn aliases(&self) -> &BTreeMap<String, String> {
     &self.aliases
   }
 
@@ -307,6 +314,25 @@ mod tests {
   }
 }
 "#;
+
+  #[test]
+  fn serialization_is_deterministic_regardless_of_insertion_order() {
+    let mainnet_package = object_id!("0x84cf5d12de2f9731a89bb519bc0c982a941b319a33abefdd5ed2054ad931de08");
+    let testnet_package = object_id!("0x222741bbdff74b42df48a7b4733185e9b24becb8ccfbafe8eac864ab4e4cc555");
+
+    let mut first = PackageRegistry::default();
+    first.insert_env_history(Env::new_with_alias("6364aad5", "mainnet"), vec![mainnet_package]);
+    first.insert_env_history(Env::new_with_alias("2304aa97", "testnet"), vec![testnet_package]);
+
+    let mut second = PackageRegistry::default();
+    second.insert_env_history(Env::new_with_alias("2304aa97", "testnet"), vec![testnet_package]);
+    second.insert_env_history(Env::new_with_alias("6364aad5", "mainnet"), vec![mainnet_package]);
+
+    assert_eq!(
+      serde_json::to_string_pretty(&first).unwrap(),
+      serde_json::to_string_pretty(&second).unwrap()
+    );
+  }
 
   #[test]
   fn deserialize_package_registry_from_valid_json() {
