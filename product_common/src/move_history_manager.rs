@@ -304,7 +304,7 @@ impl MoveHistoryManager {
   /// Will only take those environment aliases into account, listed in `aliases_to_watch()`.
   pub fn init(&self) -> anyhow::Result<()> {
     let move_lock_content = fs::read_to_string(&self.move_lock_path)
-      .with_context(|| format!("Failed to read Move.lock file: {}", &self.move_lock_path.display()))?;
+      .with_context(|| format!("Failed to read Move.lock file: {}", self.move_lock_path.display()))?;
 
     let registry = PackageRegistry::from_move_lock_content(&move_lock_content, &self.aliases_to_watch)
       .context("Failed to parse Move.lock file")?;
