@@ -22,13 +22,11 @@ impl NetworkName {
 
   /// Validates whether a string is a spec-compliant IOTA DID [`NetworkName`].
   pub fn validate_network_name(name: &str) -> Result<()> {
-    Some(())
-      .filter(|_| {
-        !name.is_empty()
-          && (name.len() <= Self::MAX_LENGTH)
-          && name.chars().all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit())
-      })
-      .ok_or_else(|| Error::InvalidNetworkName(name.to_owned()))
+    (!name.is_empty()
+      && (name.len() <= Self::MAX_LENGTH)
+      && name.chars().all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit()))
+    .then_some(())
+    .ok_or_else(|| Error::InvalidNetworkName(name.to_owned()))
   }
 }
 
