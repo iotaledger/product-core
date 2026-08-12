@@ -3,6 +3,7 @@
 
 use anyhow::anyhow;
 use async_trait::async_trait;
+use iota_sdk_crypto::Signer as _;
 use iota_sdk_types::Address;
 use secret_storage::{Error as SecretStorageError, Signer};
 
@@ -58,7 +59,6 @@ impl Signer<IotaKeySignature> for KeyPairSigner {
 
   async fn sign(&self, data: &TransactionData) -> Result<Signature, SecretStorageError> {
     use fastcrypto::hash::{Blake2b256, HashFunction};
-    use fastcrypto::traits::Signer;
     use iota_sdk_types::crypto::Intent;
 
     let tx_data_bcs =
@@ -69,6 +69,9 @@ impl Signer<IotaKeySignature> for KeyPairSigner {
     hasher.update(&tx_data_bcs);
     let digest = hasher.finalize().digest;
 
-    Ok(self.0.sign(&digest))
+    self
+      .0
+      .try_sign(&digest)
+      .map_err(|e| SecretStorageError::Other(e.into()))
   }
 }

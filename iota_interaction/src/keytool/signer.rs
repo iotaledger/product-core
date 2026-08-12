@@ -113,12 +113,12 @@ impl Signer<IotaKeySignature> for KeytoolSigner {
       .iota_cli_wrapper
       .run_command(&command)
       .and_then(|json| {
-        json
+        let base64_sig = json
           .get("iotaSignature")
           .context("invalid JSON output: missing iotaSignature")?
           .as_str()
-          .context("not a JSON string")?
-          .parse()
+          .context("not a JSON string")?;
+        Signature::from_base64(base64_sig)
           .map_err(|e| anyhow!("invalid IOTA signature: {e}"))
       })
       .map_err(SecretStorageError::Other)

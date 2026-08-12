@@ -11,9 +11,7 @@ use iota_interaction::rpc_types::{
   IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
   IotaTransactionBlockEvents, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
-use iota_interaction::types::base_types::SequenceNumber;
 use iota_interaction::types::crypto::Signature;
-use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
 use iota_interaction::types::event::EventID;
 use iota_interaction::types::iota_serde::BigInt;
@@ -23,7 +21,7 @@ use iota_interaction::{
   CoinReadTrait, EventTrait, IotaClientTrait, IotaKeySignature, IotaTransactionBlockResponseT, QuorumDriverTrait,
   ReadTrait,
 };
-use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction as ProgrammableTransactionSdk, TransactionKind};
+use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction as ProgrammableTransactionSdk, TransactionKind, TransactionDigest, Version};
 use secret_storage::Signer;
 
 use crate::bindings::{ManagedWasmIotaClient, WasmIotaClient, WasmIotaTransactionBlockResponseWrapper};
@@ -213,7 +211,7 @@ impl ReadTrait for ReadAdapter {
   async fn try_get_parsed_past_object(
     &self,
     _object_id: ObjectId,
-    _version: SequenceNumber,
+    _version: Version,
     _options: IotaObjectDataOptions,
   ) -> IotaRpcResult<IotaPastObjectResponse> {
     // TODO: does not work anymore, find out, why we need to pass a different `SequenceNumber` now
@@ -385,7 +383,7 @@ impl IotaClientTrait for IotaClientTsSdk {
   async fn get_past_object(
     &self,
     object_id: ObjectId,
-    version: SequenceNumber,
+    version: Version,
   ) -> Result<IotaPastObjectResponse, Self::Error> {
     self
       .iota_client

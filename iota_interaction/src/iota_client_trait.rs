@@ -6,7 +6,7 @@ use std::option::Option;
 use std::result::Result;
 
 use async_trait::async_trait;
-use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction, TransactionKind};
+use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction, TransactionKind, TransactionDigest, Version};
 use secret_storage::{SignatureScheme as SignatureSchemeSecretStorage, Signer};
 
 use crate::error::IotaRpcResult;
@@ -15,9 +15,7 @@ use crate::rpc_types::{
   IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
   IotaTransactionBlockEvents, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
-use crate::types::base_types::SequenceNumber;
 use crate::types::crypto::{PublicKey, Signature};
-use crate::types::digests::TransactionDigest;
 use crate::types::dynamic_field::DynamicFieldName;
 use crate::types::event::EventID;
 use crate::types::iota_serde::BigInt;
@@ -155,7 +153,7 @@ pub trait ReadTrait {
   async fn try_get_parsed_past_object(
     &self,
     object_id: ObjectId,
-    version: SequenceNumber,
+    version: Version,
     options: IotaObjectDataOptions,
   ) -> IotaRpcResult<IotaPastObjectResponse>;
 
@@ -257,6 +255,6 @@ pub trait IotaClientTrait {
   async fn get_past_object(
     &self,
     object_id: ObjectId,
-    version: SequenceNumber,
+    version: Version,
   ) -> Result<IotaPastObjectResponse, Self::Error>;
 }

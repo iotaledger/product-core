@@ -3,7 +3,6 @@
 
 use std::str::FromStr;
 
-use fastcrypto::traits::EncodeDecodeBase64 as _;
 use iota_interaction::{KeytoolSigner, KeytoolSignerBuilder};
 use iota_sdk_types::Address;
 use secret_storage::Signer;
@@ -80,7 +79,7 @@ impl WasmKeytoolSigner {
       .0
       .sign(&tx_data)
       .await
-      .map(|sig| sig.encode_base64())
+      .map(|sig| sig.to_base64())
       .map_err(|e| JsError::new(&e.to_string()).into())
   }
 

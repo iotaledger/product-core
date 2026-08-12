@@ -4,8 +4,7 @@
 
 use thiserror::Error;
 
-use super::iota_types::base_types::TransactionDigest;
-use iota_sdk_types::Address;
+use iota_sdk_types::{Address, TransactionDigest};
 
 //pub use crate::json_rpc_error::Error as JsonRpcError;
 

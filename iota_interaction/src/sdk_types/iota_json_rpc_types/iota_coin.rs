@@ -6,9 +6,7 @@ use serde_with::DisplayFromStr;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use iota_sdk_types::ObjectId;
-use super::super::iota_types::base_types::{ObjectRef, SequenceNumber, TransactionDigest};
-use super::super::iota_types::digests::ObjectDigest;
+use iota_sdk_types::{ObjectId, ObjectDigest, ObjectReference, TransactionDigest, Version};
 use super::{
     Page,
     iota_primitives::{
@@ -27,7 +25,7 @@ pub struct Coin {
     #[serde_as(as = "ObjectIdSchema")]
     pub coin_object_id: ObjectId,
     #[serde_as(as = "SequenceNumberStringSchema")]
-    pub version: SequenceNumber,
+    pub version: Version,
     #[serde_as(as = "Base58Schema")]
     pub digest: ObjectDigest,
     #[serde_as(as = "DisplayFromStr")]
@@ -37,7 +35,7 @@ pub struct Coin {
 }
 
 impl Coin {
-    pub fn object_ref(&self) -> ObjectRef {
-        ObjectRef::new(self.coin_object_id, self.version, self.digest)
+    pub fn object_ref(&self) -> ObjectReference {
+        ObjectReference::new(self.coin_object_id, self.version, self.digest)
     }
 }

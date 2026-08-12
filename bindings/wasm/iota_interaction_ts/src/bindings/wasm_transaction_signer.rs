@@ -3,9 +3,10 @@
 
 use anyhow::anyhow;
 use async_trait::async_trait;
-use iota_interaction::types::crypto::{PublicKey, Signature, SignatureScheme};
+use iota_interaction::types::crypto::{PublicKey, Signature};
 use iota_interaction::types::transaction::TransactionData;
 use iota_interaction::IotaKeySignature;
+use iota_sdk_types::SignatureScheme;
 use js_sys::{JsString, Uint8Array};
 use secret_storage::{Error as SecretStorageError, Signer};
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -56,7 +57,7 @@ impl Signer<IotaKeySignature> for WasmTransactionSigner {
         let message = format!("could not sign data{details}");
         SecretStorageError::Other(anyhow::anyhow!(message))
       })?;
-    sig_str.parse().map_err(|e| SecretStorageError::Other(anyhow!("{e}")))
+    Signature::from_base64(&sig_str).map_err(|e| SecretStorageError::Other(anyhow!("{e}")))
   }
 
   async fn public_key(&self) -> std::result::Result<PublicKey, SecretStorageError> {
@@ -67,7 +68,7 @@ impl Signer<IotaKeySignature> for WasmTransactionSigner {
     })?;
 
     let raw_bytes = uint8_array.to_vec();
-    let signature_scheme = SignatureScheme::from_flag_byte(&raw_bytes[0]).map_err(|err| {
+    let signature_scheme = SignatureScheme::from_byte(raw_bytes[0]).map_err(|err| {
       let details = format!("; {err}");
       let message = format!("could parse scheme flag of public key, {details}");
       SecretStorageError::Other(anyhow::anyhow!(message))

@@ -12,13 +12,11 @@ use std::{
 use anyhow::{anyhow, bail};
 use fastcrypto::encoding::Base64;
 use iota_sdk_types::{
-    Address, Identifier, ObjectId, Owner, StructTag,
+    Address, Identifier, ObjectId, Owner, StructTag, ObjectDigest, ObjectReference, Version, TransactionDigest,
     move_package::{MovePackage, TypeOrigin, UpgradeInfo},
 };
 use crate::types::{
-    base_types::{
-        ObjectDigest, ObjectInfo, ObjectRef, ObjectType, SequenceNumber, TransactionDigest,
-    },
+    base_types::{ObjectInfo, ObjectType},
     error::{ExecutionError, UserInputError, UserInputResult},
 };
 use super::iota_move::{IotaMoveStruct, IotaMoveValue};
@@ -130,7 +128,7 @@ impl IotaObjectResponse {
         })
     }
 
-    pub fn object_ref_if_exists(&self) -> Option<ObjectRef> {
+    pub fn object_ref_if_exists(&self) -> Option<ObjectReference> {
         match (&self.data, &self.error) {
             (Some(obj_data), None) => Some(obj_data.object_ref()),
             _ => None,
@@ -152,7 +150,7 @@ pub struct IotaObjectData {
     pub object_id: ObjectId,
     /// Object version.
     #[serde_as(as = "SequenceNumberStringSchema")]
-    pub version: SequenceNumber,
+    pub version: Version,
     /// Base64 string representing the object digest
     #[serde_as(as = "Base58Schema")]
     pub digest: ObjectDigest,
@@ -195,8 +193,8 @@ pub struct IotaObjectData {
 }
 
 impl IotaObjectData {
-    pub fn object_ref(&self) -> ObjectRef {
-        ObjectRef::new(self.object_id, self.version, self.digest)
+    pub fn object_ref(&self) -> ObjectReference {
+        ObjectReference::new(self.object_id, self.version, self.digest)
     }
 
     pub fn object_type(&self) -> anyhow::Result<ObjectType> {
@@ -389,8 +387,8 @@ pub struct ObjectRefSchema {
     pub digest: ObjectDigest,
 }
 
-impl SerializeAs<ObjectRef> for ObjectRefSchema {
-    fn serialize_as<S>(source: &ObjectRef, serializer: S) -> Result<S::Ok, S::Error>
+impl SerializeAs<ObjectReference> for ObjectRefSchema {
+    fn serialize_as<S>(source: &ObjectReference, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
@@ -399,8 +397,8 @@ impl SerializeAs<ObjectRef> for ObjectRefSchema {
     }
 }
 
-impl<'de> DeserializeAs<'de, ObjectRef> for ObjectRefSchema {
-    fn deserialize_as<D>(deserializer: D) -> Result<ObjectRef, D::Error>
+impl<'de> DeserializeAs<'de, ObjectReference> for ObjectRefSchema {
+    fn deserialize_as<D>(deserializer: D) -> Result<ObjectReference, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
@@ -409,8 +407,8 @@ impl<'de> DeserializeAs<'de, ObjectRef> for ObjectRefSchema {
     }
 }
 
-impl From<ObjectRef> for ObjectRefSchema {
-    fn from(oref: ObjectRef) -> Self {
+impl From<ObjectReference> for ObjectRefSchema {
+    fn from(oref: ObjectReference) -> Self {
         Self {
             object_id: oref.object_id,
             version: oref.version.into(),
@@ -419,9 +417,9 @@ impl From<ObjectRef> for ObjectRefSchema {
         }
 }
 
-impl From<ObjectRefSchema> for ObjectRef {
+impl From<ObjectRefSchema> for ObjectReference {
     fn from(oref: ObjectRefSchema) -> Self {
-        ObjectRef::new(oref.object_id, oref.version.into(), oref.digest)
+        ObjectReference::new(oref.object_id, oref.version.into(), oref.digest)
     }
 }
 
@@ -533,7 +531,7 @@ impl Display for IotaParsedData {
         match self {
             IotaParsedData::MoveObject(o) => {
                 writeln!(writer, "{}: {}", "type", o.type_)?;
-                write!(writer, "{}", &o.fields)?;
+                write!(writer, "{}", o.fields)?;
             }
             IotaParsedData::Package(p) => {
                 write!(
@@ -645,7 +643,7 @@ pub struct IotaUpgradeInfo {
     /// `Storage ID`/`Package ID` of the referred package.
     pub upgraded_id: ObjectId,
     /// The version of the package at `upgraded_id`.
-    pub upgraded_version: SequenceNumber,
+    pub upgraded_version: Version,
 }
 
 impl From<UpgradeInfo> for IotaUpgradeInfo {
@@ -738,7 +736,7 @@ pub enum IotaPastObjectResponse {
     /// The object is found to be deleted with this version
     ObjectDeleted(
         #[serde_as(as = "ObjectRefSchema")]
-        ObjectRef,
+        ObjectReference,
     ),
     /// The object exists but not found with this version
     VersionNotFound(
@@ -825,7 +823,7 @@ pub struct IotaGetPastObjectRequest {
     pub object_id: ObjectId,
     /// the version of the queried object.
     #[serde_as(as = "SequenceNumberStringSchema")]
-    pub version: SequenceNumber,
+    pub version: Version,
 }
 
 #[serde_as]
