@@ -20,7 +20,7 @@ anyhow = "1.0.103"
 async-trait = "0.1.88"
 bcs = "0.1.6"
 cfg-if = "1.0.0"
-fastcrypto = { git = "https://github.com/MystenLabs/fastcrypto", rev = "47f8f6b747900bbc1662c4d4eecd2f7e7a29e16a", package = "fastcrypto" }
+fastcrypto = { version = "0.1.11" }
 hyper = "1"
 iota-protocol-config = { git = "https://github.com/iotaledger/iota.git", tag = "v1.29.0" }
 iota-sdk = { git = "https://github.com/iotaledger/iota.git", tag = "v1.29.0" }
@@ -40,3 +40,6 @@ toml = "0.8"
 
 [workspace.lints.clippy]
 result_large_err = "allow"
+
+[patch."https://github.com/MystenLabs/fastcrypto"]
+fastcrypto = "=0.1.11"

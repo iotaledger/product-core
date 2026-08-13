@@ -8,13 +8,12 @@ use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use iota_interaction::move_types::language_storage::StructTag;
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI};
-use iota_interaction::types::crypto::SignatureScheme;
 use iota_interaction::types::programmable_transaction_builder::ProgrammableTransactionBuilder;
 use iota_interaction::types::IOTA_FRAMEWORK_PACKAGE_ID;
 use iota_interaction::{ident_str, IotaClientTrait, IotaKeySignature, IotaTransactionBlockEffectsMutAPI, OptionalSync};
 use iota_sdk::rpc_types::{IotaObjectDataOptions, IotaObjectResponse};
 use iota_sdk::IotaClient;
-use iota_sdk_types::{Address, ObjectId, Owner, ProgrammableTransaction, TypeTag};
+use iota_sdk_types::{Address, ObjectId, Owner, ProgrammableTransaction, SignatureScheme, TypeTag};
 use lazy_static::lazy_static;
 use secret_storage::Signer;
 use serde::Deserialize;
@@ -236,7 +235,7 @@ where
 pub async fn make_address(key_type: SignatureScheme) -> anyhow::Result<Address> {
   if !matches!(
     key_type,
-    SignatureScheme::ED25519 | SignatureScheme::Secp256k1 | SignatureScheme::Secp256r1
+    SignatureScheme::Ed25519 | SignatureScheme::Secp256k1 | SignatureScheme::Secp256r1
   ) {
     anyhow::bail!("key type {key_type} is not supported");
   }

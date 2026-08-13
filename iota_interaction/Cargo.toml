@@ -16,7 +16,7 @@ anyhow.workspace = true
 async-trait = { version = "0.1.81", default-features = false }
 bcs.workspace = true
 cfg-if.workspace = true
-fastcrypto = { git = "https://github.com/MystenLabs/fastcrypto", rev = "47f8f6b747900bbc1662c4d4eecd2f7e7a29e16a", package = "fastcrypto", features = ["copy_key"] }
+fastcrypto.workspace = true
 iota-protocol-config.workspace = true
 iota-sdk-types = { workspace = true, features = ["serde", "rand", "hash"] }
 iota-sdk-crypto = { workspace = true }
@@ -37,7 +37,6 @@ tokio = { workspace = true, optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 eyre = { version = "0.6" }
-fastcrypto-zkp = { git = "https://github.com/MystenLabs/fastcrypto", rev = "47f8f6b747900bbc1662c4d4eecd2f7e7a29e16a", package = "fastcrypto-zkp" }
 hex = { version = "0.4" }
 itertools = "0.13"
 jsonrpsee = { version = "0.24", default-features = false, features = ["wasm-client"] }

@@ -10,13 +10,12 @@ use iota_interaction::rpc_types::{
   IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI as _, IotaTransactionBlockEvents,
   IotaTransactionBlockResponseOptions,
 };
-use iota_interaction::types::base_types::ObjectRef;
-use iota_interaction::types::crypto::{IotaSignature as _, PublicKey, Signature};
+use iota_interaction::types::crypto::{IotaSignature as _, Signature};
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
-use iota_interaction::types::transaction::{GasData, TransactionData, TransactionDataAPI as _, TransactionDataV1};
+use iota_interaction::types::transaction::{TransactionData, TransactionDataAPI as _, TransactionDataV1};
 use iota_interaction::{IotaClientTrait, IotaKeySignature, OptionalSend, OptionalSync};
 use iota_sdk_types::crypto::{Intent, IntentMessage};
-use iota_sdk_types::{Address, ProgrammableTransaction, TransactionExpiration, TransactionKind};
+use iota_sdk_types::{Address, ObjectReference, ProgrammableTransaction, TransactionExpiration, TransactionKind, GasPayment};
 use itertools::Itertools;
 use secret_storage::Signer;
 
@@ -90,14 +89,14 @@ pub trait Transaction: Sized {
 
 #[derive(Debug, Default, Clone)]
 struct PartialGasData {
-  objects: Vec<ObjectRef>,
+  objects: Vec<ObjectReference>,
   owner: Option<Address>,
   price: Option<u64>,
   budget: Option<u64>,
 }
 
-impl From<GasData> for PartialGasData {
-  fn from(value: GasData) -> Self {
+impl From<GasPayment> for PartialGasData {
+  fn from(value: GasPayment) -> Self {
     Self {
       objects: value.objects,
       owner: Some(value.owner),
@@ -108,8 +107,8 @@ impl From<GasData> for PartialGasData {
 }
 
 impl PartialGasData {
-  fn into_gas_data_with_defaults(self) -> GasData {
-    GasData {
+  fn into_gas_data_with_defaults(self) -> GasPayment {
+    GasPayment {
       objects: self.objects,
       owner: self.owner.unwrap_or(Address::ZERO),
       price: self.price.unwrap_or_default(),
@@ -118,7 +117,7 @@ impl PartialGasData {
   }
 }
 
-impl TryFrom<PartialGasData> for GasData {
+impl TryFrom<PartialGasData> for GasPayment {
   type Error = Error;
   fn try_from(value: PartialGasData) -> Result<Self, Self::Error> {
     let owner = value
@@ -131,7 +130,7 @@ impl TryFrom<PartialGasData> for GasData {
       .budget
       .ok_or_else(|| Error::GasIssue("missing gas budget".to_owned()))?;
 
-    Ok(GasData {
+    Ok(GasPayment {
       objects: value.objects,
       owner,
       price,
@@ -140,7 +139,7 @@ impl TryFrom<PartialGasData> for GasData {
   }
 }
 
-/// A reference to [TransactionData] that only allows to mutate its [GasData].
+/// A reference to [TransactionData] that only allows to mutate its [GasPayment].
 #[derive(Debug)]
 pub struct MutGasDataRef<'tx>(&'tx mut TransactionData);
 impl Deref for MutGasDataRef<'_> {
@@ -151,13 +150,13 @@ impl Deref for MutGasDataRef<'_> {
 }
 
 impl MutGasDataRef<'_> {
-  /// Returns a mutable reference to [GasData].
-  pub fn gas_data_mut(&mut self) -> &mut GasData {
+  /// Returns a mutable reference to [GasPayment].
+  pub fn gas_data_mut(&mut self) -> &mut GasPayment {
     self.0.gas_data_mut()
   }
 }
 
-fn new_with_gas_data(sender: Address, gas_data: GasData, pt: ProgrammableTransaction) -> TransactionData {
+fn new_with_gas_data(sender: Address, gas_data: GasPayment, pt: ProgrammableTransaction) -> TransactionData {
   TransactionData::V1(TransactionDataV1 {
     sender,
     gas_payment: gas_data,
@@ -190,8 +189,8 @@ where
   where
     C: CoreClientReadOnly + OptionalSync,
   {
-    // Make sure the partial gas information is actually complete to create a whole GasData.
-    let gas_data: GasData = std::mem::take(&mut self.gas).try_into()?;
+    // Make sure the partial gas information is actually complete to create a whole GasPayment.
+    let gas_data: GasPayment = std::mem::take(&mut self.gas).try_into()?;
     self.gas = gas_data.into();
 
     // Forward call to "with_partial_gas" knowing no defaults will be used.
@@ -251,7 +250,7 @@ where
     Ok(self)
   }
 
-  /// Attempts to sponsor this transaction by having another party supply [GasData] and gas owner signature.
+  /// Attempts to sponsor this transaction by having another party supply [GasPayment] and gas owner signature.
   /// ## Notes
   /// The [TransactionData] passed to `sponsor_tx` can be constructed from partial gas data; the sponsor is
   /// tasked with setting the gas information appropriately before signing.
@@ -272,11 +271,11 @@ where
     let gas_owner = tx_data.gas_owner();
     let mut intent_msg = IntentMessage::new(Intent::iota_transaction(), tx_data);
     signature
-      .verify_secure(&intent_msg, gas_owner, signature.scheme())
+      .verify_secure(&intent_msg, gas_owner)
       .map_err(|e| Error::TransactionBuildingFailed(format!("invalid sponsor signature: {e}")))?;
     let gas_data = std::mem::replace(
       intent_msg.value.gas_data_mut(),
-      GasData {
+      GasPayment {
         objects: vec![],
         owner: Address::ZERO,
         price: 0,
@@ -473,7 +472,7 @@ impl<Tx> TransactionBuilder<Tx> {
   }
 
   /// Sets the coins to use to cover the gas cost.
-  pub fn with_gas_payment(mut self, coins: Vec<ObjectRef>) -> Self {
+  pub fn with_gas_payment(mut self, coins: Vec<ObjectReference>) -> Self {
     self.gas.objects = coins;
     self
   }
@@ -491,7 +490,7 @@ impl<Tx> TransactionBuilder<Tx> {
   }
 
   /// Sets the gas information that must be used to execute this transaction.
-  pub fn with_gas_data(mut self, gas_data: GasData) -> Self {
+  pub fn with_gas_data(mut self, gas_data: GasPayment) -> Self {
     self.gas = gas_data.into();
     self
   }
@@ -521,7 +520,7 @@ impl<Tx> TransactionBuilder<Tx> {
   }
 }
 
-/// Returns a best effort [GasData] for the given transaction, partial gas information, and client.
+/// Returns a best effort [GasPayment] for the given transaction, partial gas information, and client.
 /// ## Notes
 /// If a field is missing from gas data:
 /// - client's address is set as the gas owner;
@@ -532,7 +531,7 @@ async fn complete_gas_data_for_tx<C, S>(
   pt: &ProgrammableTransaction,
   partial_gas_data: PartialGasData,
   client: &C,
-) -> anyhow::Result<GasData>
+) -> anyhow::Result<GasPayment>
 where
   C: CoreClient<S> + OptionalSync,
   S: Signer<IotaKeySignature>,
@@ -554,7 +553,7 @@ where
     client.get_iota_coins_with_at_least_balance(owner, budget).await?
   };
 
-  Ok(GasData {
+  Ok(GasPayment {
     owner,
     objects,
     price,
@@ -564,9 +563,7 @@ where
 
 /// Extract the signer's address from an IOTA [Signature].
 fn address_from_signature(signature: &Signature) -> Address {
-  let scheme = signature.scheme();
-  let pk_bytes = signature.public_key_bytes();
-  let pk = PublicKey::try_from_bytes(scheme, pk_bytes).expect("valid signature hence valid key");
+  let pk = signature.to_public_key();
 
   Address::from(&pk)
 }

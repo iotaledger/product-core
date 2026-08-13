@@ -8,12 +8,10 @@ use std::str::FromStr;
 use std::time::Duration;
 
 use fastcrypto::encoding::{Base64, Encoding as _};
-use fastcrypto::traits::EncodeDecodeBase64 as _;
 use iota_interaction::rpc_types::IotaTransactionBlockEffects;
-use iota_interaction::types::base_types::ObjectRef;
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::transaction::TransactionData;
-use iota_sdk_types::Address;
+use iota_sdk_types::{Address, ObjectReference};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::http_client::{HeaderMap, HttpClient, Method, Request, Url, UrlParsingError};
@@ -366,7 +364,7 @@ struct ReserveGasResponse {
 pub(crate) struct ReserveGasResult {
   pub(crate) sponsor_address: Address,
   pub(crate) reservation_id: u64,
-  pub(crate) gas_coins: Vec<ObjectRef>,
+  pub(crate) gas_coins: Vec<ObjectReference>,
 }
 
 /// Possible failures of a gas station request.
@@ -570,7 +568,7 @@ where
   let body = serde_json::to_vec(&ExecuteTxRequest {
     reservation_id,
     tx_bytes: Base64::encode(&tx_bcs),
-    user_sig: sender_sig.encode_base64(),
+    user_sig: sender_sig.to_base64(),
     request_type: WAIT_FOR_LOCAL_EXECUTION.to_owned(),
   })
   .map_err(|e| {
