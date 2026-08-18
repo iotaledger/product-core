@@ -5,7 +5,6 @@ use std::result::Result as StdResult;
 
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
-use fastcrypto::traits::EncodeDecodeBase64;
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEvents};
 use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::transaction::{TransactionData, TransactionDataAPI as _};
@@ -204,7 +203,7 @@ impl WasmTransactionBuilder {
       let tx_data = bcs::from_bytes::<TransactionData>(&modified_tx_data_bcs)?;
 
       *tx_data_ref.gas_data_mut() = tx_data.gas_data().clone();
-      let signature = Signature::decode_base64(&String::from(sig_str)).context("failed to decode b64 signature")?;
+      let signature = Signature::from_base64(&String::from(sig_str)).context("failed to decode b64 signature")?;
 
       Ok(signature)
     };
@@ -275,7 +274,7 @@ fn tx_parts_to_js((tx_data, signatures, tx): (TransactionData, Vec<Signature>, W
   let wasm_signatures = {
     let wasm_signatures = js_sys::Array::new();
     for sig in signatures {
-      let b64_sig = sig.encode_base64();
+      let b64_sig = sig.to_base64();
       wasm_signatures.push(&JsValue::from_str(&b64_sig));
     }
 
