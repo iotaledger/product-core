@@ -9,7 +9,7 @@ use iota_interaction::rpc_types::{
 };
 use iota_interaction::types::crypto::PublicKey;
 use iota_interaction::{IotaClientTrait, IotaKeySignature, MoveType};
-use iota_sdk_types::{Address, ObjectId, StructTag, ObjectReference};
+use iota_sdk_types::{Address, ObjectId, ObjectReference, StructTag};
 use secret_storage::Signer;
 use serde::de::DeserializeOwned;
 
@@ -178,7 +178,11 @@ pub trait CoreClientReadOnly {
   /// # Returns
   ///
   /// Returns `Ok(Vec<ObjectRef>)` if the coins are found, or an error if the operation fails.
-  async fn get_iota_coins_with_at_least_balance(&self, owner: Address, balance: u64) -> anyhow::Result<Vec<ObjectReference>> {
+  async fn get_iota_coins_with_at_least_balance(
+    &self,
+    owner: Address,
+    balance: u64,
+  ) -> anyhow::Result<Vec<ObjectReference>> {
     let mut coins = self
       .client_adapter()
       .coin_read_api()

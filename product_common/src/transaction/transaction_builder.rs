@@ -15,7 +15,9 @@ use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
 use iota_interaction::types::transaction::{TransactionData, TransactionDataAPI as _, TransactionDataV1};
 use iota_interaction::{IotaClientTrait, IotaKeySignature, OptionalSend, OptionalSync};
 use iota_sdk_types::crypto::{Intent, IntentMessage};
-use iota_sdk_types::{Address, ObjectReference, ProgrammableTransaction, TransactionExpiration, TransactionKind, GasPayment};
+use iota_sdk_types::{
+  Address, GasPayment, ObjectReference, ProgrammableTransaction, TransactionExpiration, TransactionKind,
+};
 use itertools::Itertools;
 use secret_storage::Signer;
 

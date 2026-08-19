@@ -7,7 +7,7 @@ use iota_interaction::interaction_error::Error;
 use iota_interaction::rpc_types::OwnedObjectRef;
 use iota_interaction::types::base_types::RESOLVED_STD_OPTION;
 use iota_interaction::types::programmable_transaction_builder::ProgrammableTransactionBuilder as Ptb;
-use iota_interaction::types::transaction::{CallArg};
+use iota_interaction::types::transaction::CallArg;
 use iota_interaction::types::{IOTA_CLOCK_OBJECT_ID, IOTA_CLOCK_OBJECT_SHARED_VERSION, MOVE_STDLIB_PACKAGE_ID};
 use iota_interaction::MoveType;
 use iota_sdk_types::{Argument, Identifier, ObjectId, Owner, SharedObjectReference};

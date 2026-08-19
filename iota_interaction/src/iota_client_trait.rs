@@ -6,7 +6,7 @@ use std::option::Option;
 use std::result::Result;
 
 use async_trait::async_trait;
-use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction, TransactionKind, TransactionDigest, Version};
+use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction, TransactionDigest, TransactionKind, Version};
 use secret_storage::{SignatureScheme as SignatureSchemeSecretStorage, Signer};
 
 use crate::error::IotaRpcResult;
@@ -252,9 +252,6 @@ pub trait IotaClientTrait {
 
   async fn get_previous_version(&self, iod: IotaObjectData) -> Result<Option<IotaObjectData>, Self::Error>;
 
-  async fn get_past_object(
-    &self,
-    object_id: ObjectId,
-    version: Version,
-  ) -> Result<IotaPastObjectResponse, Self::Error>;
+  async fn get_past_object(&self, object_id: ObjectId, version: Version)
+    -> Result<IotaPastObjectResponse, Self::Error>;
 }

@@ -27,7 +27,7 @@ use iota_interaction::{
   CoinReadTrait, EventTrait, IotaClient, IotaClientTrait, IotaKeySignature, IotaTransactionBlockResponseT,
   OptionalSync, QuorumDriverTrait, ReadTrait,
 };
-use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction, TransactionKind, TransactionDigest, Version};
+use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction, TransactionDigest, TransactionKind, Version};
 use secret_storage::Signer;
 
 /// The minimum balance required to execute a transaction.
@@ -399,11 +399,7 @@ impl IotaClientTrait for IotaClientRustSdk {
     }
   }
 
-  async fn get_past_object(
-    &self,
-    object_id: ObjectId,
-    version: Version,
-  ) -> Result<IotaPastObjectResponse, Error> {
+  async fn get_past_object(&self, object_id: ObjectId, version: Version) -> Result<IotaPastObjectResponse, Error> {
     self
       .iota_client
       .read_api()

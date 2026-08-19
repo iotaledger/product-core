@@ -17,7 +17,7 @@ use iota_interaction::types::event::EventID;
 use iota_interaction::types::iota_serde::BigInt;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
 use iota_interaction::types::transaction::TransactionData;
-use iota_sdk_types::{Address, ObjectId, TransactionKind, TransactionDigest, Version};
+use iota_sdk_types::{Address, ObjectId, TransactionDigest, TransactionKind, Version};
 use js_sys::Promise;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;

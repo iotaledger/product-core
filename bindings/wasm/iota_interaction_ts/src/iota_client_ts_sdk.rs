@@ -21,7 +21,9 @@ use iota_interaction::{
   CoinReadTrait, EventTrait, IotaClientTrait, IotaKeySignature, IotaTransactionBlockResponseT, QuorumDriverTrait,
   ReadTrait,
 };
-use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction as ProgrammableTransactionSdk, TransactionKind, TransactionDigest, Version};
+use iota_sdk_types::{
+  Address, ObjectId, ProgrammableTransaction as ProgrammableTransactionSdk, TransactionDigest, TransactionKind, Version,
+};
 use secret_storage::Signer;
 
 use crate::bindings::{ManagedWasmIotaClient, WasmIotaClient, WasmIotaTransactionBlockResponseWrapper};
