@@ -46,7 +46,7 @@ impl ExecuteTransactionBlockParams {
     let tx_data_bcs = bcs::to_bytes(&tx_data).expect("this serialization cannot fail");
     let signatures_b64 = signatures
       .into_iter()
-      .map(|sig| Base64::from_bytes(&sig.to_bytes()))
+      .map(|sig| sig.to_base64())
       .collect();
     ExecuteTransactionBlockParams {
       transaction_block: Base64::from_bytes(&tx_data_bcs),
