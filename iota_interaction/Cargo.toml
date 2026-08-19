@@ -18,8 +18,8 @@ bcs.workspace = true
 cfg-if.workspace = true
 fastcrypto.workspace = true
 iota-protocol-config.workspace = true
-iota-sdk-types = { workspace = true, features = ["serde", "rand", "hash"] }
 iota-sdk-crypto = { workspace = true }
+iota-sdk-types = { workspace = true, features = ["serde", "rand", "hash"] }
 iota-types.workspace = true
 jsonpath-rust = { version = "0.5.1", optional = true }
 move-core-types.workspace = true
