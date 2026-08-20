@@ -3,9 +3,9 @@
 
 use std::str::FromStr;
 
-use iota_interaction::types::crypto::{IotaKeyPair, SignatureScheme};
+use iota_interaction::types::crypto::IotaKeyPair;
 use iota_interaction::KeytoolStorage;
-use iota_sdk_types::Address;
+use iota_sdk_types::{Address, SignatureScheme};
 use js_sys::{Array, JsString};
 use wasm_bindgen::prelude::*;
 
@@ -73,7 +73,7 @@ impl WasmKeytoolStorage {
     #[wasm_bindgen(unchecked_param_type = "'ed25519' | 'secp256r1' | 'secp256k1'")] key_scheme: &str,
   ) -> Result<Array> {
     let key_scheme = match key_scheme {
-      "ed25519" => SignatureScheme::ED25519,
+      "ed25519" => SignatureScheme::Ed25519,
       "secp256r1" => SignatureScheme::Secp256r1,
       "secp256k1" => SignatureScheme::Secp256k1,
       _ => return Err(JsError::new("invalid key type").into()),

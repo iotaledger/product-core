@@ -17,9 +17,7 @@ use iota_interaction::rpc_types::{
   IotaTransactionBlockEvents, IotaTransactionBlockResponse, IotaTransactionBlockResponseOptions, ObjectChange,
   ObjectsPage,
 };
-use iota_interaction::types::base_types::SequenceNumber;
 use iota_interaction::types::crypto::Signature;
-use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
 use iota_interaction::types::event::EventID;
 use iota_interaction::types::iota_serde::BigInt;
@@ -29,7 +27,7 @@ use iota_interaction::{
   CoinReadTrait, EventTrait, IotaClient, IotaClientTrait, IotaKeySignature, IotaTransactionBlockResponseT,
   OptionalSync, QuorumDriverTrait, ReadTrait,
 };
-use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction, TransactionKind};
+use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction, TransactionDigest, TransactionKind, Version};
 use secret_storage::Signer;
 
 /// The minimum balance required to execute a transaction.
@@ -225,7 +223,7 @@ impl ReadTrait for ReadAdapter<'_> {
   async fn try_get_parsed_past_object(
     &self,
     object_id: ObjectId,
-    version: SequenceNumber,
+    version: Version,
     options: IotaObjectDataOptions,
   ) -> IotaRpcResult<IotaPastObjectResponse> {
     self.api.try_get_parsed_past_object(object_id, version, options).await
@@ -376,7 +374,7 @@ impl IotaClientTrait for IotaClientRustSdk {
       return Ok(None);
     }
 
-    let mut previous_versions: Vec<SequenceNumber> = other_changes
+    let mut previous_versions: Vec<Version> = other_changes
       .iter()
       .filter_map(|elem| match elem {
         ObjectChange::Mutated { previous_version, .. } => Some(*previous_version),
@@ -401,11 +399,7 @@ impl IotaClientTrait for IotaClientRustSdk {
     }
   }
 
-  async fn get_past_object(
-    &self,
-    object_id: ObjectId,
-    version: SequenceNumber,
-  ) -> Result<IotaPastObjectResponse, Error> {
+  async fn get_past_object(&self, object_id: ObjectId, version: Version) -> Result<IotaPastObjectResponse, Error> {
     self
       .iota_client
       .read_api()

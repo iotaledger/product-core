@@ -1,7 +1,6 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use fastcrypto::traits::EncodeDecodeBase64;
 use iota_interaction::KeyPairSigner;
 use secret_storage::Signer as _;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -37,7 +36,7 @@ impl WasmKeyPairSigner {
       .0
       .sign(&tx_data)
       .await
-      .map(|sig| sig.encode_base64())
+      .map(|sig| sig.to_base64())
       .map_err(|e| JsError::new(&e.to_string()).into())
   }
 

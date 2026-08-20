@@ -4,16 +4,15 @@
 use std::path::Path;
 
 use anyhow::{anyhow, Context as _};
-use fastcrypto::ed25519::Ed25519Signature;
-use fastcrypto::secp256k1::Secp256k1Signature;
-use fastcrypto::secp256r1::Secp256r1Signature;
-use fastcrypto::traits::Signer;
-use iota_sdk_types::Address;
+use iota_sdk_crypto::Signer;
+use iota_sdk_types::{
+  Address, Ed25519Signature, Secp256k1Signature, Secp256r1Signature, SignatureScheme as IotaSignatureScheme,
+};
 use serde::Deserialize;
 
 use super::internal::IotaCliWrapper;
 use super::KeytoolSignerBuilder;
-use crate::types::crypto::{IotaKeyPair, PublicKey, SignatureScheme as IotaSignatureScheme};
+use crate::types::crypto::{IotaKeyPair, PublicKey};
 
 #[derive(Clone, Default)]
 pub struct KeytoolStorage {
@@ -44,7 +43,7 @@ impl KeytoolStorage {
   pub fn generate_key(&self, key_scheme: IotaSignatureScheme) -> anyhow::Result<(PublicKey, String)> {
     if !matches!(
       &key_scheme,
-      IotaSignatureScheme::ED25519 | IotaSignatureScheme::Secp256k1 | IotaSignatureScheme::Secp256r1
+      IotaSignatureScheme::Ed25519 | IotaSignatureScheme::Secp256k1 | IotaSignatureScheme::Secp256r1
     ) {
       anyhow::bail!("key scheme {key_scheme} is not supported by the keytool");
     }
@@ -94,12 +93,9 @@ impl KeytoolStorage {
     let data = data.as_ref();
 
     let sig = match keypair {
-      IotaKeyPair::Ed25519(sk) => Signer::<Ed25519Signature>::sign(&sk, data).sig.to_bytes().to_vec(),
-      IotaKeyPair::Secp256r1(sk) => Signer::<Secp256r1Signature>::sign(&sk, data).sig.to_vec(),
-      IotaKeyPair::Secp256k1(sk) => {
-        let sig = Signer::<Secp256k1Signature>::sign(&sk, data);
-        sig.as_ref().to_vec()
-      }
+      IotaKeyPair::Ed25519(sk) => Signer::<Ed25519Signature>::sign(&sk, data).into_inner().to_vec(),
+      IotaKeyPair::Secp256r1(sk) => Signer::<Secp256r1Signature>::sign(&sk, data).into_inner().to_vec(),
+      IotaKeyPair::Secp256k1(sk) => Signer::<Secp256k1Signature>::sign(&sk, data).into_inner().to_vec(),
     };
 
     Ok(sig)

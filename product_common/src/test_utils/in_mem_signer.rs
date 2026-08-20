@@ -8,9 +8,8 @@ use fastcrypto::hash::HashFunction;
 use iota_interaction::types::transaction::TransactionData;
 use iota_interaction::IotaKeySignature;
 use iota_keys::keystore::{AccountKeystore, InMemKeystore};
-use iota_sdk::types::crypto::SignatureScheme;
 use iota_sdk_types::crypto::Intent;
-use iota_sdk_types::Address;
+use iota_sdk_types::{Address, SignatureScheme};
 use secret_storage::{SignatureScheme as SignerSignatureScheme, Signer as SignerTrait};
 use tokio::sync::RwLock;
 
@@ -30,7 +29,7 @@ impl InMemSigner {
   pub fn new() -> Self {
     let mut keystore = InMemKeystore::new_insecure_for_tests(0);
     let (address, _, _) = keystore
-      .generate_and_add_new_key(SignatureScheme::ED25519, None, None, None)
+      .generate_and_add_new_key(SignatureScheme::Ed25519, None, None, None)
       .expect("Could not generate key");
 
     let alias = keystore.get_alias_by_address(&address).expect("Could not get alias");
@@ -45,7 +44,7 @@ impl InMemSigner {
   pub fn new_with_alias(alias: &str) -> Self {
     let mut keystore = InMemKeystore::new_insecure_for_tests(0);
     keystore
-      .generate_and_add_new_key(SignatureScheme::ED25519, Some(alias.into()), None, None)
+      .generate_and_add_new_key(SignatureScheme::Ed25519, Some(alias.into()), None, None)
       .expect("Could not generate key");
 
     InMemSigner {
@@ -77,7 +76,7 @@ impl InMemSigner {
   pub async fn add_alias(&mut self, alias: &str) -> anyhow::Result<(String, Address)> {
     let (address, _, _) = self
       .keystore
-      .generate_and_add_new_key(SignatureScheme::ED25519, Some(alias.into()), None, None)
+      .generate_and_add_new_key(SignatureScheme::Ed25519, Some(alias.into()), None, None)
       .expect("Could not generate key");
 
     let alias = self

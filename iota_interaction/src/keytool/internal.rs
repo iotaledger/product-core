@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr as _;
 
 use anyhow::{anyhow, Context as _};
-use fastcrypto::traits::EncodeDecodeBase64 as _;
 use iota_sdk_types::Address;
+use iota_types::crypto::EncodeDecodeBase64 as _;
 use jsonpath_rust::JsonPathQuery as _;
 use serde::Deserialize;
 use serde_json::Value;

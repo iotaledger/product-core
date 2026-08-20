@@ -11,15 +11,13 @@ use iota_interaction::rpc_types::{
   CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaObjectDataOptions, IotaObjectResponse,
   IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
-use iota_interaction::types::base_types::SequenceNumber;
 use iota_interaction::types::crypto::Signature;
-use iota_interaction::types::digests::TransactionDigest;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
 use iota_interaction::types::event::EventID;
 use iota_interaction::types::iota_serde::BigInt;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
 use iota_interaction::types::transaction::TransactionData;
-use iota_sdk_types::{Address, ObjectId, TransactionKind};
+use iota_sdk_types::{Address, ObjectId, TransactionDigest, TransactionKind, Version};
 use js_sys::Promise;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -358,7 +356,7 @@ impl ManagedWasmIotaClient {
   pub async fn try_get_parsed_past_object(
     &self,
     _object_id: ObjectId,
-    _version: SequenceNumber,
+    _version: Version,
     _options: IotaObjectDataOptions,
   ) -> IotaRpcResult<IotaPastObjectResponse> {
     // TODO: does not work anymore, find out, why we need to pass a different `SequenceNumber` now

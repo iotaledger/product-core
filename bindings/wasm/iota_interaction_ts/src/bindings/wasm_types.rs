@@ -3,14 +3,11 @@
 use std::str::FromStr;
 
 use fastcrypto::encoding::{Base64, Encoding};
-use fastcrypto::traits::EncodeDecodeBase64 as _;
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEvents, OwnedObjectRef};
-use iota_interaction::types::base_types::{ObjectRef, SequenceNumber};
-use iota_interaction::types::crypto::{IotaKeyPair, PublicKey, Signature};
-use iota_interaction::types::digests::TransactionDigest;
+use iota_interaction::types::crypto::{EncodeDecodeBase64, IotaKeyPair, PublicKey, Signature};
 use iota_interaction::types::transaction::TransactionData;
 use iota_interaction::ProgrammableTransactionBcs;
-use iota_sdk_types::{Address, CommandArgumentError, ObjectId, Owner};
+use iota_sdk_types::{Address, CommandArgumentError, ObjectId, ObjectReference, Owner, TransactionDigest, Version};
 use js_sys::{Promise, Uint8Array};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -246,11 +243,12 @@ enum IotaSignatureHelper {
 impl TryFrom<Signature> for WasmIotaSignature {
   type Error = JsValue;
   fn try_from(sig: Signature) -> Result<Self, Self::Error> {
-    let base64sig = Base64::encode(&sig);
+    let base64sig = sig.to_base64();
     let json_signature = match sig {
-      Signature::Ed25519IotaSignature(_) => IotaSignatureHelper::Ed25519IotaSignature(base64sig),
-      Signature::Secp256r1IotaSignature(_) => IotaSignatureHelper::Secp256r1IotaSignature(base64sig),
-      Signature::Secp256k1IotaSignature(_) => IotaSignatureHelper::Secp256k1IotaSignature(base64sig),
+      Signature::Ed25519 { .. } => IotaSignatureHelper::Ed25519IotaSignature(base64sig),
+      Signature::Secp256r1 { .. } => IotaSignatureHelper::Secp256r1IotaSignature(base64sig),
+      Signature::Secp256k1 { .. } => IotaSignatureHelper::Secp256k1IotaSignature(base64sig),
+      _ => unreachable!(),
     };
 
     json_signature
@@ -270,9 +268,7 @@ impl TryFrom<WasmIotaSignature> for Signature {
       IotaSignatureHelper::Secp256r1IotaSignature(s) => s,
     };
 
-    base64sig
-      .parse()
-      .map_err(|e: eyre::Report| JsError::new(&e.to_string()).into())
+    Signature::from_base64(&base64sig).map_err(|e| JsError::new(&e.to_string()).into())
   }
 }
 
@@ -473,7 +469,7 @@ impl TryFrom<WasmPublicKey> for PublicKey {
   }
 }
 
-impl TryFrom<WasmObjectRef> for ObjectRef {
+impl TryFrom<WasmObjectRef> for ObjectReference {
   type Error = anyhow::Error;
   fn try_from(value: WasmObjectRef) -> Result<Self, Self::Error> {
     let digest = serde_json::from_value(serde_json::Value::String(value.digest()))?;
@@ -483,12 +479,12 @@ impl TryFrom<WasmObjectRef> for ObjectRef {
     };
     let object_id = value.object_id().parse()?;
 
-    Ok(ObjectRef::new(object_id, version, digest))
+    Ok(ObjectReference::new(object_id, version, digest))
   }
 }
 
-impl From<ObjectRef> for WasmObjectRef {
-  fn from(value: ObjectRef) -> Self {
+impl From<ObjectReference> for WasmObjectRef {
+  fn from(value: ObjectReference) -> Self {
     let json_obj = serde_json::json!({
       "objectId": value.object_id,
       "version": value.version,
@@ -503,8 +499,8 @@ impl From<ObjectRef> for WasmObjectRef {
   }
 }
 
-impl From<(ObjectId, SequenceNumber, bool)> for WasmSharedObjectRef {
-  fn from(value: (ObjectId, SequenceNumber, bool)) -> Self {
+impl From<(ObjectId, Version, bool)> for WasmSharedObjectRef {
+  fn from(value: (ObjectId, Version, bool)) -> Self {
     let json_obj = serde_json::json!({
       "objectId": value.0,
       "initialSharedVersion": value.1,

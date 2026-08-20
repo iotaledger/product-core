@@ -2,12 +2,9 @@
 // Modifications Copyright (c) 2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::types::event::EventID;
 use fastcrypto::encoding::{Base58, Base64};
-use iota_sdk_types::{Address, Identifier, ObjectId, StructTag};
-use crate::types::{
-    base_types::TransactionDigest,
-    event::EventID,
-};
+use iota_sdk_types::{Address, Identifier, ObjectId, StructTag, TransactionDigest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{DisplayFromStr, serde_as};
