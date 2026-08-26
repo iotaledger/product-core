@@ -47,11 +47,11 @@ pub trait ProductClient: AsRef<IotaClient> + Sized + Send + Sync {
     {
         async move {
             let object_stream = self
-                .objects_content_stream::<T>(ObjectFilter {
-                    owner: Some(address),
-                    type_: Some(T::move_type(self).to_string()),
-                    ..Default::default()
-                })
+                .objects_content_stream::<T>(
+                    ObjectFilter::default()
+                        .with_owner(address)
+                        .with_type(T::move_type(self).to_string()),
+                )
                 .try_filter(|obj| std::future::ready(pred(obj)));
             pin!(object_stream).next().await.transpose()
         }

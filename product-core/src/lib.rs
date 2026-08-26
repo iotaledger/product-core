@@ -3,7 +3,7 @@
 
 pub mod move_type;
 pub mod network;
+pub mod object;
 pub mod operation;
 pub mod product_client;
-pub mod object;
 pub mod type_origin_table;

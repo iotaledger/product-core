@@ -108,7 +108,10 @@ impl<O: Operation> OperationBuilder<O> {
     ) -> Result<(O, Transaction), OperationError> {
         let tx_builder = self
             .operation
-            .to_transaction(client, self.initialize_tx_builder(sender_signer, client.as_ref()))
+            .to_transaction(
+                client,
+                self.initialize_tx_builder(sender_signer, client.as_ref()),
+            )
             .await
             .map_err(|e| OperationError::Build(e.into()))?;
 
@@ -147,7 +150,10 @@ impl<O: Operation> OperationBuilder<O> {
     ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
         let tx_builder = self
             .operation
-            .to_transaction(client, self.initialize_tx_builder(sender_signer, client.as_ref()))
+            .to_transaction(
+                client,
+                self.initialize_tx_builder(sender_signer, client.as_ref()),
+            )
             .await?;
 
         let mut effects = tx_builder
@@ -178,11 +184,9 @@ impl<O: Operation> OperationBuilder<O> {
                 tx_builder_gas_station.gas_reservation_duration(duration);
             }
             for (name, value) in gas_station_options.headers {
-                if name.is_none() {
-                    continue;
+                if let Some(name) = name {
+                    tx_builder_gas_station.add_gas_station_header(name, value);
                 }
-
-                tx_builder_gas_station.add_gas_station_header(name.expect("is some"), value);
             }
         }
 
@@ -248,5 +252,15 @@ impl GasStationOptions {
             gas_reserve_duration: None,
             headers: HeaderMap::default(),
         }
+    }
+
+    pub fn gas_reserve_duration(mut self, duration: impl Into<Duration>) -> Self {
+        self.gas_reserve_duration = Some(duration.into());
+        self
+    }
+
+    pub fn headers(mut self, headers: HeaderMap) -> Self {
+        self.headers = headers;
+        self
     }
 }

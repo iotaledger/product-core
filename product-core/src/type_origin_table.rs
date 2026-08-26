@@ -63,12 +63,13 @@ impl TypeOriginTable {
                     .for_each(|arg_type| self.canonicalize_type(arg_type));
                 **struct_tag = StructTag::new(canonical_pkg_id, module, name, type_args);
             }
-            _ => return,
+            _ => (),
         }
     }
 }
 
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum TypeOriginTableCreationError {
     #[error("package '{0}' does not exists")]
     PackageNotFound(ObjectId),

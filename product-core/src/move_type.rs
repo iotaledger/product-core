@@ -3,12 +3,13 @@
 
 use std::borrow::Cow;
 
-use crate::{network::Network, product_client::ProductClient};
 use iota_sdk::{
     move_types::iota_framework::object::UID,
     types::{ObjectId, TypeTag},
 };
 use serde::{Deserialize, Deserializer};
+
+use crate::{network::Network, product_client::ProductClient};
 
 pub trait MoveType {
     fn move_type(client: &impl ProductClient) -> TypeTag;
