@@ -15,12 +15,13 @@ use url::Url;
 use crate::product_client::ProductClient;
 
 pub trait Operation: Send + Sync {
+    type Client: ProductClient;
     type Output;
     type Error: 'static + std::error::Error + Send + Sync;
 
     fn to_transaction(
         &self,
-        client: &impl ProductClient,
+        client: &Self::Client,
         tx_builder: TransactionBuilder<IotaClient>,
     ) -> impl Future<Output = Result<TransactionBuilder<IotaClient>, Self::Error>>;
     fn apply_effects(
@@ -31,12 +32,13 @@ pub trait Operation: Send + Sync {
 }
 
 impl<O: Operation> Operation for OperationBuilder<O> {
+    type Client =  O::Client;
     type Output = O::Output;
     type Error = O::Error;
 
     async fn to_transaction(
         &self,
-        client: &impl ProductClient,
+        client: &Self::Client,
         tx_builder: TransactionBuilder<IotaClient>,
     ) -> Result<TransactionBuilder<IotaClient>, Self::Error> {
         self.operation.to_transaction(client, tx_builder).await
@@ -104,7 +106,7 @@ impl<O: Operation> OperationBuilder<O> {
     pub async fn build(
         self,
         sender_signer: &impl TransactionSigner,
-        client: &impl ProductClient,
+        client: &O::Client,
     ) -> Result<(O, Transaction), OperationError> {
         let tx_builder = self
             .operation
@@ -126,7 +128,7 @@ impl<O: Operation> OperationBuilder<O> {
     pub async fn execute(
         self,
         signer: &impl TransactionSigner,
-        client: &impl ProductClient,
+        client: &O::Client,
     ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
         let tx_builder = self
             .operation
@@ -146,7 +148,7 @@ impl<O: Operation> OperationBuilder<O> {
         self,
         sender_signer: &impl TransactionSigner,
         sponsor_signer: &impl TransactionSigner,
-        client: &impl ProductClient,
+        client: &O::Client,
     ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
         let tx_builder = self
             .operation
@@ -171,7 +173,7 @@ impl<O: Operation> OperationBuilder<O> {
         self,
         gas_station_options: GasStationOptions,
         signer: &impl TransactionSigner,
-        client: &impl ProductClient,
+        client: &O::Client,
     ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
         let mut tx_builder = self
             .operation

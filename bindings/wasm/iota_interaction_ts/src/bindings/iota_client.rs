@@ -31,8 +31,8 @@ impl TsIotaClient {
     }
 }
 
-impl From<AbstractProductClient> for TsIotaClient {
-    fn from(client: AbstractProductClient) -> Self {
+impl<'a> From<&'a AbstractProductClient> for TsIotaClient {
+    fn from(client: &'a AbstractProductClient) -> Self {
         let network = client.network;
         let network_name = if network.is_custom() {
             Cow::Borrowed("localnet")

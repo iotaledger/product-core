@@ -36,16 +36,16 @@ extern "C" {
 }
 
 impl Operation for WasmOperation {
+    type Client = AbstractProductClient;
     type Output = JsValue;
     type Error = WasmOperationError;
 
     async fn to_transaction(
         &self,
-        client: &impl ProductClient,
+        client: &Self::Client,
         tx_builder: TransactionBuilder<IotaClient>,
     ) -> Result<TransactionBuilder<IotaClient>, Self::Error> {
-        let abstract_client = AbstractProductClient::new(client);
-        let abstract_client_js = JsValue::from(abstract_client.clone());
+        let abstract_client_js = JsValue::from(client.clone());
         let iota_client = tx_builder.get_client().clone();
         let tx = tx_builder
             .finish()
@@ -57,7 +57,7 @@ impl Operation for WasmOperation {
                 .await?
         };
 
-        let ts_client = TsIotaClient::from(abstract_client);
+        let ts_client = TsIotaClient::from(client);
         let tx_bytes = wasm_tx.build(ts_client).await?;
         let tx = Transaction::from_bcs(&tx_bytes).map_err(|e| WasmOperationError(Box::new(e)))?;
 
