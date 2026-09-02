@@ -26,7 +26,7 @@ pub trait Operation: Send + Sync {
     ) -> impl Future<Output = Result<TransactionBuilder<IotaClient>, Self::Error>>;
     fn apply_effects(
         self,
-        client: &impl ProductClient,
+        client: &Self::Client,
         tx_effects: &mut TransactionEffects,
     ) -> impl Future<Output = Result<Self::Output, Self::Error>>;
 }
@@ -46,7 +46,7 @@ impl<O: Operation> Operation for OperationBuilder<O> {
 
     async fn apply_effects(
         self,
-        client: &impl ProductClient,
+        client: &Self::Client,
         tx_effects: &mut TransactionEffects,
     ) -> Result<Self::Output, Self::Error> {
         self.operation.apply_effects(client, tx_effects).await

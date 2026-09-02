@@ -6,7 +6,7 @@ use iota_sdk::{
     types::Transaction,
 };
 use js_sys::Error as JsError;
-use product_core::{operation::Operation, product_client::ProductClient};
+use product_core::operation::Operation;
 use wasm_bindgen::{JsCast, JsValue, prelude::wasm_bindgen};
 
 use crate::{
@@ -69,10 +69,10 @@ impl Operation for WasmOperation {
 
     async fn apply_effects(
         self,
-        client: &impl ProductClient,
+        client: &Self::Client,
         tx_effects: &mut iota_sdk::types::TransactionEffects,
     ) -> Result<Self::Output, Self::Error> {
-        let abstract_client = JsValue::from(AbstractProductClient::new(client));
+        let abstract_client = JsValue::from(client.clone());
         let ts_effects = serde_wasm_bindgen::to_value(tx_effects)
             .map_err(|e| WasmOperationError(Box::new(e)))?
             .unchecked_into();

@@ -90,13 +90,19 @@ impl AbstractProductClient {
         self.package_id.to_string()
     }
 
+    #[wasm_bindgen(getter, js_name = _iotaClient)]
     pub fn iota_client(&self) -> WasmIotaClient {
         WasmIotaClient(self.iota_client.clone())
+    }
+
+    #[wasm_bindgen(getter, js_name = _typeOriginTable)]
+    pub fn type_origin_table(&self) -> WasmTypeOriginTable {
+        WasmTypeOriginTable(self.type_origin_table.clone())
     }
 }
 
 impl AbstractProductClient {
-    pub(crate) fn new(client: &impl ProductClient) -> Self {
+    pub fn new(client: &impl ProductClient) -> Self {
         Self {
             network: client.network(),
             package_id: client.package_id(),
