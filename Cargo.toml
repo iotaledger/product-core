@@ -10,7 +10,7 @@ resolver = "2"
 members = ["product-core", "bindings/wasm/iota_interaction_ts"]
 
 [workspace.dependencies]
-iota-sdk = { git = "https://github.com/iotaledger/iota-rust-sdk.git", rev = "25907f345ed0deb33a56fe40677d1d128209ffea" }
+iota-sdk = "3.0.0-beta.1"
 thiserror = "2"
 url = { version = "2.5.7", features = ["serde"] }
 http = { version = "1.4.0" }
