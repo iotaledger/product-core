@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use http::HeaderMap;
 use iota_sdk::{
-    graphql_client::{Client as IotaClient, WaitForTx},
+    graphql_client::{Client as IotaClient, WaitForTransaction},
     transaction_builder::{TransactionBuilder, error::Error as TxError},
     types::{Address, Transaction, TransactionEffects, TransactionExpiration},
 };
@@ -32,7 +32,7 @@ pub trait Operation: Send + Sync {
 }
 
 impl<O: Operation> Operation for OperationBuilder<O> {
-    type Client =  O::Client;
+    type Client = O::Client;
     type Output = O::Output;
     type Error = O::Error;
 
@@ -135,7 +135,9 @@ impl<O: Operation> OperationBuilder<O> {
             .to_transaction(client, self.initialize_tx_builder(signer, client.as_ref()))
             .await?;
 
-        let mut effects = tx_builder.execute(signer, WaitForTx::Finalized).await?;
+        let mut effects = tx_builder
+            .execute(signer, WaitForTransaction::Finalized)
+            .await?;
 
         let output = self.operation.apply_effects(client, &mut effects).await?;
         Ok(OperationOutput {
@@ -159,7 +161,7 @@ impl<O: Operation> OperationBuilder<O> {
             .await?;
 
         let mut effects = tx_builder
-            .execute_with_sponsor(sender_signer, sponsor_signer, WaitForTx::Finalized)
+            .execute_with_sponsor(sender_signer, sponsor_signer, WaitForTransaction::Finalized)
             .await?;
 
         let output = self.operation.apply_effects(client, &mut effects).await?;
@@ -192,7 +194,9 @@ impl<O: Operation> OperationBuilder<O> {
             }
         }
 
-        let mut effects = tx_builder.execute(signer, WaitForTx::Finalized).await?;
+        let mut effects = tx_builder
+            .execute(signer, WaitForTransaction::Finalized)
+            .await?;
         let output = self.operation.apply_effects(client, &mut effects).await?;
         Ok(OperationOutput {
             output,

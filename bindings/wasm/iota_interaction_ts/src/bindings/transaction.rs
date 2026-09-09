@@ -20,8 +20,8 @@ extern "C" {
 }
 
 impl WasmTransaction {
-    /// Builds a transaction into its BCS format. Any incomplete value is fetched through
-    /// the provided client.
+    /// Builds a transaction into its BCS format. Any incomplete value is
+    /// fetched through the provided client.
     pub async fn build(self, client: impl Into<TsIotaClient>) -> Result<Vec<u8>, JsError> {
         self._build(BuildArguments::new(client)).await
     }

@@ -1,8 +1,7 @@
 // Copyright 2020-2026 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use iota_sdk::graphql_client::Client;
-use iota_sdk::types::ObjectId;
+use iota_sdk::{graphql_client::Client, types::ObjectId};
 use product_core::{
     network::Network, product_client::ProductClient, type_origin_table::TypeOriginTable,
 };
@@ -68,7 +67,8 @@ impl From<WasmTypeOriginTable> for TypeOriginTable {
     }
 }
 
-/// A type implementing [ProductClient] which can be constructed from an arbitrary [WasmProductClient].
+/// A type implementing [ProductClient] which can be constructed from an
+/// arbitrary [WasmProductClient].
 #[wasm_bindgen(skip_typescript)]
 #[derive(Clone)]
 pub struct AbstractProductClient {
@@ -134,8 +134,14 @@ impl ProductClient for AbstractProductClient {
 
 impl From<WasmProductClient> for AbstractProductClient {
     fn from(wasm_client: WasmProductClient) -> Self {
-        let network = wasm_client.network().parse().expect("invalid value for ProductClient.network");
-        let package_id = wasm_client.package_id().parse().expect("invalid value for ProductClient.packageId");
+        let network = wasm_client
+            .network()
+            .parse()
+            .expect("invalid value for ProductClient.network");
+        let package_id = wasm_client
+            .package_id()
+            .parse()
+            .expect("invalid value for ProductClient.packageId");
         let iota_client = wasm_client.iota_client().0;
         let type_origin_table = wasm_client.type_origin_table().0;
 

@@ -12,6 +12,6 @@
 // pub use wasm_iota_client::*;
 // pub use wasm_transaction_signer::*;
 
-pub mod transaction;
 pub mod iota_client;
+pub mod transaction;
 pub mod transaction_signer;

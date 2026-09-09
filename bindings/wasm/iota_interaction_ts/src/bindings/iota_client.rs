@@ -3,8 +3,9 @@
 
 use std::borrow::Cow;
 
-use crate::product_client::AbstractProductClient;
 use wasm_bindgen::prelude::wasm_bindgen;
+
+use crate::product_client::AbstractProductClient;
 
 #[wasm_bindgen(module = "@iota/iota-sdk/client")]
 extern "C" {
