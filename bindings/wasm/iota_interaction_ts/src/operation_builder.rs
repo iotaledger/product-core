@@ -101,7 +101,7 @@ impl WasmOperationBuilder {
         signer: &WasmTransactionSigner,
         client: &WasmProductClient,
     ) -> Result<WasmOperationAndTransaction, JsError> {
-        let abstract_client = AbstractProductClient::try_from(client.clone())?;
+        let abstract_client = AbstractProductClient::from(client.clone());
         let (operation, tx) = self.0.build(signer, &abstract_client).await?;
         let wasm_tx = WasmTransaction::from_bcs_bytes(&tx.to_bcs())
             .map_err(|e| JsError::new(&ToString::to_string(&e.to_string())))?;
@@ -117,7 +117,7 @@ impl WasmOperationBuilder {
         signer: &WasmTransactionSigner,
         client: &WasmProductClient,
     ) -> Result<WasmOperationOutput, JsError> {
-        let abstract_client = AbstractProductClient::try_from(client.clone())?;
+        let abstract_client = AbstractProductClient::from(client.clone());
         self.0
             .execute(signer, &abstract_client)
             .await
@@ -132,7 +132,7 @@ impl WasmOperationBuilder {
         sponsor_signer: &WasmTransactionSigner,
         client: &WasmProductClient,
     ) -> Result<WasmOperationOutput, JsError> {
-        let abstract_client = AbstractProductClient::try_from(client.clone())?;
+        let abstract_client = AbstractProductClient::from(client.clone());
         self.0
             .execute_with_sponsor(sender_signer, sponsor_signer, &abstract_client)
             .await
@@ -148,7 +148,7 @@ impl WasmOperationBuilder {
         client: &WasmProductClient,
     ) -> Result<WasmOperationOutput, JsError> {
         let gas_station_options = GasStationOptions::try_from(gas_station_options.clone())?;
-        let abstract_client = AbstractProductClient::try_from(client.clone())?;
+        let abstract_client = AbstractProductClient::from(client.clone());
         self.0
             .execute_with_gas_station(gas_station_options, signer, &abstract_client)
             .await
@@ -166,16 +166,15 @@ pub struct WasmOperationAndTransaction {
 #[wasm_bindgen(skip_typescript, js_name = OperationOutput, getter_with_clone)]
 pub struct WasmOperationOutput {
     pub output: JsValue,
-    #[wasm_bindgen(js_name = remainingEffects)]
-    pub remaining_effects: JsValue,
+    #[wasm_bindgen(js_name = effects)]
+    pub effects: JsValue,
 }
 
 impl From<OperationOutput<JsValue>> for WasmOperationOutput {
     fn from(value: OperationOutput<JsValue>) -> Self {
         WasmOperationOutput {
             output: value.output,
-            remaining_effects: serde_wasm_bindgen::to_value(&value.remaining_effects)
-                .expect("same repr"),
+            effects: serde_wasm_bindgen::to_value(&value.effects).expect("same repr"),
         }
     }
 }

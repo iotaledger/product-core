@@ -12,5 +12,5 @@ export interface Operation<Output = unknown> {
 
 export interface OperationOutput<O extends Operation> {
     output: Awaited<ReturnType<O["applyEffects"]>>,
-    remainingEffects: TransactionEffects,
+    effects: TransactionEffects,
 }

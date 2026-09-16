@@ -129,20 +129,25 @@ impl<O: Operation> OperationBuilder<O> {
         self,
         signer: &impl TransactionSigner,
         client: &O::Client,
-    ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<OperationOutput<O::Output>, OperationError> {
         let tx_builder = self
             .operation
             .to_transaction(client, self.initialize_tx_builder(signer, client.as_ref()))
-            .await?;
+            .await
+            .map_err(|e| OperationError::Build(e.into()))?;
 
         let mut effects = tx_builder
             .execute(signer, WaitForTransaction::Finalized)
             .await?;
 
-        let output = self.operation.apply_effects(client, &mut effects).await?;
+        let output = self
+            .operation
+            .apply_effects(client, &mut effects)
+            .await
+            .map_err(|e| OperationError::Application(e.into()))?;
         Ok(OperationOutput {
             output,
-            remaining_effects: effects,
+            effects,
         })
     }
 
@@ -151,23 +156,28 @@ impl<O: Operation> OperationBuilder<O> {
         sender_signer: &impl TransactionSigner,
         sponsor_signer: &impl TransactionSigner,
         client: &O::Client,
-    ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<OperationOutput<O::Output>, OperationError> {
         let tx_builder = self
             .operation
             .to_transaction(
                 client,
                 self.initialize_tx_builder(sender_signer, client.as_ref()),
             )
-            .await?;
+            .await
+            .map_err(|e| OperationError::Build(e.into()))?;
 
         let mut effects = tx_builder
             .execute_with_sponsor(sender_signer, sponsor_signer, WaitForTransaction::Finalized)
             .await?;
 
-        let output = self.operation.apply_effects(client, &mut effects).await?;
+        let output = self
+            .operation
+            .apply_effects(client, &mut effects)
+            .await
+            .map_err(|e| OperationError::Application(e.into()))?;
         Ok(OperationOutput {
             output,
-            remaining_effects: effects,
+            effects,
         })
     }
 
@@ -176,11 +186,12 @@ impl<O: Operation> OperationBuilder<O> {
         gas_station_options: GasStationOptions,
         signer: &impl TransactionSigner,
         client: &O::Client,
-    ) -> Result<OperationOutput<O::Output>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<OperationOutput<O::Output>, OperationError> {
         let mut tx_builder = self
             .operation
             .to_transaction(client, self.initialize_tx_builder(signer, client.as_ref()))
-            .await?;
+            .await
+            .map_err(|e| OperationError::Build(e.into()))?;
         {
             let tx_builder_gas_station = tx_builder.gas_station_sponsor(gas_station_options.url);
 
@@ -197,10 +208,14 @@ impl<O: Operation> OperationBuilder<O> {
         let mut effects = tx_builder
             .execute(signer, WaitForTransaction::Finalized)
             .await?;
-        let output = self.operation.apply_effects(client, &mut effects).await?;
+        let output = self
+            .operation
+            .apply_effects(client, &mut effects)
+            .await
+            .map_err(|e| OperationError::Application(e.into()))?;
         Ok(OperationOutput {
             output,
-            remaining_effects: effects,
+            effects,
         })
     }
 
@@ -231,7 +246,7 @@ impl<O: Operation> OperationBuilder<O> {
 #[derive(Debug)]
 pub struct OperationOutput<T> {
     pub output: T,
-    pub remaining_effects: TransactionEffects,
+    pub effects: TransactionEffects,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -240,7 +255,13 @@ pub enum OperationError {
     #[error("failed to build transaction")]
     Build(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("failed to execute this operation's transaction")]
-    Execute(#[source] TxError),
+    Execute(
+        #[source]
+        #[from]
+        TxError,
+    ),
+    #[error("failed to apply this operation's effects")]
+    Application(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[derive(Debug)]
