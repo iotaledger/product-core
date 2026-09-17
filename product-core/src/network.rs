@@ -8,7 +8,7 @@ use std::{fmt::Display, str::FromStr};
 const CHAIN_ID_SIZE: usize = 8;
 const MAINNET_CHAIN_ID: &str = "6364aad5";
 const TESTNET_CHAIN_ID: &str = "2304aa97";
-const DEVNET_CHAIN_ID: &str = "e678123a";
+const DEVNET_CHAIN_ID: &str = "daf90477";
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 enum NetworkImpl {
