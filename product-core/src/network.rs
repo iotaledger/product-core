@@ -52,7 +52,7 @@ impl Network {
     /// Parses the given string into an IOTA network.
     /// # Examples
     /// ```
-    /// # use new_product_core::network::Network;
+    /// # use product_core::network::Network;
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let mainnet = Network::parse("mainnet")?;
     /// assert_eq!(mainnet, Network::Mainnet);
@@ -60,7 +60,7 @@ impl Network {
     /// let testnet = Network::parse("2304aa97")?;
     /// assert_eq!(testnet, Network::Testnet);
     ///
-    /// let custom = Network::parse("aaaaaaaa")?;
+    /// let custom = Network::parse("a1a2a3a4")?;
     /// assert!(custom.is_custom());
     ///
     /// let _err = Network::parse(">:/ grrr").unwrap_err();
@@ -100,7 +100,7 @@ fn is_chain_id(s: impl AsRef<[u8]>) -> bool {
     };
 
     s.chars()
-        .all(|c| c.is_ascii_lowercase() && c.is_ascii_hexdigit())
+        .all(|c| (c.is_ascii_digit() || c.is_ascii_lowercase()) && c.is_ascii_hexdigit())
 }
 
 impl Display for Network {
