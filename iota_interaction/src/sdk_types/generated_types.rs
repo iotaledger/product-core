@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use super::iota_json_rpc_types::iota_transaction::IotaTransactionBlockResponseOptions;
 use super::iota_types::quorum_driver_types::ExecuteTransactionRequestType;
-use super::types::crypto::Signature;
-use super::types::transaction::TransactionData;
+use iota_sdk_types::SimpleSignature as Signature;
+use iota_sdk_types::Transaction as TransactionData;
 use crate::rpc_types::{DevInspectArgs, EventFilter, IotaObjectDataFilter, IotaObjectDataOptions};
 use iota_sdk_types::{Address, TransactionKind};
 use crate::types::dynamic_field::DynamicFieldName;

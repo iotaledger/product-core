@@ -4,10 +4,14 @@ use std::str::FromStr;
 
 use fastcrypto::encoding::{Base64, Encoding};
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEvents, OwnedObjectRef};
-use iota_interaction::types::crypto::{EncodeDecodeBase64, IotaKeyPair, PublicKey, Signature};
-use iota_interaction::types::transaction::TransactionData;
+use iota_interaction::types::crypto::{EncodeDecodeBase64, PublicKey};
 use iota_interaction::ProgrammableTransactionBcs;
-use iota_sdk_types::{Address, CommandArgumentError, ObjectId, ObjectReference, Owner, TransactionDigest, Version};
+use iota_sdk_crypto::simple::SimpleKeypair as IotaKeyPair;
+use iota_sdk_crypto::ToFromBech32 as _;
+use iota_sdk_types::{
+  Address, CommandArgumentError, ObjectId, ObjectReference, Owner, SimpleSignature as Signature,
+  Transaction as TransactionData, TransactionDigest, Version,
+};
 use js_sys::{Promise, Uint8Array};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -427,7 +431,7 @@ impl TryFrom<&'_ WasmKeyPair> for IotaKeyPair {
   type Error = JsError;
   fn try_from(value: &'_ WasmKeyPair) -> Result<Self, Self::Error> {
     let bech32_sk = value.bech32_secret_key();
-    IotaKeyPair::decode(&bech32_sk).map_err(|e| JsError::new(&e.to_string()))
+    IotaKeyPair::from_bech32(&bech32_sk).map_err(|e| JsError::new(&e.to_string()))
   }
 }
 

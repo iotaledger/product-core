@@ -6,14 +6,13 @@ use std::result::Result as StdResult;
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
 use iota_interaction::rpc_types::{IotaTransactionBlockEffects, IotaTransactionBlockEvents};
-use iota_interaction::types::crypto::Signature;
-use iota_interaction::types::transaction::{TransactionData, TransactionDataAPI as _};
+use iota_interaction::types::transaction::TransactionAPI as _;
 use iota_interaction_ts::bindings::{
   WasmIotaTransactionBlockEffects, WasmIotaTransactionBlockEvents, WasmIotaTransactionBlockResponse, WasmObjectRef,
   WasmTransactionDataBuilder,
 };
 use iota_interaction_ts::core_client::{WasmCoreClient, WasmCoreClientReadOnly};
-use iota_sdk_types::ProgrammableTransaction;
+use iota_sdk_types::{ProgrammableTransaction, SimpleSignature as Signature, Transaction as TransactionData};
 use js_sys::{JsString, Reflect};
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsCast as _, JsValue};

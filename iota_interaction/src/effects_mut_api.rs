@@ -1,7 +1,7 @@
 // Copyright 2020-2025 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use iota_sdk_types::object::ObjectReference;
+use iota_sdk_types::ObjectReference;
 
 use crate::rpc_types::{
   IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI, IotaTransactionBlockEffectsV1, OwnedObjectRef,

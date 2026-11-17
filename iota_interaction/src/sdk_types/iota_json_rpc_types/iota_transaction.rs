@@ -6,7 +6,7 @@ use std::fmt::{self, Display, Formatter};
 use std::vec::Vec;
 use iota_sdk_types::{
     Address, ExecutionStatus, ObjectId, Owner, TypeTag,
-    gas::GasCostSummary, ObjectReference, Version, TransactionDigest,
+    GasCostSummary, ObjectReference, Version, TransactionDigest,
     TransactionEventsDigest,
 };
 use enum_dispatch::enum_dispatch;
@@ -14,7 +14,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DisplayFromStr, serde_as};
 
 use crate::iota_types::base_types::EpochId;
-use crate::iota_types::storage::{DeleteKind, WriteKind};
+use crate::iota_types::storage::DeleteKind;
+use iota_sdk_types::WriteKind;
 use crate::types::parse_iota_type_tag;
 use crate::types::quorum_driver_types::ExecuteTransactionRequestType as NativeExecuteTransactionRequestType;
 

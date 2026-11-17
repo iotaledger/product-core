@@ -6,7 +6,10 @@ use std::option::Option;
 use std::result::Result;
 
 use async_trait::async_trait;
-use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction, TransactionDigest, TransactionKind, Version};
+use iota_sdk_types::{
+  Address, ObjectId, ProgrammableTransaction, SimpleSignature as Signature, Transaction as TransactionData,
+  TransactionDigest, TransactionKind, Version,
+};
 use secret_storage::{SignatureScheme as SignatureSchemeSecretStorage, Signer};
 
 use crate::error::IotaRpcResult;
@@ -15,12 +18,11 @@ use crate::rpc_types::{
   IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
   IotaTransactionBlockEvents, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
-use crate::types::crypto::{PublicKey, Signature};
+use crate::types::crypto::PublicKey;
 use crate::types::dynamic_field::DynamicFieldName;
 use crate::types::event::EventID;
 use crate::types::iota_serde::BigInt;
 use crate::types::quorum_driver_types::ExecuteTransactionRequestType;
-use crate::types::transaction::TransactionData;
 use crate::OptionalSend;
 #[cfg(feature = "send-sync-transaction")]
 use crate::OptionalSync;

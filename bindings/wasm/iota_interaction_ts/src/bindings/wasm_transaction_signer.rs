@@ -3,10 +3,9 @@
 
 use anyhow::anyhow;
 use async_trait::async_trait;
-use iota_interaction::types::crypto::{PublicKey, Signature};
-use iota_interaction::types::transaction::TransactionData;
+use iota_interaction::types::crypto::PublicKey;
 use iota_interaction::IotaKeySignature;
-use iota_sdk_types::SignatureScheme;
+use iota_sdk_types::{SignatureScheme, SimpleSignature as Signature, Transaction as TransactionData};
 use js_sys::{JsString, Uint8Array};
 use secret_storage::{Error as SecretStorageError, Signer};
 use wasm_bindgen::prelude::wasm_bindgen;

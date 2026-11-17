@@ -310,7 +310,7 @@ impl Transaction for GetTestCoin {
       .map(|(i, obj_ref)| (i, obj_ref.object_id()));
 
     let is_target_coin =
-      |obj_info: &IotaObjectResponse| obj_info.data.as_ref().unwrap().type_.as_ref().unwrap().is_coin();
+      |obj_info: &IotaObjectResponse| obj_info.data.as_ref().unwrap().object_type.as_ref().unwrap().is_coin();
 
     let mut i = None;
     let mut id = None;

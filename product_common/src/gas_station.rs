@@ -9,9 +9,7 @@ use std::time::Duration;
 
 use fastcrypto::encoding::{Base64, Encoding as _};
 use iota_interaction::rpc_types::IotaTransactionBlockEffects;
-use iota_interaction::types::crypto::Signature;
-use iota_interaction::types::transaction::TransactionData;
-use iota_sdk_types::{Address, ObjectReference};
+use iota_sdk_types::{Address, ObjectReference, SimpleSignature as Signature, Transaction as TransactionData};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::http_client::{HeaderMap, HttpClient, Method, Request, Url, UrlParsingError};

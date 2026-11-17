@@ -3,12 +3,12 @@
 
 use anyhow::anyhow;
 use async_trait::async_trait;
+use iota_sdk_crypto::simple::SimpleKeypair as IotaKeyPair;
 use iota_sdk_crypto::Signer as _;
-use iota_sdk_types::Address;
+use iota_sdk_types::{Address, SimpleSignature as Signature, Transaction as TransactionData};
 use secret_storage::{Error as SecretStorageError, Signer};
 
-use crate::types::crypto::{IotaKeyPair, PublicKey, Signature};
-use crate::types::transaction::TransactionData;
+use crate::types::crypto::PublicKey;
 use crate::IotaKeySignature;
 
 /// A wrapper over an [IotaKeyPair] that implements [Signer<IotaKeySignature>].
@@ -40,7 +40,7 @@ impl KeyPairSigner {
 
   /// Returns the [PublicKey] of this wrapped [IotaKeyPair].
   pub fn public_key(&self) -> PublicKey {
-    self.0.public()
+    PublicKey::from(&self.0)
   }
 }
 
@@ -50,7 +50,7 @@ impl Signer<IotaKeySignature> for KeyPairSigner {
   type KeyId = Address;
 
   fn key_id(&self) -> Self::KeyId {
-    Address::from(&self.0.public())
+    Address::from(&PublicKey::from(&self.0))
   }
 
   async fn public_key(&self) -> Result<PublicKey, SecretStorageError> {
