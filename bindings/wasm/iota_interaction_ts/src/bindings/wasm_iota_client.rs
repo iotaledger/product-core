@@ -11,13 +11,14 @@ use iota_interaction::rpc_types::{
   CoinPage, DevInspectArgs, DevInspectResults, EventFilter, EventPage, IotaObjectDataOptions, IotaObjectResponse,
   IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
-use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
 use iota_interaction::types::event::EventID;
 use iota_interaction::types::iota_serde::BigInt;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
-use iota_interaction::types::transaction::TransactionData;
-use iota_sdk_types::{Address, ObjectId, TransactionDigest, TransactionKind, Version};
+use iota_sdk_types::{
+  Address, ObjectId, SimpleSignature as Signature, Transaction as TransactionData, TransactionDigest, TransactionKind,
+  Version,
+};
 use js_sys::Promise;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;

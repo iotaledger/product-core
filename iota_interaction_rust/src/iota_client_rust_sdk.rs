@@ -17,17 +17,19 @@ use iota_interaction::rpc_types::{
   IotaTransactionBlockEvents, IotaTransactionBlockResponse, IotaTransactionBlockResponseOptions, ObjectChange,
   ObjectsPage,
 };
-use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
 use iota_interaction::types::event::EventID;
 use iota_interaction::types::iota_serde::BigInt;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
-use iota_interaction::types::transaction::{Transaction, TransactionData, TransactionDataAPI as _};
+use iota_interaction::types::transaction::{TransactionAPI as _, TransactionEnvelope as Transaction};
 use iota_interaction::{
   CoinReadTrait, EventTrait, IotaClient, IotaClientTrait, IotaKeySignature, IotaTransactionBlockResponseT,
   OptionalSync, QuorumDriverTrait, ReadTrait,
 };
-use iota_sdk_types::{Address, ObjectId, ProgrammableTransaction, TransactionDigest, TransactionKind, Version};
+use iota_sdk_types::{
+  Address, ObjectId, ProgrammableTransaction, SimpleSignature as Signature, Transaction as TransactionData,
+  TransactionDigest, TransactionKind, Version,
+};
 use secret_storage::Signer;
 
 /// The minimum balance required to execute a transaction.

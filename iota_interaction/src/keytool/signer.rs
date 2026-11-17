@@ -6,12 +6,11 @@ use std::path::{Path, PathBuf};
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
 use fastcrypto::encoding::{Base64, Encoding};
-use iota_sdk_types::Address;
+use iota_sdk_types::{Address, SimpleSignature as Signature, Transaction as TransactionData};
 use secret_storage::{Error as SecretStorageError, Signer};
 
 use super::internal::IotaCliWrapper;
-use crate::types::crypto::{PublicKey, Signature};
-use crate::types::transaction::TransactionData;
+use crate::types::crypto::PublicKey;
 use crate::IotaKeySignature;
 
 /// Builder structure to ease the creation of a [KeytoolSigner].

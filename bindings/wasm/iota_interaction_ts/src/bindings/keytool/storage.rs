@@ -3,8 +3,9 @@
 
 use std::str::FromStr;
 
-use iota_interaction::types::crypto::IotaKeyPair;
 use iota_interaction::KeytoolStorage;
+use iota_sdk_crypto::simple::SimpleKeypair as IotaKeyPair;
+use iota_sdk_crypto::ToFromBech32 as _;
 use iota_sdk_types::{Address, SignatureScheme};
 use js_sys::{Array, JsString};
 use wasm_bindgen::prelude::*;
@@ -92,7 +93,7 @@ impl WasmKeytoolStorage {
   /// Returns the key's alias.
   #[wasm_bindgen(js_name = insertKey)]
   pub fn insert_key(&self, bech32_secret_key: &str) -> Result<String> {
-    let key = IotaKeyPair::decode(bech32_secret_key)
+    let key = IotaKeyPair::from_bech32(bech32_secret_key)
       .map_err(|e| anyhow::anyhow!("{e:?}"))
       .wasm_result()?;
     self.0.insert_key(key).wasm_result()

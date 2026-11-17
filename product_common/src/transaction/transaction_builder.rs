@@ -10,13 +10,13 @@ use iota_interaction::rpc_types::{
   IotaTransactionBlockEffects, IotaTransactionBlockEffectsAPI as _, IotaTransactionBlockEvents,
   IotaTransactionBlockResponseOptions,
 };
-use iota_interaction::types::crypto::{IotaSignature as _, Signature};
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
-use iota_interaction::types::transaction::{TransactionData, TransactionDataAPI as _, TransactionDataV1};
+use iota_interaction::types::transaction::TransactionAPI as _;
 use iota_interaction::{IotaClientTrait, IotaKeySignature, OptionalSend, OptionalSync};
 use iota_sdk_types::crypto::{Intent, IntentMessage};
 use iota_sdk_types::{
-  Address, GasPayment, ObjectReference, ProgrammableTransaction, TransactionExpiration, TransactionKind,
+  Address, GasPayment, ObjectReference, ProgrammableTransaction, SimpleSignature as Signature,
+  Transaction as TransactionData, TransactionExpiration, TransactionKind, TransactionV1 as TransactionDataV1,
 };
 use itertools::Itertools;
 use secret_storage::Signer;
@@ -272,8 +272,7 @@ where
 
     let gas_owner = tx_data.gas_owner();
     let mut intent_msg = IntentMessage::new(Intent::iota_transaction(), tx_data);
-    signature
-      .verify_secure(&intent_msg, gas_owner)
+    verify_user_signature(&signature, &intent_msg, gas_owner)
       .map_err(|e| Error::TransactionBuildingFailed(format!("invalid sponsor signature: {e}")))?;
     let gas_data = std::mem::replace(
       intent_msg.value.gas_data_mut(),
@@ -726,4 +725,24 @@ mod gas_station {
 
     Ok(TransactionOutput { output, response })
   }
+}
+
+/// Verifies a user signature over `value` and checks that it was produced by `author`.
+///
+/// Replaces `IotaSignature::verify_secure`, which iota-types removed in v1.35.
+fn verify_user_signature<T: serde::Serialize>(
+  signature: &Signature,
+  value: &IntentMessage<T>,
+  author: Address,
+) -> anyhow::Result<()> {
+  use fastcrypto::hash::{Blake2b256, HashFunction as _};
+  use iota_sdk_crypto::simple::SimpleVerifier;
+  use iota_sdk_crypto::Verifier as _;
+
+  let digest = Blake2b256::digest(bcs::to_bytes(value)?).digest;
+  let address = Address::from(signature.to_public_key());
+  anyhow::ensure!(author == address, "incorrect signer, expected {author}, got {address}");
+  SimpleVerifier
+    .verify(&digest, signature)
+    .map_err(|e| anyhow::anyhow!("failed to verify user signature: {e}"))
 }

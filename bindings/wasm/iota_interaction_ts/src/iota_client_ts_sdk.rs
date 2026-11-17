@@ -11,18 +11,18 @@ use iota_interaction::rpc_types::{
   IotaObjectResponse, IotaObjectResponseQuery, IotaPastObjectResponse, IotaTransactionBlockEffects,
   IotaTransactionBlockEvents, IotaTransactionBlockResponseOptions, ObjectsPage,
 };
-use iota_interaction::types::crypto::Signature;
 use iota_interaction::types::dynamic_field::DynamicFieldName;
 use iota_interaction::types::event::EventID;
 use iota_interaction::types::iota_serde::BigInt;
 use iota_interaction::types::quorum_driver_types::ExecuteTransactionRequestType;
-use iota_interaction::types::transaction::{TransactionData, TransactionDataAPI as _};
+use iota_interaction::types::transaction::TransactionAPI as _;
 use iota_interaction::{
   CoinReadTrait, EventTrait, IotaClientTrait, IotaKeySignature, IotaTransactionBlockResponseT, QuorumDriverTrait,
   ReadTrait,
 };
 use iota_sdk_types::{
-  Address, ObjectId, ProgrammableTransaction as ProgrammableTransactionSdk, TransactionDigest, TransactionKind, Version,
+  Address, ObjectId, ProgrammableTransaction as ProgrammableTransactionSdk, SimpleSignature as Signature,
+  Transaction as TransactionData, TransactionDigest, TransactionKind, Version,
 };
 use secret_storage::Signer;
 

@@ -13,11 +13,11 @@ use anyhow::{anyhow, bail};
 use fastcrypto::encoding::Base64;
 use iota_sdk_types::{
     Address, Identifier, ObjectId, Owner, StructTag, ObjectDigest, ObjectReference, Version, TransactionDigest,
-    move_package::{MovePackage, TypeOrigin, UpgradeInfo},
+    MovePackage, TypeOrigin, UpgradeInfo,
 };
 use crate::types::{
     base_types::{ObjectInfo, ObjectType},
-    error::{ExecutionError, UserInputError, UserInputResult},
+    error::{UserInputError, UserInputResult},
 };
 use super::iota_move::{IotaMoveStruct, IotaMoveValue};
 use super::iota_object_response_error::IotaObjectResponseError;
@@ -698,29 +698,6 @@ impl From<MovePackage> for IotaRawMovePackage {
     }
 }
 
-impl IotaRawMovePackage {
-    pub fn to_move_package(
-        &self,
-        max_move_package_size: u64,
-    ) -> Result<MovePackage, ExecutionError> {
-        Ok(MovePackage::new(
-            self.id,
-            self.version.into(),
-            self.module_map
-                .iter()
-                .map(|(k, v)| (Identifier::new_unchecked(k), v.clone()))
-                .collect(),
-            max_move_package_size,
-            self.type_origin_table.clone(),
-            self.linkage_table
-                .clone()
-                .into_iter()
-                .map(|(k, v)| (k, v.into()))
-                .collect(),
-        )?)
-    }
-}
-
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "status", content = "details", rename = "ObjectRead")]
@@ -895,7 +872,7 @@ impl IotaObjectDataFilter {
             IotaObjectDataFilter::MatchAny(filters) => filters.iter().any(|f| f.matches(object)),
             IotaObjectDataFilter::MatchNone(filters) => !filters.iter().any(|f| f.matches(object)),
             IotaObjectDataFilter::StructType(s) => {
-                let obj_tag: StructTag = match &object.type_ {
+                let obj_tag: StructTag = match &object.object_type {
                     ObjectType::Package => return false,
                     ObjectType::Struct(s) => s.clone().into(),
                 };
@@ -910,11 +887,11 @@ impl IotaObjectDataFilter {
                 }
             }
             IotaObjectDataFilter::MoveModule { package, module } => {
-                matches!(&object.type_, ObjectType::Struct(s) if &ObjectId::from(s.address()) == package
+                matches!(&object.object_type, ObjectType::Struct(s) if &ObjectId::from(s.address()) == package
                         && s.module() == module)
             }
             IotaObjectDataFilter::Package(p) => {
-                matches!(&object.type_, ObjectType::Struct(s) if &ObjectId::from(s.address()) == p)
+                matches!(&object.object_type, ObjectType::Struct(s) if &ObjectId::from(s.address()) == p)
             }
             IotaObjectDataFilter::AddressOwner(a) => {
                 matches!(object.owner, Owner::Address(addr) if &addr == a)

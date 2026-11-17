@@ -4,7 +4,8 @@
 use std::path::Path;
 
 use anyhow::{anyhow, Context as _};
-use iota_sdk_crypto::Signer;
+use iota_sdk_crypto::simple::SimpleKeypair as IotaKeyPair;
+use iota_sdk_crypto::{Signer, ToFromBech32 as _};
 use iota_sdk_types::{
   Address, Ed25519Signature, Secp256k1Signature, Secp256r1Signature, SignatureScheme as IotaSignatureScheme,
 };
@@ -12,7 +13,7 @@ use serde::Deserialize;
 
 use super::internal::IotaCliWrapper;
 use super::KeytoolSignerBuilder;
-use crate::types::crypto::{IotaKeyPair, PublicKey};
+use crate::types::crypto::PublicKey;
 
 #[derive(Clone, Default)]
 pub struct KeytoolStorage {
@@ -66,8 +67,8 @@ impl KeytoolStorage {
   /// Inserts a new key in this keytool.
   /// Returns the alias assigned to the inserted key.
   pub fn insert_key(&self, key: IotaKeyPair) -> anyhow::Result<String> {
-    let bech32_encoded_key = key.encode().map_err(|e| anyhow!("{e:?}"))?;
-    let key_scheme = key.public().scheme().to_string();
+    let bech32_encoded_key = key.to_bech32().map_err(|e| anyhow!("{e:?}"))?;
+    let key_scheme = PublicKey::from(&key).scheme().to_string();
     let cmd = format!("keytool import {bech32_encoded_key} {key_scheme}");
 
     let json_output = self.iota_cli_wrapper.run_command(&cmd)?;
@@ -88,14 +89,18 @@ impl KeytoolStorage {
         exported_private_key: bech32_encoded_sk,
       } = serde_json::from_value(json_output)?;
 
-      IotaKeyPair::decode(&bech32_encoded_sk).map_err(|e| anyhow!("failed to decode private key: {e:?}"))?
+      IotaKeyPair::from_bech32(&bech32_encoded_sk).map_err(|e| anyhow!("failed to decode private key: {e:?}"))?
     };
     let data = data.as_ref();
 
-    let sig = match keypair {
-      IotaKeyPair::Ed25519(sk) => Signer::<Ed25519Signature>::sign(&sk, data).into_inner().to_vec(),
-      IotaKeyPair::Secp256r1(sk) => Signer::<Secp256r1Signature>::sign(&sk, data).into_inner().to_vec(),
-      IotaKeyPair::Secp256k1(sk) => Signer::<Secp256k1Signature>::sign(&sk, data).into_inner().to_vec(),
+    let sig = if let Some(sk) = keypair.as_opt_ed25519() {
+      Signer::<Ed25519Signature>::sign(sk, data).into_bytes().to_vec()
+    } else if let Some(sk) = keypair.as_opt_secp256r1() {
+      Signer::<Secp256r1Signature>::sign(sk, data).into_bytes().to_vec()
+    } else if let Some(sk) = keypair.as_opt_secp256k1() {
+      Signer::<Secp256k1Signature>::sign(sk, data).into_bytes().to_vec()
+    } else {
+      return Err(anyhow!("unsupported key scheme {:?}", keypair.scheme()));
     };
 
     Ok(sig)
